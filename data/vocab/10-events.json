@@ -25,7 +25,11 @@
       { "key": "contact", "ko": "접촉", "desc": "두 운반체가 닿음" },
       { "key": "retract", "ko": "철회", "desc": "사건을 지우지 않고 철회 표시" },
       { "key": "text_ready", "ko": "문장 준비" },
-      { "key": "saved", "ko": "저장됨" }
+      { "key": "saved", "ko": "저장됨" },
+      { "key": "condition_changed", "ko": "컨디션 변화" },
+      { "key": "mode_entered", "ko": "모드 진입" },
+      { "key": "action_chosen", "ko": "행동 선택", "desc": "인물이 스스로 다음 행동을 고름" },
+      { "key": "outside_day_done", "ko": "밖의 하루 끝", "desc": "직장 블록의 요약 카드가 정해짐" }
     ]
   }
 ]

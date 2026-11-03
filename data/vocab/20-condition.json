@@ -1,0 +1,26 @@
+[
+  {
+    "category": "condition",
+    "entries": [
+      { "key": "reserve", "ko": "여유", "en": "reserve", "aliases": ["만족도"], "desc": "부정 방향 사건을 버티는 정도. 0이 평범한 하루. 숫자로 보이지 않는다" },
+      { "key": "energy", "ko": "에너지", "en": "energy", "desc": "행동할 수 있는 힘" },
+      { "key": "tension", "ko": "긴장", "en": "tension", "desc": "풀리지 않고 쌓인 것" }
+    ]
+  },
+  {
+    "category": "mode",
+    "entries": [
+      { "key": "drained", "ko": "방전", "en": "drained", "desc": "거의 아무것도 못 하는 날" },
+      { "key": "release", "ko": "터짐", "en": "release", "desc": "쌓인 것이 방출되는 날 (울기 등)" },
+      { "key": "surge", "ko": "몰아침", "en": "surge", "desc": "한 가지를 긴 시간 몰아서 하는 날 (두 시간 청소 등)" },
+      { "key": "steady", "ko": "평온", "en": "steady", "desc": "평소의 자율 행동" }
+    ]
+  },
+  {
+    "category": "action",
+    "entries": [
+      { "key": "rest", "ko": "쉬기", "en": "rest", "desc": "아무것도 안 하기도 포함. 여유를 올릴 수 있다" },
+      { "key": "cry", "ko": "울기", "en": "cry", "desc": "긴장의 방출. 라벨 없이 상태로만 그린다" }
+    ]
+  }
+]
