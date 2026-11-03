@@ -1,0 +1,73 @@
+{
+  "format": "small-happiness-patch",
+  "version": 1,
+  "why": "시험 케이스: 상한 음식이 냄새, 벌레를 거쳐 주방에서 거실로 번지는 사슬과, 신발 밑창 먼지가 현관 바닥으로 옮겨지는 사슬 (임시값 포함)",
+  "defs": [
+    {
+      "id": "OBJ+1",
+      "names": { "ko": "음식", "en": "food" },
+      "aliases": ["식재료"],
+      "mobility": "가변",
+      "slots": { "body": { "features": ["상함", "냄새"] } },
+      "meanings": [
+        { "label": "먹을 수 있음", "when": ["body:부패@<=1"], "means": "edible" },
+        { "label": "먹을 수 없음", "when": [], "means": "inedible" }
+      ],
+      "rules": {
+        "spoil": {
+          "label": "상하면 냄새가 뚜렷해진다",
+          "on": ["OBJ+1|body:rot@>=2"],
+          "emits": ["음식|body:smell@>=2"]
+        }
+      },
+      "desc": ["냉장고에 두고 잊으면 상한다."]
+    },
+    {
+      "id": "PLC+1",
+      "names": { "ko": "주방", "en": "kitchen" },
+      "slots": { "space": { "features": ["냄새", "벌레"] } },
+      "rules": {
+        "odor_reach": {
+          "label": "상한 음식의 냄새가 주방에 퍼진다",
+          "on": ["OBJ+1|body:smell@>=2"],
+          "emits": ["PLC+1|space:smell@>=1"]
+        },
+        "bugs": {
+          "label": "냄새가 뚜렷해지면 벌레가 꼬인다",
+          "on": ["PLC+1|space:smell@>=2"],
+          "emits": ["PLC+1|space:bug@=1"]
+        },
+        "spread": {
+          "label": "벌레가 거실로 번진다",
+          "on": ["PLC+1|space:bug@>=1"],
+          "emits": ["PLC+2|space:bug@=1"]
+        }
+      }
+    },
+    {
+      "id": "PLC+2",
+      "names": { "ko": "거실", "en": "living room" },
+      "slots": { "space": { "features": ["벌레"] } }
+    },
+    {
+      "id": "OBJ+2",
+      "names": { "ko": "신발", "en": "shoes" },
+      "aliases": ["구두", "더비슈즈"],
+      "mobility": "portable",
+      "slots": { "sole": { "features": ["dirt"] } },
+      "rules": {
+        "track": {
+          "label": "더러운 밑창의 먼지가 바닥으로 옮겨진다",
+          "on": ["OBJ+2|sole:dirt@>=2"],
+          "emits": ["현관 바닥|surface:오염@>=1"]
+        }
+      }
+    },
+    {
+      "id": "OBJ+3",
+      "names": { "ko": "현관 바닥", "en": "entry floor" },
+      "mobility": "고정",
+      "slots": { "surface": { "features": ["dirt"] } }
+    }
+  ]
+}

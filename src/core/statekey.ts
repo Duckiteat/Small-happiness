@@ -19,11 +19,20 @@ export interface StateKey {
 
 export type CompareOp = '=' | '>=' | '<=' | '>' | '<';
 
+export type Cond = { readonly op: CompareOp; readonly n: number } | null;
+
 export interface StatePattern {
   readonly def: string; // 정의 번호
   readonly slot: string;
   readonly feature: string;
-  readonly cond: { readonly op: CompareOp; readonly n: number } | null;
+  readonly cond: Cond;
+}
+
+/** 정의 번호 없이 소유자 안에서만 쓰는 조건 (예: `body:rot@<=1`). */
+export interface LocalCondition {
+  readonly slot: string;
+  readonly feature: string;
+  readonly cond: Cond;
 }
 
 export interface LevelRange {
@@ -64,9 +73,31 @@ export function formatPattern(p: StatePattern): string {
   return p.cond === null ? base : `${base}@${p.cond.op}${p.cond.n}`;
 }
 
+const LOCAL_RE = new RegExp(`^(${TOKEN}):(${TOKEN})(?:@(>=|<=|=|>|<)(\\d+))?$`);
+
+export function parseLocalCondition(s: string): LocalCondition | null {
+  const m = LOCAL_RE.exec(s);
+  if (!m) return null;
+  const [, slot, feature, op, n] = m;
+  if (slot === undefined || feature === undefined) return null;
+  if (op === undefined || n === undefined) return { slot, feature, cond: null };
+  const level = Number(n);
+  if (op === '<' && level === 0) return null;
+  return { slot, feature, cond: { op: op as CompareOp, n: level } };
+}
+
+export function formatLocalCondition(c: LocalCondition): string {
+  const base = `${c.slot}:${c.feature}`;
+  return c.cond === null ? base : `${base}@${c.cond.op}${c.cond.n}`;
+}
+
 export function patternRange(p: StatePattern): LevelRange {
-  if (p.cond === null) return { min: 0, max: Infinity };
-  const { op, n } = p.cond;
+  return condRange(p.cond);
+}
+
+export function condRange(cond: Cond): LevelRange {
+  if (cond === null) return { min: 0, max: Infinity };
+  const { op, n } = cond;
   switch (op) {
     case '=':
       return { min: n, max: n };

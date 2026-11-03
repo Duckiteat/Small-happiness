@@ -6,7 +6,9 @@
   "description": "당신의 하루가 소박한 행복이 되기를. — 시뮬레이션 코어",
   "scripts": {
     "test": "node --test \"test/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "appendix": "node src/node/cli.ts appendix --write",
+    "appendix:check": "node src/node/cli.ts appendix --check"
   },
   "engines": {
     "node": ">=22.18"
