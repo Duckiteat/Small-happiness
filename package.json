@@ -1,0 +1,18 @@
+{
+  "name": "small-happiness",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "당신의 하루가 소박한 행복이 되기를. — 시뮬레이션 코어",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}

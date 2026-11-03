@@ -1,0 +1,31 @@
+[
+  {
+    "category": "event_type",
+    "entries": [
+      { "key": "tick", "ko": "시간 흐름", "desc": "시계가 시간을 흘려보냄" },
+      { "key": "day_open", "ko": "하루 열림" },
+      { "key": "day_close", "ko": "하루 닫힘" },
+      { "key": "week_close", "ko": "주 마감" },
+      { "key": "absence", "ko": "부재", "desc": "비운 날 수만큼 한꺼번에 흐른 시간" },
+      { "key": "state_changed", "ko": "상태 변화" },
+      { "key": "effect_request", "ko": "효과 요청", "desc": "소유자에게 상태 변경을 요청" },
+      { "key": "stage_advanced", "ko": "단계 진행" },
+      { "key": "symptom_shown", "ko": "증상 나타남" },
+      { "key": "resource_low", "ko": "자원 부족" },
+      { "key": "resource_empty", "ko": "자원 바닥" },
+      { "key": "action_done", "ko": "행동 완료" },
+      { "key": "action_blocked", "ko": "행동 막힘" },
+      { "key": "commitment_due", "ko": "약속 시각" },
+      { "key": "delayed_effect", "ko": "지연 효과 발동" },
+      { "key": "event_fired", "ko": "이벤트 발생" },
+      { "key": "choice_made", "ko": "선택" },
+      { "key": "stimulus_perceived", "ko": "자극 지각" },
+      { "key": "awareness_up", "ko": "인지 상승" },
+      { "key": "habit_formed", "ko": "습관 형성" },
+      { "key": "contact", "ko": "접촉", "desc": "두 운반체가 닿음" },
+      { "key": "retract", "ko": "철회", "desc": "사건을 지우지 않고 철회 표시" },
+      { "key": "text_ready", "ko": "문장 준비" },
+      { "key": "saved", "ko": "저장됨" }
+    ]
+  }
+]
