@@ -45,6 +45,9 @@ export class VocabError extends Error {
 
 const TOKEN_RE = /^[a-z][a-z0-9_]*$/;
 
+/** 단계 사다리 칸 수 (0~5). 칸 번호가 단계 숫자다. */
+export const LADDER_SIZE = 6;
+
 /** 대소문자, 공백, 하이픈, 밑줄, 가운뎃점, 마침표, 쉼표 차이를 없앤다. */
 export function normalizeWord(word: string): string {
   return word.normalize('NFC').toLowerCase().replace(/[\s\-_·.,]/g, '');
@@ -68,20 +71,34 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
   const attrs = entry.attrs ?? {};
   switch (category) {
     case 'feature': {
+      // 단계 사다리: 0~5 여섯 칸 고정. 칸 번호가 단계 숫자다. locked 칸은 아직 쓸 수 없다 (작가가 풀면 쓴다).
       const levels = attrs['levels'];
-      if (!Array.isArray(levels) || levels.length < 2) {
-        push(`${path}.attrs.levels`, '단계 목록(2개 이상의 {key, ko})이 필요하다');
+      if (!Array.isArray(levels) || levels.length !== LADDER_SIZE) {
+        push(`${path}.attrs.levels`, `단계 목록은 정확히 ${LADDER_SIZE}칸(0~${LADDER_SIZE - 1})이어야 한다`);
       } else {
         const seen = new Set<string>();
         levels.forEach((l, i) => {
           const k = levelKeyOf(l);
-          const ko = typeof l === 'object' && l !== null && !Array.isArray(l) ? l['ko'] : undefined;
+          const obj = typeof l === 'object' && l !== null && !Array.isArray(l) ? l : {};
+          const ko = obj['ko'];
+          const locked = obj['locked'];
           if (k === null) push(`${path}.attrs.levels[${i}].key`, '단계 키는 영소문자·숫자·밑줄 토큰이어야 한다');
           else if (seen.has(k)) push(`${path}.attrs.levels[${i}].key`, `단계 키 "${k}"가 중복된다`);
           else seen.add(k);
-          if (typeof ko !== 'string' || ko === '') push(`${path}.attrs.levels[${i}].ko`, '단계의 한국어 이름이 필요하다');
+          if (locked !== undefined && typeof locked !== 'boolean') push(`${path}.attrs.levels[${i}].locked`, 'locked는 true/false여야 한다');
+          if (locked === true) {
+            if (ko !== undefined && (typeof ko !== 'string' || ko === '')) push(`${path}.attrs.levels[${i}].ko`, '잠긴 칸의 이름은 비우거나 비어 있지 않은 문자열이어야 한다');
+          } else if (typeof ko !== 'string' || ko === '') {
+            push(`${path}.attrs.levels[${i}].ko`, '쓸 수 있는 단계는 한국어 이름이 필요하다');
+          }
         });
       }
+      break;
+    }
+    case 'durability': {
+      // 부위 배율 ×100 정수 (50 = 취약 0.5배, 100 = 평균, 150 = 강점 1.5배, 200 = 큰 강점 2배)
+      const m = attrs['mult100'];
+      if (!isInt(m) || m < 1 || m > 1000) push(`${path}.attrs.mult100`, '내구 배율은 1~1000 정수(×100)여야 한다');
       break;
     }
     case 'contact': {
@@ -227,6 +244,13 @@ export class Vocab {
       this.#entries.set(category, byKey);
       this.#words.set(category, byWord);
     }
+  }
+
+  /** 잠긴 칸인가 (사다리 칸의 키가 아니면 false). */
+  isLocked(feature: string, key: string): boolean {
+    const levels = this.entry('feature', feature)?.attrs['levels'];
+    if (!Array.isArray(levels)) return false;
+    return levels.some((l) => levelKeyOf(l) === key && typeof l === 'object' && l !== null && !Array.isArray(l) && l['locked'] === true);
   }
 
   /** 특징의 단계 키 순서 (사전 levels 의 목록 순서). 특징이 없으면 undefined. */

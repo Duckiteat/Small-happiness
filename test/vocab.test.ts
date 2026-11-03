@@ -98,3 +98,14 @@ test('기록은 사전의 사건 유형만 받는다', () => {
   assert.doesNotThrow(() => log.append({ t: 0, type: 'day_open', src: 'clock' }));
   assert.throws(() => log.append({ t: 0, type: 'unknown_event', src: 'clock' }), /사전에 없는/);
 });
+
+test('단계 사다리는 0~5 여섯 칸이고, 내구 배율은 정수 ×100 이다', () => {
+  assert.match(
+    messages([{ category: 'feature', entries: [{ key: 'dirt', ko: '더러움', attrs: { levels: [{ key: 'a', ko: '가' }, { key: 'b', ko: '나' }, { key: 'c', ko: '다' }, { key: 'd', ko: '라' }, { key: 'e', ko: '마' }] } }] }]),
+    /정확히 6칸/,
+  );
+  assert.match(
+    messages([{ category: 'durability', entries: [{ key: 'weak', ko: '취약', attrs: { mult100: 0.5 } }] }]),
+    /내구 배율/,
+  );
+});

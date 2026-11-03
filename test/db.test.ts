@@ -249,3 +249,8 @@ test('패치 형식 검사', () => {
   assert.match(JSON.stringify(parsePatch({ format: 'small-happiness-patch', version: 1, why: 'x', extra: 1 }).issues), /알 수 없는 최상위 필드/);
   assert.equal(parsePatch({ format: 'small-happiness-patch', version: 1, why: 'x' }).patch?.defs.length, 0);
 });
+
+test('종결 단계(소멸)는 = 조건으로 쓰면 관문을 통과한다', () => {
+  const { gate } = attempt(sampleDb(), [{ id: 'PLC000001', rules: { gone: { on: ['OBJ000001|body:rot@=gone'], emits: ['PLC000001|space:smell@=faint'] } } }]);
+  assert.equal(gate.pass, true, gate.reason);
+});

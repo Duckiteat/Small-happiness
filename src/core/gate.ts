@@ -28,6 +28,14 @@ function slotCheck(
   if (s === undefined) return void push(where, `${def.id}에 부위 "${slot}"가 없다`);
   if (!s.features.includes(feature)) return void push(where, `부위 ${def.id}.${slot}에 특징 "${feature}"가 없다`);
   if (cond === null) return;
+  // 종결 단계(소멸·고정)는 사다리 밖이다: = 로만 쓴다
+  if (vocab.has('terminal', cond.level)) {
+    if (cond.op !== '=') push(where, `종결 단계 "${cond.level}"는 = 조건으로만 쓸 수 있다`);
+    return;
+  }
+  if (vocab.isLocked(feature, cond.level)) {
+    return void push(where, `단계 "${cond.level}"는 아직 잠겨 있다 (사전에서 잠금을 풀면 쓸 수 있다)`);
+  }
   const order = vocab.levelOrder(feature);
   if (order === undefined) return void push(where, `특징 "${feature}"에 단계 목록이 없어 조건을 쓸 수 없다`);
   if (!order.includes(cond.level)) {

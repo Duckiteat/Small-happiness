@@ -2,115 +2,554 @@
   {
     "category": "sense",
     "entries": [
-      { "key": "sight", "ko": "시각", "en": "sight", "desc": "눈으로 보는 감각" },
-      { "key": "hearing", "ko": "청각", "en": "hearing", "desc": "소리를 듣는 감각" },
-      { "key": "smell", "ko": "후각", "en": "smell", "desc": "냄새를 맡는 감각" },
-      { "key": "touch", "ko": "촉각", "en": "touch", "desc": "닿는 느낌" },
-      { "key": "taste", "ko": "미각", "en": "taste", "desc": "맛" }
+      {
+        "key": "sight",
+        "ko": "시각",
+        "en": "sight",
+        "desc": "눈으로 보는 감각"
+      },
+      {
+        "key": "hearing",
+        "ko": "청각",
+        "en": "hearing",
+        "desc": "소리를 듣는 감각"
+      },
+      {
+        "key": "smell",
+        "ko": "후각",
+        "en": "smell",
+        "desc": "냄새를 맡는 감각"
+      },
+      {
+        "key": "touch",
+        "ko": "촉각",
+        "en": "touch",
+        "desc": "닿는 느낌"
+      },
+      {
+        "key": "taste",
+        "ko": "미각",
+        "en": "taste",
+        "desc": "맛"
+      }
     ]
   },
   {
     "category": "feature",
     "entries": [
       {
-        "key": "dirt", "ko": "더러움", "en": "dirt", "aliases": ["오염", "때"],
+        "key": "dirt",
+        "ko": "더러움",
+        "en": "dirt",
+        "aliases": [
+          "오염",
+          "때"
+        ],
         "desc": "표면이 더러워진 정도",
-        "attrs": { "levels": [{ "key": "clean", "ko": "깨끗" }, { "key": "dust", "ko": "먼지 낌" }, { "key": "dirty", "ko": "더러움" }, { "key": "severe", "ko": "심함" }] }
+        "attrs": {
+          "levels": [
+            {
+              "key": "clean",
+              "ko": "깨끗"
+            },
+            {
+              "key": "dust",
+              "ko": "먼지 낌"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "dirty",
+              "ko": "더러움"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "severe",
+              "ko": "심함"
+            }
+          ]
+        }
       },
       {
-        "key": "rot", "ko": "상함", "en": "rot", "aliases": ["부패"],
+        "key": "rot",
+        "ko": "상함",
+        "en": "rot",
+        "aliases": [
+          "부패"
+        ],
         "desc": "음식 등이 상한 정도",
-        "attrs": { "levels": [{ "key": "fresh", "ko": "신선" }, { "key": "wilted", "ko": "시들함" }, { "key": "spoiled", "ko": "상함" }, { "key": "rotten", "ko": "썩음" }] }
+        "attrs": {
+          "levels": [
+            {
+              "key": "fresh",
+              "ko": "신선"
+            },
+            {
+              "key": "wilted",
+              "ko": "시들함"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "spoiled",
+              "ko": "상함"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "rotten",
+              "ko": "썩음"
+            }
+          ]
+        }
       },
       {
-        "key": "smell", "ko": "냄새", "en": "smell",
+        "key": "smell",
+        "ko": "냄새",
+        "en": "smell",
         "desc": "장소나 물건에서 나는 냄새의 세기",
-        "attrs": { "levels": [{ "key": "none", "ko": "없음" }, { "key": "faint", "ko": "은은함" }, { "key": "distinct", "ko": "뚜렷함" }, { "key": "foul", "ko": "지독함" }] }
+        "attrs": {
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "faint",
+              "ko": "은은함"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "distinct",
+              "ko": "뚜렷함"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "foul",
+              "ko": "지독함"
+            }
+          ]
+        }
       },
       {
-        "key": "bug", "ko": "벌레", "en": "bug",
+        "key": "bug",
+        "ko": "벌레",
+        "en": "bug",
         "desc": "벌레가 보이는 정도",
-        "attrs": { "levels": [{ "key": "none", "ko": "없음" }, { "key": "few", "ko": "한두 마리" }, { "key": "many", "ko": "여럿" }, { "key": "swarm", "ko": "들끓음" }] }
+        "attrs": {
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "few",
+              "ko": "한두 마리"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "many",
+              "ko": "여럿"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "swarm",
+              "ko": "들끓음"
+            }
+          ]
+        }
       },
       {
-        "key": "wet", "ko": "젖음", "en": "wet", "aliases": ["습기"],
+        "key": "wet",
+        "ko": "젖음",
+        "en": "wet",
+        "aliases": [
+          "습기"
+        ],
         "desc": "물기가 있는 정도",
-        "attrs": { "levels": [{ "key": "dry", "ko": "마름" }, { "key": "damp", "ko": "축축함" }, { "key": "wet", "ko": "젖음" }, { "key": "soaked", "ko": "흠뻑" }] }
+        "attrs": {
+          "levels": [
+            {
+              "key": "dry",
+              "ko": "마름"
+            },
+            {
+              "key": "damp",
+              "ko": "축축함"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "wet",
+              "ko": "젖음"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "soaked",
+              "ko": "흠뻑"
+            }
+          ]
+        }
       },
       {
-        "key": "clutter", "ko": "어질러짐", "en": "clutter", "aliases": ["난장"],
+        "key": "clutter",
+        "ko": "어질러짐",
+        "en": "clutter",
+        "aliases": [
+          "난장"
+        ],
         "desc": "물건이 흐트러진 정도",
-        "attrs": { "levels": [{ "key": "tidy", "ko": "정돈" }, { "key": "slight", "ko": "약간" }, { "key": "messy", "ko": "어수선" }, { "key": "chaos", "ko": "난장판" }] }
+        "attrs": {
+          "levels": [
+            {
+              "key": "tidy",
+              "ko": "정돈"
+            },
+            {
+              "key": "slight",
+              "ko": "약간"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "messy",
+              "ko": "어수선"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "chaos",
+              "ko": "난장판"
+            }
+          ]
+        }
       }
     ]
   },
   {
     "category": "medium",
     "entries": [
-      { "key": "air", "ko": "공기", "en": "air", "desc": "원천에서 거리에 따라 약해지며 퍼짐", "attrs": { "in_slice": true } },
-      { "key": "carry", "ko": "운반", "en": "carry", "desc": "가변 운반체가 접촉하고 이동한 곳으로", "attrs": { "in_slice": true } },
-      { "key": "self_move", "ko": "자력 이동", "en": "self-move", "desc": "개체가 스스로 먹이·원천을 향해 이동", "attrs": { "in_slice": true } },
-      { "key": "flow", "ko": "흐름", "en": "flow", "desc": "물이 아래로 흐르며 번짐", "attrs": { "in_slice": false } }
+      {
+        "key": "air",
+        "ko": "공기",
+        "en": "air",
+        "desc": "원천에서 거리에 따라 약해지며 퍼짐",
+        "attrs": {
+          "in_slice": true
+        }
+      },
+      {
+        "key": "carry",
+        "ko": "운반",
+        "en": "carry",
+        "desc": "가변 운반체가 접촉하고 이동한 곳으로",
+        "attrs": {
+          "in_slice": true
+        }
+      },
+      {
+        "key": "self_move",
+        "ko": "자력 이동",
+        "en": "self-move",
+        "desc": "개체가 스스로 먹이·원천을 향해 이동",
+        "attrs": {
+          "in_slice": true
+        }
+      },
+      {
+        "key": "flow",
+        "ko": "흐름",
+        "en": "flow",
+        "desc": "물이 아래로 흐르며 번짐",
+        "attrs": {
+          "in_slice": false
+        }
+      }
     ]
   },
   {
     "category": "spreader",
     "entries": [
       {
-        "key": "odor", "ko": "냄새", "en": "odor",
+        "key": "odor",
+        "ko": "냄새",
+        "en": "odor",
         "desc": "공기로 퍼지는 냄새 개체",
-        "attrs": { "medium": "air", "stimulus": "smell" }
+        "attrs": {
+          "medium": "air",
+          "stimulus": "smell"
+        }
       },
       {
-        "key": "insect", "ko": "벌레", "en": "insect",
+        "key": "insect",
+        "ko": "벌레",
+        "en": "insect",
         "desc": "먹이를 향해 스스로 이동하는 벌레 개체",
-        "attrs": { "medium": "self_move", "stimulus": "sight" }
+        "attrs": {
+          "medium": "self_move",
+          "stimulus": "sight"
+        }
       },
       {
-        "key": "grit", "ko": "먼지", "en": "grit", "aliases": ["발바닥 먼지"],
+        "key": "grit",
+        "ko": "먼지",
+        "en": "grit",
+        "aliases": [
+          "발바닥 먼지"
+        ],
         "desc": "접촉과 이동으로 옮겨지는 먼지·오염 개체",
-        "attrs": { "medium": "carry", "stimulus": "sight" }
+        "attrs": {
+          "medium": "carry",
+          "stimulus": "sight"
+        }
       }
     ]
   },
   {
     "category": "edge_kind",
     "entries": [
-      { "key": "open", "ko": "열린 통로", "en": "open passage" },
-      { "key": "door", "ko": "문", "en": "door", "desc": "열림/닫힘 상태가 자동으로 바뀐다" },
-      { "key": "wall", "ko": "벽", "en": "wall" },
-      { "key": "vent", "ko": "환기·배수구", "en": "vent/drain" },
-      { "key": "window", "ko": "창문", "en": "window", "desc": "슬라이스 이후 후보" }
+      {
+        "key": "open",
+        "ko": "열린 통로",
+        "en": "open passage"
+      },
+      {
+        "key": "door",
+        "ko": "문",
+        "en": "door",
+        "desc": "열림/닫힘 상태가 자동으로 바뀐다"
+      },
+      {
+        "key": "wall",
+        "ko": "벽",
+        "en": "wall"
+      },
+      {
+        "key": "vent",
+        "ko": "환기·배수구",
+        "en": "vent/drain"
+      },
+      {
+        "key": "window",
+        "ko": "창문",
+        "en": "window",
+        "desc": "슬라이스 이후 후보"
+      }
     ]
   },
   {
     "category": "mobility",
     "entries": [
-      { "key": "fixed", "ko": "고정", "en": "fixed", "aliases": ["붙박이"], "desc": "움직이지 않는다 (벽, 바닥, 붙박이 가구)" },
-      { "key": "portable", "ko": "이동형", "en": "portable", "aliases": ["가변"], "desc": "사람 혼자 옮길 수 있는 모든 것" }
+      {
+        "key": "fixed",
+        "ko": "고정",
+        "en": "fixed",
+        "aliases": [
+          "붙박이"
+        ],
+        "desc": "움직이지 않는다 (벽, 바닥, 붙박이 가구)"
+      },
+      {
+        "key": "portable",
+        "ko": "이동형",
+        "en": "portable",
+        "aliases": [
+          "가변"
+        ],
+        "desc": "사람 혼자 옮길 수 있는 모든 것"
+      }
     ]
   },
   {
     "category": "contact",
     "entries": [
-      { "key": "step", "ko": "밟음", "en": "step", "desc": "신발 ↔ 바닥", "attrs": { "transfer": 300, "tuned": false } },
-      { "key": "grip", "ko": "쥠", "en": "grip", "desc": "인물 ↔ 손에 든 물건", "attrs": { "transfer": 200, "tuned": false } },
-      { "key": "wear", "ko": "착용", "en": "wear", "desc": "인물 ↔ 옷·신발", "attrs": { "transfer": 150, "tuned": false } },
-      { "key": "contain", "ko": "담김", "en": "contain", "desc": "그릇 ↔ 선반, 옷 ↔ 옷장", "attrs": { "transfer": 400, "tuned": false } },
-      { "key": "stack", "ko": "포개짐", "en": "stack", "desc": "물건 위에 물건", "attrs": { "transfer": 100, "tuned": false } },
-      { "key": "same_surface", "ko": "같은 표면", "en": "same surface", "desc": "식탁 위 물건끼리", "attrs": { "transfer": 50, "tuned": false } }
+      {
+        "key": "step",
+        "ko": "밟음",
+        "en": "step",
+        "desc": "신발 ↔ 바닥",
+        "attrs": {
+          "transfer": 300,
+          "tuned": false
+        }
+      },
+      {
+        "key": "grip",
+        "ko": "쥠",
+        "en": "grip",
+        "desc": "인물 ↔ 손에 든 물건",
+        "attrs": {
+          "transfer": 200,
+          "tuned": false
+        }
+      },
+      {
+        "key": "wear",
+        "ko": "착용",
+        "en": "wear",
+        "desc": "인물 ↔ 옷·신발",
+        "attrs": {
+          "transfer": 150,
+          "tuned": false
+        }
+      },
+      {
+        "key": "contain",
+        "ko": "담김",
+        "en": "contain",
+        "desc": "그릇 ↔ 선반, 옷 ↔ 옷장",
+        "attrs": {
+          "transfer": 400,
+          "tuned": false
+        }
+      },
+      {
+        "key": "stack",
+        "ko": "포개짐",
+        "en": "stack",
+        "desc": "물건 위에 물건",
+        "attrs": {
+          "transfer": 100,
+          "tuned": false
+        }
+      },
+      {
+        "key": "same_surface",
+        "ko": "같은 표면",
+        "en": "same surface",
+        "desc": "식탁 위 물건끼리",
+        "attrs": {
+          "transfer": 50,
+          "tuned": false
+        }
+      }
     ]
   },
   {
     "category": "action",
     "entries": [
-      { "key": "wipe", "ko": "닦기", "en": "wipe" },
-      { "key": "ventilate", "ko": "환기", "en": "ventilate", "desc": "창문을 열어 공기를 바꾼다" },
-      { "key": "install", "ko": "설치", "en": "install", "desc": "물품을 공간에 놓아 설치형 오브젝트로 쓴다" },
-      { "key": "store", "ko": "보관", "en": "store", "desc": "물건은 삭제되지 않고 보관된다" },
-      { "key": "empty", "ko": "비우기", "en": "empty", "desc": "내용물을 지우지 않고 보관으로 옮긴다" },
-      { "key": "sell", "ko": "판매", "en": "sell", "desc": "중고 거래로 양도한다 (슬라이스 밖)" },
-      { "key": "move", "ko": "옮기기", "en": "move" }
+      {
+        "key": "wipe",
+        "ko": "닦기",
+        "en": "wipe"
+      },
+      {
+        "key": "ventilate",
+        "ko": "환기",
+        "en": "ventilate",
+        "desc": "창문을 열어 공기를 바꾼다"
+      },
+      {
+        "key": "install",
+        "ko": "설치",
+        "en": "install",
+        "desc": "물품을 공간에 놓아 설치형 오브젝트로 쓴다"
+      },
+      {
+        "key": "store",
+        "ko": "보관",
+        "en": "store",
+        "desc": "물건은 삭제되지 않고 보관된다"
+      },
+      {
+        "key": "empty",
+        "ko": "비우기",
+        "en": "empty",
+        "desc": "내용물을 지우지 않고 보관으로 옮긴다"
+      },
+      {
+        "key": "sell",
+        "ko": "판매",
+        "en": "sell",
+        "desc": "중고 거래로 양도한다 (슬라이스 밖)"
+      },
+      {
+        "key": "move",
+        "ko": "옮기기",
+        "en": "move"
+      }
+    ]
+  },
+  {
+    "category": "terminal",
+    "entries": [
+      {
+        "key": "gone",
+        "ko": "소멸",
+        "desc": "원천이 실제로 없어져 축에서 빠짐 (세제 분해 등). 버리기는 보관이라 소멸이 아니다. 조건은 = 만 쓴다"
+      },
+      {
+        "key": "fixed",
+        "ko": "고정",
+        "desc": "소거 불가 흔적 (자국). 세제로도 지워지지 않는다. 조건은 = 만 쓴다"
+      }
+    ]
+  },
+  {
+    "category": "durability",
+    "entries": [
+      {
+        "key": "weak",
+        "ko": "취약",
+        "desc": "부위 내구 배율 0.5배 (평균의 1/2)",
+        "attrs": {
+          "mult100": 50
+        }
+      },
+      {
+        "key": "average",
+        "ko": "평균",
+        "desc": "부위 내구 배율 1배",
+        "attrs": {
+          "mult100": 100
+        }
+      },
+      {
+        "key": "strong",
+        "ko": "강점",
+        "desc": "부위 내구 배율 1.5배",
+        "attrs": {
+          "mult100": 150
+        }
+      },
+      {
+        "key": "very_strong",
+        "ko": "큰 강점",
+        "desc": "부위 내구 배율 2배",
+        "attrs": {
+          "mult100": 200
+        }
+      }
     ]
   }
 ]
