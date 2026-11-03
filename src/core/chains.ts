@@ -5,6 +5,7 @@
 
 import type { Db, RuleDef } from './db.ts';
 import { canLink, parsePattern } from './statekey.ts';
+import type { Vocab } from './vocab.ts';
 import type { StatePattern } from './statekey.ts';
 
 export interface RuleNode {
@@ -46,12 +47,12 @@ export function collectRules(db: Db): RuleNode[] {
 }
 
 function patternText(p: StatePattern): string {
-  const cond = p.cond === null ? '' : `@${p.cond.op}${p.cond.n}`;
+  const cond = p.cond === null ? '' : `@${p.cond.op}${p.cond.level}`;
   return `${p.def}|${p.slot}:${p.feature}${cond}`;
 }
 
 /** 자기 자신으로 돌아오는 연결(자기 순환)은 간선에 넣지 않는다 — selfLoops로 따로 찾는다. */
-export function buildEdges(rules: readonly RuleNode[]): ChainEdge[] {
+export function buildEdges(rules: readonly RuleNode[], vocab: Vocab): ChainEdge[] {
   const edges: ChainEdge[] = [];
   for (const a of rules) {
     for (const b of rules) {
@@ -59,7 +60,7 @@ export function buildEdges(rules: readonly RuleNode[]): ChainEdge[] {
       let found: readonly [string, string] | null = null;
       for (const e of a.emits) {
         for (const o of b.on) {
-          if (found === null && canLink(e, o)) found = [patternText(e), patternText(o)];
+          if (found === null && canLink(e, o, vocab.levelOrder(e.feature))) found = [patternText(e), patternText(o)];
         }
       }
       if (found !== null) edges.push({ from: a.ref, to: b.ref, via: found });
@@ -69,9 +70,9 @@ export function buildEdges(rules: readonly RuleNode[]): ChainEdge[] {
 }
 
 /** 자기 emits가 자기 on을 다시 만족시키는 규칙. */
-export function selfLoops(rules: readonly RuleNode[]): string[] {
+export function selfLoops(rules: readonly RuleNode[], vocab: Vocab): string[] {
   return rules
-    .filter((r) => r.emits.some((e) => r.on.some((o) => canLink(e, o))))
+    .filter((r) => r.emits.some((e) => r.on.some((o) => canLink(e, o, vocab.levelOrder(e.feature)))))
     .map((r) => r.ref);
 }
 

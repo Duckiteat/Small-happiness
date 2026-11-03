@@ -72,7 +72,7 @@ export function commitPatch(root: string, rawPatch: unknown, vocab: Vocab, optio
   const before = loadDb(root);
   const merge = mergePatch(before, parsed.patch, vocab);
   const gate = runGate(before, merge.db, vocab, merge.report.errors, options.allowWarnings === true ? { allowWarnings: true } : {});
-  const report = patchReport(before, merge.db, merge.report, gate);
+  const report = patchReport(before, merge.db, merge.report, gate, vocab);
   const base = { gate, merge: merge.report, report, db: merge.db };
 
   if (!gate.pass) return { status: 'rejected', ...base, files: [] };

@@ -2,7 +2,7 @@
   "unknown-feature.json": { "stage": "gate", "match": "사전에 없는 특징: 반짝임" },
   "bad-slot-ref.json": { "stage": "gate", "match": "부위 \"nowhere\"가 없다" },
   "bad-feature-ref.json": { "stage": "gate", "match": "특징 \"dirt\"가 없다" },
-  "level-out-of-range.json": { "stage": "gate", "match": "단계 범위" },
+  "level-out-of-range.json": { "stage": "gate", "match": "단계 키" },
   "dangling-target.json": { "stage": "gate", "match": "없는 정의를 가리킨다" },
   "name-collision.json": { "stage": "gate", "match": "여러 정의의 이름·별칭" },
   "unknown-temp.json": { "stage": "gate", "match": "선언되지 않은 임시 번호" },

@@ -50,6 +50,13 @@ export function normalizeWord(word: string): string {
   return word.normalize('NFC').toLowerCase().replace(/[\s\-_·.,]/g, '');
 }
 
+/** 단계 항목 {key, ko} 에서 키를 꺼낸다. 형식이 아니면 null. */
+export function levelKeyOf(v: unknown): string | null {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
+  const k = (v as { key?: unknown }).key;
+  return typeof k === 'string' && TOKEN_RE.test(k) ? k : null;
+}
+
 function isInt(v: unknown): v is number {
   return typeof v === 'number' && Number.isInteger(v);
 }
@@ -62,8 +69,18 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
   switch (category) {
     case 'feature': {
       const levels = attrs['levels'];
-      if (!Array.isArray(levels) || levels.length < 2 || !levels.every((l) => typeof l === 'string' && l !== '')) {
-        push(`${path}.attrs.levels`, '단계 이름 목록(2개 이상의 비어 있지 않은 문자열)이 필요하다');
+      if (!Array.isArray(levels) || levels.length < 2) {
+        push(`${path}.attrs.levels`, '단계 목록(2개 이상의 {key, ko})이 필요하다');
+      } else {
+        const seen = new Set<string>();
+        levels.forEach((l, i) => {
+          const k = levelKeyOf(l);
+          const ko = typeof l === 'object' && l !== null && !Array.isArray(l) ? l['ko'] : undefined;
+          if (k === null) push(`${path}.attrs.levels[${i}].key`, '단계 키는 영소문자·숫자·밑줄 토큰이어야 한다');
+          else if (seen.has(k)) push(`${path}.attrs.levels[${i}].key`, `단계 키 "${k}"가 중복된다`);
+          else seen.add(k);
+          if (typeof ko !== 'string' || ko === '') push(`${path}.attrs.levels[${i}].ko`, '단계의 한국어 이름이 필요하다');
+        });
       }
       break;
     }
@@ -210,6 +227,14 @@ export class Vocab {
       this.#entries.set(category, byKey);
       this.#words.set(category, byWord);
     }
+  }
+
+  /** 특징의 단계 키 순서 (사전 levels 의 목록 순서). 특징이 없으면 undefined. */
+  levelOrder(feature: string): readonly string[] | undefined {
+    const levels = this.entry('feature', feature)?.attrs['levels'];
+    if (!Array.isArray(levels)) return undefined;
+    const keys = levels.map((l) => levelKeyOf(l));
+    return keys.every((k): k is string => k !== null) ? keys : undefined;
   }
 
   categories(): string[] {

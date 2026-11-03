@@ -7,6 +7,7 @@
 import { PREFIX_KIND } from './db.ts';
 import type { Db } from './db.ts';
 import { buildEdges, collectRules } from './chains.ts';
+import type { Vocab } from './vocab.ts';
 import { parseId } from './ids.ts';
 import type { GateResult } from './gate.ts';
 import type { MergeReport } from './patch.ts';
@@ -60,7 +61,7 @@ function targetsOf(db: Db, id: string): Set<string> {
   return out;
 }
 
-export function patchReport(before: Db, after: Db, merge: MergeReport, gate: GateResult): PatchReport {
+export function patchReport(before: Db, after: Db, merge: MergeReport, gate: GateResult, vocab: Vocab): PatchReport {
   const changed = new Set<string>([...merge.added, ...merge.updated.map((u) => u.id), ...merge.removed]);
 
   const updated: Record<string, { id: string; fields: string[] }[]> = {};
@@ -73,9 +74,9 @@ export function patchReport(before: Db, after: Db, merge: MergeReport, gate: Gat
     for (const t of hit) (referencedBy[t] ??= []).push(id);
   }
 
-  const edgesAfter = buildEdges(collectRules(after));
+  const edgesAfter = buildEdges(collectRules(after), vocab);
   const edgeKey = (e: { from: string; to: string }): string => `${e.from}>${e.to}`;
-  const edgesBefore = new Set(buildEdges(collectRules(before)).map(edgeKey));
+  const edgesBefore = new Set(buildEdges(collectRules(before), vocab).map(edgeKey));
   const touchesChanged = (ref: string): boolean => changed.has(ref.split('/rule/')[0] as string);
   const chainEdges = edgesAfter
     .filter((e) => touchesChanged(e.from) || touchesChanged(e.to))

@@ -6,19 +6,25 @@
 
 import type { Definition, MeaningDef } from './db.ts';
 import { condRange, parseLocalCondition } from './statekey.ts';
+import type { Vocab } from './vocab.ts';
 
 /**
  * @param levels 키 `부위:특징` → 단계(정수). 없는 키는 0으로 본다.
+ * @param vocab 조건의 단계 키를 순서(번호)로 바꾸는 데 쓴다.
  * @returns 처음 맞는 의미. 하나도 맞지 않으면 undefined (기본값이 없는 정의).
  */
-export function meaningOf(def: Definition, levels: Readonly<Record<string, number>>): MeaningDef | undefined {
+export function meaningOf(
+  def: Definition,
+  levels: Readonly<Record<string, number>>,
+  vocab: Vocab,
+): MeaningDef | undefined {
   for (const meaning of def.meanings ?? []) {
     const matches = meaning.when.every((w) => {
       const c = parseLocalCondition(w);
       if (c === null) return false;
       const level = levels[`${c.slot}:${c.feature}`] ?? 0;
-      const r = condRange(c.cond);
-      return level >= r.min && level <= r.max;
+      const r = condRange(c.cond, vocab.levelOrder(c.feature));
+      return r !== null && level >= r.min && level <= r.max;
     });
     if (matches) return meaning;
   }

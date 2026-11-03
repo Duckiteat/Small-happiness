@@ -1,15 +1,17 @@
 // 상태 키와 패턴 (docs/기반층-명세.md 0-3)
 //
-// 상태 키   OBJ000001#1|sole:dirt          인스턴스 | 부위 : 특징   (값은 정수 단계)
-// 패턴      OBJ000001|sole:dirt@>=2         정의 | 부위 : 특징 @ 단계 조건
+// 상태 키   OBJ000001#1|sole:dirt          인스턴스 | 부위 : 특징   (값은 정수 단계 = 사전 levels 의 위치)
+// 패턴      OBJ000001|sole:dirt@>=dirty    정의 | 부위 : 특징 @ 단계 키 조건
 //
+// 조건은 단계 **키**로 쓴다 (축과-층위 5). 키의 순서는 사전 `levels` 목록이 정하고,
+// 번호는 그 위치에서 파생된다. 그래서 단계를 끼워 넣어도 기존 조건의 뜻은 유지된다.
 // 규칙의 emits 패턴과 다른 규칙의 on 패턴이 맞으면 사슬이 자동으로 이어진다 (canLink).
 
 import { defOf, parseId } from './ids.ts';
 
 const TOKEN = '[a-z][a-z0-9_]*';
 const KEY_RE = new RegExp(`^([^|:@]+)\\|(${TOKEN}):(${TOKEN})$`);
-const PATTERN_RE = new RegExp(`^([A-Z]{3}\\d{6})\\|(${TOKEN}):(${TOKEN})(?:@(>=|<=|=|>|<)(\\d+))?$`);
+const PATTERN_RE = new RegExp(`^([A-Z]{3}\\d{6})\\|(${TOKEN}):(${TOKEN})(?:@(>=|<=|=|>|<)(${TOKEN}))?$`);
 
 export interface StateKey {
   readonly subject: string; // 인스턴스 번호
@@ -19,7 +21,8 @@ export interface StateKey {
 
 export type CompareOp = '=' | '>=' | '<=' | '>' | '<';
 
-export type Cond = { readonly op: CompareOp; readonly n: number } | null;
+/** 조건의 기준은 단계 키 하나다 (사전 `levels` 의 key). */
+export type Cond = { readonly op: CompareOp; readonly level: string } | null;
 
 export interface StatePattern {
   readonly def: string; // 정의 번호
@@ -28,7 +31,7 @@ export interface StatePattern {
   readonly cond: Cond;
 }
 
-/** 정의 번호 없이 소유자 안에서만 쓰는 조건 (예: `body:rot@<=1`). */
+/** 정의 번호 없이 소유자 안에서만 쓰는 조건 (예: `body:rot@<=wilted`). */
 export interface LocalCondition {
   readonly slot: string;
   readonly feature: string;
@@ -37,8 +40,11 @@ export interface LocalCondition {
 
 export interface LevelRange {
   readonly min: number;
-  readonly max: number; // 상한 없음은 Infinity
+  readonly max: number; // 상한 없음은 Infinity. min > max 면 빈 범위
 }
+
+/** 특징의 단계 키 순서 (사전 `levels`). 없으면 undefined. */
+export type LevelOrder = readonly string[] | undefined;
 
 export function formatStateKey(key: StateKey): string {
   return `${key.subject}|${key.slot}:${key.feature}`;
@@ -56,60 +62,61 @@ export function parseStateKey(s: string): StateKey | null {
 export function parsePattern(s: string): StatePattern | null {
   const m = PATTERN_RE.exec(s);
   if (!m) return null;
-  const [, def, slot, feature, op, n] = m;
+  const [, def, slot, feature, op, level] = m;
   if (def === undefined || slot === undefined || feature === undefined) return null;
   const parsedDef = parseId(def);
   if (parsedDef === null || parsedDef.kind !== 'def') return null;
 
-  if (op === undefined || n === undefined) return { def, slot, feature, cond: null };
-
-  const level = Number(n);
-  if (op === '<' && level === 0) return null; // 빈 범위
-  return { def, slot, feature, cond: { op: op as CompareOp, n: level } };
+  if (op === undefined || level === undefined) return { def, slot, feature, cond: null };
+  return { def, slot, feature, cond: { op: op as CompareOp, level } };
 }
 
 export function formatPattern(p: StatePattern): string {
   const base = `${p.def}|${p.slot}:${p.feature}`;
-  return p.cond === null ? base : `${base}@${p.cond.op}${p.cond.n}`;
+  return p.cond === null ? base : `${base}@${p.cond.op}${p.cond.level}`;
 }
 
-const LOCAL_RE = new RegExp(`^(${TOKEN}):(${TOKEN})(?:@(>=|<=|=|>|<)(\\d+))?$`);
+const LOCAL_RE = new RegExp(`^(${TOKEN}):(${TOKEN})(?:@(>=|<=|=|>|<)(${TOKEN}))?$`);
 
 export function parseLocalCondition(s: string): LocalCondition | null {
   const m = LOCAL_RE.exec(s);
   if (!m) return null;
-  const [, slot, feature, op, n] = m;
+  const [, slot, feature, op, level] = m;
   if (slot === undefined || feature === undefined) return null;
-  if (op === undefined || n === undefined) return { slot, feature, cond: null };
-  const level = Number(n);
-  if (op === '<' && level === 0) return null;
-  return { slot, feature, cond: { op: op as CompareOp, n: level } };
+  if (op === undefined || level === undefined) return { slot, feature, cond: null };
+  return { slot, feature, cond: { op: op as CompareOp, level } };
 }
 
 export function formatLocalCondition(c: LocalCondition): string {
   const base = `${c.slot}:${c.feature}`;
-  return c.cond === null ? base : `${base}@${c.cond.op}${c.cond.n}`;
+  return c.cond === null ? base : `${base}@${c.cond.op}${c.cond.level}`;
 }
 
-export function patternRange(p: StatePattern): LevelRange {
-  return condRange(p.cond);
-}
-
-export function condRange(cond: Cond): LevelRange {
+/**
+ * 조건을 단계 범위로 바꾼다. 순서에 없는 키이거나 순서 자체가 없으면 null (관문이 거부한다).
+ * 조건 없음은 0 .. 무한대.
+ */
+export function condRange(cond: Cond, order: LevelOrder): LevelRange | null {
   if (cond === null) return { min: 0, max: Infinity };
-  const { op, n } = cond;
-  switch (op) {
+  if (order === undefined) return null;
+  const at = order.indexOf(cond.level);
+  if (at < 0) return null;
+  switch (cond.op) {
     case '=':
-      return { min: n, max: n };
+      return { min: at, max: at };
     case '>=':
-      return { min: n, max: Infinity };
+      return { min: at, max: Infinity };
     case '>':
-      return { min: n + 1, max: Infinity };
+      return { min: at + 1, max: Infinity };
     case '<=':
-      return { min: 0, max: n };
+      return { min: 0, max: at };
     case '<':
-      return { min: 0, max: n - 1 };
+      return { min: 0, max: at - 1 };
   }
+}
+
+export function patternRange(p: StatePattern, order: LevelOrder): LevelRange | null {
+  return condRange(p.cond, order);
 }
 
 function sameTarget(a: StatePattern, b: StatePattern): boolean {
@@ -120,19 +127,22 @@ function rangesOverlap(a: LevelRange, b: LevelRange): boolean {
   return a.min <= b.max && b.min <= a.max;
 }
 
-/** 이 상태(키, 단계)가 패턴에 해당하는가. */
-export function matchesPattern(p: StatePattern, key: StateKey, level: number): boolean {
+/** 이 상태(키, 단계 번호)가 패턴에 해당하는가. */
+export function matchesPattern(p: StatePattern, key: StateKey, level: number, order: LevelOrder): boolean {
   if (!Number.isInteger(level) || level < 0) return false;
   if (defOf(key.subject) !== p.def) return false;
   if (key.slot !== p.slot || key.feature !== p.feature) return false;
-  const r = patternRange(p);
-  return level >= r.min && level <= r.max;
+  const r = patternRange(p, order);
+  return r !== null && level >= r.min && level <= r.max;
 }
 
 /**
  * emits 패턴이 만드는 상태가 on 패턴의 조건을 만족시킬 수 있는가.
- * 같은 정의·부위·특징이고 단계 범위가 겹치면 사슬이 이어진다.
+ * 같은 정의·부위·특징이고 단계 범위가 겹치면 사슬이 이어진다. order 는 그 특징의 단계 순서.
  */
-export function canLink(emits: StatePattern, on: StatePattern): boolean {
-  return sameTarget(emits, on) && rangesOverlap(patternRange(emits), patternRange(on));
+export function canLink(emits: StatePattern, on: StatePattern, order: LevelOrder): boolean {
+  if (!sameTarget(emits, on)) return false;
+  const a = patternRange(emits, order);
+  const b = patternRange(on, order);
+  return a !== null && b !== null && rangesOverlap(a, b);
 }

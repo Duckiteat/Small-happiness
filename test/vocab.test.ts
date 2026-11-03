@@ -44,7 +44,7 @@ test('키 중복, 잘못된 키, 빈 이름은 오류', () => {
 test('분류별 속성 검사: 단계 목록, 전달률, tuned', () => {
   assert.match(
     messages([{ category: 'feature', entries: [{ key: 'dirt', ko: '더러움', attrs: { levels: ['하나'] } }] }]),
-    /단계 이름 목록/,
+    /단계 목록/,
   );
   assert.match(
     messages([{ category: 'contact', entries: [{ key: 'step', ko: '밟음', attrs: { transfer: 1500, tuned: false } }] }]),

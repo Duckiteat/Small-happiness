@@ -73,7 +73,7 @@ function main(): void {
     }
     case 'chains': {
       const rules = collectRules(loadDb(root));
-      const edges = buildEdges(rules);
+      const edges = buildEdges(rules, vocab);
       const starts = arg !== undefined ? [arg] : chainRoots(rules, edges);
       for (const s of starts) {
         console.log(s);

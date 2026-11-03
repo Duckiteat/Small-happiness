@@ -10,14 +10,14 @@
       "mobility": "가변",
       "slots": { "body": { "features": ["상함", "냄새"] } },
       "meanings": [
-        { "label": "먹을 수 있음", "when": ["body:부패@<=1"], "means": "edible" },
+        { "label": "먹을 수 있음", "when": ["body:부패@<=wilted"], "means": "edible" },
         { "label": "먹을 수 없음", "when": [], "means": "inedible" }
       ],
       "rules": {
         "spoil": {
           "label": "상하면 냄새가 뚜렷해진다",
-          "on": ["OBJ+1|body:rot@>=2"],
-          "emits": ["음식|body:smell@>=2"]
+          "on": ["OBJ+1|body:rot@>=spoiled"],
+          "emits": ["음식|body:smell@>=distinct"]
         }
       },
       "desc": ["냉장고에 두고 잊으면 상한다."]
@@ -29,18 +29,18 @@
       "rules": {
         "odor_reach": {
           "label": "상한 음식의 냄새가 주방에 퍼진다",
-          "on": ["OBJ+1|body:smell@>=2"],
-          "emits": ["PLC+1|space:smell@>=1"]
+          "on": ["OBJ+1|body:smell@>=distinct"],
+          "emits": ["PLC+1|space:smell@>=faint"]
         },
         "bugs": {
           "label": "냄새가 뚜렷해지면 벌레가 꼬인다",
-          "on": ["PLC+1|space:smell@>=2"],
-          "emits": ["PLC+1|space:bug@=1"]
+          "on": ["PLC+1|space:smell@>=distinct"],
+          "emits": ["PLC+1|space:bug@=few"]
         },
         "spread": {
           "label": "벌레가 거실로 번진다",
-          "on": ["PLC+1|space:bug@>=1"],
-          "emits": ["PLC+2|space:bug@=1"]
+          "on": ["PLC+1|space:bug@>=few"],
+          "emits": ["PLC+2|space:bug@=few"]
         }
       }
     },
@@ -58,8 +58,8 @@
       "rules": {
         "track": {
           "label": "더러운 밑창의 먼지가 바닥으로 옮겨진다",
-          "on": ["OBJ+2|sole:dirt@>=2"],
-          "emits": ["현관 바닥|surface:오염@>=1"]
+          "on": ["OBJ+2|sole:dirt@>=dirty"],
+          "emits": ["현관 바닥|surface:오염@>=dust"]
         }
       }
     },

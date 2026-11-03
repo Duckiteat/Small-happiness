@@ -14,17 +14,6 @@ import type { Vocab } from './vocab.ts';
 
 const key = (i: Issue): string => `${i.level}|${i.where}|${i.msg}`;
 
-function levelCount(vocab: Vocab, feature: string): number | null {
-  const levels = vocab.entry('feature', feature)?.attrs['levels'];
-  return Array.isArray(levels) ? levels.length : null;
-}
-
-/** 조건이 이 특징의 단계 범위(0..L-1)와 겹치는가. */
-function fitsLevels(cond: Cond, levels: number): boolean {
-  const r = condRange(cond);
-  return r.min <= levels - 1 && r.max >= 0 && r.min <= r.max;
-}
-
 function slotCheck(
   def: Definition | undefined,
   slot: string,
@@ -38,10 +27,14 @@ function slotCheck(
   const s = def.slots?.[slot];
   if (s === undefined) return void push(where, `${def.id}에 부위 "${slot}"가 없다`);
   if (!s.features.includes(feature)) return void push(where, `부위 ${def.id}.${slot}에 특징 "${feature}"가 없다`);
-  const L = levelCount(vocab, feature);
-  if (L !== null && !fitsLevels(cond, L)) {
-    push(where, `조건이 "${feature}"의 단계 범위(0~${L - 1})를 벗어난다`);
+  if (cond === null) return;
+  const order = vocab.levelOrder(feature);
+  if (order === undefined) return void push(where, `특징 "${feature}"에 단계 목록이 없어 조건을 쓸 수 없다`);
+  if (!order.includes(cond.level)) {
+    return void push(where, `조건의 단계 키 "${cond.level}"가 "${feature}"의 단계에 없다 (${order.join(', ')})`);
   }
+  const r = condRange(cond, order);
+  if (r === null || r.min > r.max) push(where, `조건 "${cond.op}${cond.level}"는 빈 범위다`);
 }
 
 /** 저장소 하나가 규칙을 지키는지 검사한다 (이전 상태와의 비교는 runGate). */
@@ -126,7 +119,7 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
   }
 
-  for (const ref of selfLoops(collectRules(db))) {
+  for (const ref of selfLoops(collectRules(db), vocab)) {
     warn(ref, '자기가 만든 상태가 자기 조건을 다시 만족시킨다 (자기 순환)');
   }
 

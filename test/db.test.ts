@@ -56,10 +56,10 @@ test('예시 패치: 이름·별칭이 번호·표준 키로 바뀐다', () => {
   const food = db.defs['OBJ000001'];
   assert.equal(food?.mobility, 'portable'); // 가변 → portable
   assert.deepEqual(food?.slots?.['body']?.features, ['rot', 'smell']); // 상함, 냄새
-  assert.deepEqual(food?.meanings?.[0]?.when, ['body:rot@<=1']); // 부패 → rot
-  assert.deepEqual(food?.rules?.['spoil']?.on, ['OBJ000001|body:rot@>=2']); // 임시 번호
-  assert.deepEqual(food?.rules?.['spoil']?.emits, ['OBJ000001|body:smell@>=2']); // 이름 "음식"
-  assert.deepEqual(db.defs['OBJ000002']?.rules?.['track']?.emits, ['OBJ000003|surface:dirt@>=1']); // 현관 바닥, 오염
+  assert.deepEqual(food?.meanings?.[0]?.when, ['body:rot@<=wilted']); // 부패 → rot
+  assert.deepEqual(food?.rules?.['spoil']?.on, ['OBJ000001|body:rot@>=spoiled']); // 임시 번호
+  assert.deepEqual(food?.rules?.['spoil']?.emits, ['OBJ000001|body:smell@>=distinct']); // 이름 "음식"
+  assert.deepEqual(db.defs['OBJ000002']?.rules?.['track']?.emits, ['OBJ000003|surface:dirt@>=dust']); // 현관 바닥, 오염
   assert.equal(db.defs['OBJ000003']?.mobility, 'fixed'); // 고정
 });
 
@@ -74,7 +74,7 @@ test('예시 패치는 관문을 오류도 경고도 없이 통과한다', () =>
 test('규칙 사슬: emits와 on이 맞으면 자동으로 이어진다', () => {
   const rules = collectRules(sampleDb());
   assert.equal(rules.length, 5);
-  const edges = buildEdges(rules);
+  const edges = buildEdges(rules, vocab);
   const pairs = edges.map((e) => `${e.from.split('/rule/')[1]}>${e.to.split('/rule/')[1]}`).sort();
   assert.deepEqual(pairs, ['bugs>spread', 'odor_reach>bugs', 'spoil>odor_reach']);
 
@@ -91,10 +91,10 @@ test('규칙 사슬: emits와 on이 맞으면 자동으로 이어진다', () => 
 test('상태 의미: 위에서부터 처음 맞는 의미가 답이다', () => {
   const food = sampleDb().defs['OBJ000001'];
   assert.ok(food);
-  assert.equal(meaningOf(food, {})?.means, 'edible'); // 없는 키는 0
-  assert.equal(meaningOf(food, { 'body:rot': 1 })?.means, 'edible');
-  assert.equal(meaningOf(food, { 'body:rot': 2 })?.means, 'inedible');
-  assert.equal(meaningOf(food, { 'body:rot': 3 })?.label, '먹을 수 없음');
+  assert.equal(meaningOf(food, {}, vocab)?.means, 'edible'); // 없는 키는 0
+  assert.equal(meaningOf(food, { 'body:rot': 1 }, vocab)?.means, 'edible');
+  assert.equal(meaningOf(food, { 'body:rot': 2 }, vocab)?.means, 'inedible');
+  assert.equal(meaningOf(food, { 'body:rot': 3 }, vocab)?.label, '먹을 수 없음');
 });
 
 test('수정은 적은 필드만 교체하고 나머지는 유지한다', () => {
@@ -129,10 +129,10 @@ test('관문 거부: 사전에 없는 특징', () => {
 
 test('관문 거부: 없는 부위·특징·단계 범위를 가리키는 패턴', () => {
   const db = sampleDb();
-  assert.match(attempt(db, [{ id: 'PLC000001', rules: { bad: { on: ['OBJ000001|nowhere:rot@>=1'], emits: ['PLC000001|space:bug@=1'] } } }]).messages, /부위 "nowhere"가 없다/);
-  assert.match(attempt(db, [{ id: 'PLC000001', rules: { bad: { on: ['OBJ000001|body:dirt@>=1'], emits: ['PLC000001|space:bug@=1'] } } }]).messages, /특징 "dirt"가 없다/);
-  assert.match(attempt(db, [{ id: 'PLC000001', rules: { bad: { on: ['OBJ000001|body:rot@>=9'], emits: ['PLC000001|space:bug@=1'] } } }]).messages, /단계 범위/);
-  assert.match(attempt(db, [{ id: 'PLC000001', rules: { bad: { on: ['OBJ000001|body:rot@>=1'], emits: ['PLC000099|space:bug@=1'] } } }]).messages, /없는 정의/);
+  assert.match(attempt(db, [{ id: 'PLC000001', rules: { bad: { on: ['OBJ000001|nowhere:rot@>=wilted'], emits: ['PLC000001|space:bug@=few'] } } }]).messages, /부위 "nowhere"가 없다/);
+  assert.match(attempt(db, [{ id: 'PLC000001', rules: { bad: { on: ['OBJ000001|body:dirt@>=dust'], emits: ['PLC000001|space:bug@=few'] } } }]).messages, /특징 "dirt"가 없다/);
+  assert.match(attempt(db, [{ id: 'PLC000001', rules: { bad: { on: ['OBJ000001|body:rot@>=nope'], emits: ['PLC000001|space:bug@=few'] } } }]).messages, /단계 키 "nope"/);
+  assert.match(attempt(db, [{ id: 'PLC000001', rules: { bad: { on: ['OBJ000001|body:rot@>=wilted'], emits: ['PLC000099|space:bug@=few'] } } }]).messages, /없는 정의/);
 });
 
 test('관문 거부: 같은 종류 안의 이름 충돌 (이름 하나 = 개념 하나)', () => {
@@ -181,7 +181,7 @@ test('관문 거부: 번호 카운터가 줄어든 저장소', () => {
 });
 
 test('자기 순환 규칙은 경고한다', () => {
-  const { gate } = attempt(sampleDb(), [{ id: 'PLC000002', rules: { loop: { on: ['PLC000002|space:bug@>=1'], emits: ['PLC000002|space:bug@>=2'] } } }]);
+  const { gate } = attempt(sampleDb(), [{ id: 'PLC000002', rules: { loop: { on: ['PLC000002|space:bug@>=few'], emits: ['PLC000002|space:bug@>=many'] } } }]);
   assert.ok(gate.newWarnings.some((w) => /자기 순환/.test(w.msg)));
 });
 
@@ -215,7 +215,7 @@ test('패치 보고서: 범위, 영향, 검증', () => {
   const before = emptyDb();
   const merged = mergePatch(before, patchOf(sample), vocab);
   const gate = runGate(before, merged.db, vocab, merged.report.errors);
-  const report = patchReport(before, merged.db, merged.report, gate);
+  const report = patchReport(before, merged.db, merged.report, gate, vocab);
   assert.deepEqual(report.scope.added['object'], ['OBJ000001', 'OBJ000002', 'OBJ000003']);
   assert.deepEqual(report.scope.added['place'], ['PLC000001', 'PLC000002']);
   assert.equal(report.impact.newChainEdges, 3);
@@ -231,13 +231,13 @@ test('패치 보고서: 수정의 영향은 규칙으로 가리키는 다른 정
   const patch = patchOf({ format: 'small-happiness-patch', version: 1, why: '영향 시험', defs: [{ id: 'OBJ000001', aliases: ['먹거리'] }] });
   const merged = mergePatch(db, patch, vocab);
   const gate = runGate(db, merged.db, vocab, merged.report.errors);
-  const report = patchReport(db, merged.db, merged.report, gate);
+  const report = patchReport(db, merged.db, merged.report, gate, vocab);
   assert.deepEqual(report.impact.referencedBy['OBJ000001'], ['PLC000001']); // 주방 규칙이 음식을 가리킨다
   assert.equal(report.impact.newChainEdges, 0);
 });
 
 test('조건 문법: 소유자 안의 조건', () => {
-  assert.deepEqual(parseLocalCondition('body:rot@>=2'), { slot: 'body', feature: 'rot', cond: { op: '>=', n: 2 } });
+  assert.deepEqual(parseLocalCondition('body:rot@>=spoiled'), { slot: 'body', feature: 'rot', cond: { op: '>=', level: 'spoiled' } });
   assert.equal(formatLocalCondition({ slot: 'body', feature: 'rot', cond: null }), 'body:rot');
   assert.equal(parseLocalCondition('body:rot@<0'), null);
   assert.equal(parseLocalCondition('Body:rot'), null);

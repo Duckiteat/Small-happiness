@@ -15,32 +15,32 @@
       {
         "key": "dirt", "ko": "더러움", "en": "dirt", "aliases": ["오염", "때"],
         "desc": "표면이 더러워진 정도",
-        "attrs": { "levels": ["깨끗", "먼지 낌", "더러움", "심함"] }
+        "attrs": { "levels": [{ "key": "clean", "ko": "깨끗" }, { "key": "dust", "ko": "먼지 낌" }, { "key": "dirty", "ko": "더러움" }, { "key": "severe", "ko": "심함" }] }
       },
       {
         "key": "rot", "ko": "상함", "en": "rot", "aliases": ["부패"],
         "desc": "음식 등이 상한 정도",
-        "attrs": { "levels": ["신선", "시들함", "상함", "썩음"] }
+        "attrs": { "levels": [{ "key": "fresh", "ko": "신선" }, { "key": "wilted", "ko": "시들함" }, { "key": "spoiled", "ko": "상함" }, { "key": "rotten", "ko": "썩음" }] }
       },
       {
         "key": "smell", "ko": "냄새", "en": "smell",
         "desc": "장소나 물건에서 나는 냄새의 세기",
-        "attrs": { "levels": ["없음", "은은함", "뚜렷함", "지독함"] }
+        "attrs": { "levels": [{ "key": "none", "ko": "없음" }, { "key": "faint", "ko": "은은함" }, { "key": "distinct", "ko": "뚜렷함" }, { "key": "foul", "ko": "지독함" }] }
       },
       {
         "key": "bug", "ko": "벌레", "en": "bug",
         "desc": "벌레가 보이는 정도",
-        "attrs": { "levels": ["없음", "한두 마리", "여럿", "들끓음"] }
+        "attrs": { "levels": [{ "key": "none", "ko": "없음" }, { "key": "few", "ko": "한두 마리" }, { "key": "many", "ko": "여럿" }, { "key": "swarm", "ko": "들끓음" }] }
       },
       {
         "key": "wet", "ko": "젖음", "en": "wet", "aliases": ["습기"],
         "desc": "물기가 있는 정도",
-        "attrs": { "levels": ["마름", "축축함", "젖음", "흠뻑"] }
+        "attrs": { "levels": [{ "key": "dry", "ko": "마름" }, { "key": "damp", "ko": "축축함" }, { "key": "wet", "ko": "젖음" }, { "key": "soaked", "ko": "흠뻑" }] }
       },
       {
         "key": "clutter", "ko": "어질러짐", "en": "clutter", "aliases": ["난장"],
         "desc": "물건이 흐트러진 정도",
-        "attrs": { "levels": ["정돈", "약간", "어수선", "난장판"] }
+        "attrs": { "levels": [{ "key": "tidy", "ko": "정돈" }, { "key": "slight", "ko": "약간" }, { "key": "messy", "ko": "어수선" }, { "key": "chaos", "ko": "난장판" }] }
       }
     ]
   },
