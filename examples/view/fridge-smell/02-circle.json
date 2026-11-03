@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "scene": "냉장고 냄새",
+  "place": "현관",
+  "event": { "id": "EVT000001", "status": "open" },
+  "prose": [
+    [
+      { "text": "현관문을 열자 " },
+      { "text": "꼬릿한 냄새?", "anchor": "a1" },
+      { "text": " 가 났다." }
+    ]
+  ],
+  "anchors": [{ "id": "a1", "circle": "open" }],
+  "nodes": [
+    { "id": "s1", "label": "꼬릿한 냄새?", "kind": "percept", "rung": "feel", "ring": "none", "state": "new" },
+    { "id": "n1", "label": "킁킁", "kind": "action", "ring": "none", "state": "new" },
+    { "id": "n2", "label": "지나친다", "kind": "action", "ring": "none", "state": "new" }
+  ],
+  "edges": [
+    { "from": "a1", "to": "s1", "kind": "link" },
+    { "from": "s1", "to": "n1", "kind": "option" },
+    { "from": "s1", "to": "n2", "kind": "option" }
+  ]
+}

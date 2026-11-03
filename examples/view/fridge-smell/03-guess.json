@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "scene": "냉장고 냄새",
+  "place": "현관",
+  "event": { "id": "EVT000001", "status": "open" },
+  "prose": [
+    [
+      { "text": "현관문을 열자 " },
+      { "text": "꼬릿한 냄새?", "anchor": "a1" },
+      { "text": " 가 났다." }
+    ],
+    [
+      { "text": "킁킁. " },
+      { "text": "어디지.", "anchor": "a2" },
+      { "text": " 근데 은근 구수하네." }
+    ]
+  ],
+  "anchors": [
+    { "id": "a1", "circle": "open" },
+    { "id": "a2", "circle": "none" }
+  ],
+  "nodes": [
+    { "id": "s1", "label": "구수한가? 상한 건가?", "kind": "percept", "rung": "guess", "ring": "none", "state": "seen" },
+    { "id": "n1", "label": "킁킁", "kind": "action", "ring": "none", "state": "done" },
+    { "id": "n2", "label": "지나친다", "kind": "action", "ring": "none", "state": "faded" },
+    { "id": "n3", "label": "주위를 둘러본다", "kind": "action", "ring": "core", "state": "new" },
+    { "id": "n4", "label": "창문을 연다", "kind": "action", "ring": "periphery", "state": "new" }
+  ],
+  "edges": [
+    { "from": "a1", "to": "s1", "kind": "link" },
+    { "from": "s1", "to": "n1", "kind": "option" },
+    { "from": "s1", "to": "n3", "kind": "option" },
+    { "from": "s1", "to": "n4", "kind": "option" }
+  ]
+}
