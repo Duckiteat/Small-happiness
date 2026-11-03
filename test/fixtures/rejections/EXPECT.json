@@ -1,0 +1,19 @@
+{
+  "unknown-feature.json": { "stage": "gate", "match": "사전에 없는 특징: 반짝임" },
+  "bad-slot-ref.json": { "stage": "gate", "match": "부위 \"nowhere\"가 없다" },
+  "bad-feature-ref.json": { "stage": "gate", "match": "특징 \"dirt\"가 없다" },
+  "level-out-of-range.json": { "stage": "gate", "match": "단계 범위" },
+  "dangling-target.json": { "stage": "gate", "match": "없는 정의를 가리킨다" },
+  "name-collision.json": { "stage": "gate", "match": "여러 정의의 이름·별칭" },
+  "unknown-temp.json": { "stage": "gate", "match": "선언되지 않은 임시 번호" },
+  "update-missing.json": { "stage": "gate", "match": "없는 번호는 수정할 수 없다" },
+  "unknown-field.json": { "stage": "gate", "match": "쓸 수 없는 필드: color" },
+  "missing-names.json": { "stage": "gate", "match": "names가 필요하다" },
+  "dangling-remove.json": { "stage": "gate", "match": "없는 정의를 가리킨다: PLC000002" },
+  "invalid-mobility.json": { "stage": "gate", "match": "사전에 없는 값: flying" },
+  "bad-condition.json": { "stage": "gate", "match": "조건 형식이 아니다" },
+  "warning-no-mobility.json": { "stage": "gate", "match": "새 경고" },
+  "self-loop.json": { "stage": "gate", "match": "자기 순환" },
+  "no-why.json": { "stage": "patch", "match": "why" },
+  "extra-top-field.json": { "stage": "patch", "match": "알 수 없는 최상위 필드" }
+}

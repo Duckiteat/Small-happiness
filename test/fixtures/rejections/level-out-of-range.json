@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 특징의 단계 범위를 벗어난 조건",
+  "defs": [ { "id": "PLC000001", "rules": { "bad": { "on": ["OBJ000001|body:rot@>=9"], "emits": ["PLC000001|space:bug@=1"] } } } ] }

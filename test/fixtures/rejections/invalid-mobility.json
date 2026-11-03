@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 사전에 없는 이동성",
+  "defs": [ { "id": "OBJ+1", "names": { "ko": "풍선" }, "mobility": "flying" } ] }

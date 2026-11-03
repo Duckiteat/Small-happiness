@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 알 수 없는 필드",
+  "defs": [ { "id": "OBJ+1", "names": { "ko": "컵" }, "mobility": "portable", "color": "red" } ] }

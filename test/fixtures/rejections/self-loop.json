@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 자기 순환 규칙은 경고",
+  "defs": [ { "id": "PLC000002", "rules": { "loop": { "on": ["PLC000002|space:bug@>=1"], "emits": ["PLC000002|space:bug@>=2"] } } } ] }

@@ -1,0 +1,20 @@
+{
+  "format": "small-happiness-db",
+  "version": 1,
+  "meta": {
+    "next": {
+      "ACT": 1,
+      "AWR": 1,
+      "CHR": 1,
+      "CMT": 1,
+      "EVT": 1,
+      "FRG": 1,
+      "HAB": 1,
+      "ITM": 1,
+      "OBJ": 1,
+      "PLC": 1,
+      "RUL": 1
+    }
+  },
+  "defs": {}
+}

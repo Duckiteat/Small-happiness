@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 오브젝트에 이동성이 없으면 경고, 경고는 허락 없이는 거부",
+  "defs": [ { "id": "OBJ+1", "names": { "ko": "컵" } } ] }
