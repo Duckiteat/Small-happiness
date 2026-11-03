@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 없는 부위를 가리키는 규칙",
+  "defs": [ { "id": "PLC000001", "rules": { "bad": { "on": ["OBJ000001|nowhere:rot@>=1"], "emits": ["PLC000001|space:bug@=1"] } } } ] }

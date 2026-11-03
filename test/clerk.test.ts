@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { appendixMarkdown } from '../src/core/appendix.ts';
-import { appendix, commitPatch, loadDb } from '../src/node/clerk.ts';
+import { appendix, commitPatch, loadDb, replay } from '../src/node/clerk.ts';
 import { loadVocabDir } from '../src/node/vocab-files.ts';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -39,7 +39,7 @@ test('통과한 패치는 저장소와 기록 파일을 쓴다', () => {
   assert.equal(Object.keys(loadDb(root).defs).length, 5);
   const records = readdirSync(join(root, 'data', 'patches'));
   assert.equal(records.length, 1);
-  assert.match(records[0] as string, /^20261103-0930\d\d-/);
+  assert.match(records[0] as string, /^0001-20261103-0930\d\d-/);
   const record = JSON.parse(readFileSync(join(root, 'data', 'patches', records[0] as string), 'utf8'));
   assert.equal(record.idmap['OBJ+1'], 'OBJ000001');
   assert.equal(record.report.verification.pass, true);
@@ -85,6 +85,51 @@ test('자동 생성 부록: 내용, 쓰기, 최신 여부 검사', () => {
   assert.equal(appendix(root, vocab, 'check').ok, true);
   writeFileSync(join(root, 'docs', '자동생성-부록.md'), '손으로 고침');
   assert.equal(appendix(root, vocab, 'check').ok, false);
+});
+
+test('재생: 기록대로 다시 적용하면 저장소와 일치한다', () => {
+  const root = tempRoot();
+  assert.equal(replay(root, vocab).ok, true); // 아무것도 없는 상태도 일치
+  commitPatch(root, sample, vocab, { now: NOW });
+  const r = replay(root, vocab);
+  assert.equal(r.ok, true, r.problems.join('\n'));
+  assert.equal(r.patches, 1);
+});
+
+test('재생: 저장소를 손으로 고치면 잡는다', () => {
+  const root = tempRoot();
+  commitPatch(root, sample, vocab, { now: NOW });
+  const file = join(root, 'data', 'db.json');
+  writeFileSync(file, readFileSync(file, 'utf8').replace('"ko": "음식"', '"ko": "음식물"'));
+  const r = replay(root, vocab);
+  assert.equal(r.ok, false);
+  assert.match(r.problems.join('\n'), /손으로 고쳤거나/);
+});
+
+test('재생: 기록 파일이 빠지거나 바뀌어도 잡는다', () => {
+  const root = tempRoot();
+  commitPatch(root, sample, vocab, { now: NOW });
+  const dir = join(root, 'data', 'patches');
+  const [name] = readdirSync(dir);
+  const recordPath = join(dir, name as string);
+
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  record.patch.defs[0].names.ko = '다른 이름';
+  writeFileSync(recordPath, JSON.stringify(record));
+  assert.equal(replay(root, vocab).ok, false); // 기록을 고치면 결과가 어긋난다
+
+  rmSync(recordPath);
+  assert.equal(replay(root, vocab).ok, false); // 기록이 빠지면 어긋난다
+});
+
+test('재생 순서: 같은 초에 들어온 패치도 번호 순서로 적용된다', () => {
+  const root = tempRoot();
+  commitPatch(root, sample, vocab, { now: NOW });
+  const second = { format: 'small-happiness-patch', version: 1, why: '두 번째', defs: [{ id: 'OBJ000001', aliases: ['식재료', '먹거리'] }] };
+  commitPatch(root, second, vocab, { now: NOW }); // 같은 시각
+  const names = readdirSync(join(root, 'data', 'patches'));
+  assert.deepEqual(names.map((n) => n.slice(0, 4)), ['0001', '0002']);
+  assert.equal(replay(root, vocab).ok, true);
 });
 
 test('저장소 파일이 깨졌으면 읽기를 거부한다', () => {

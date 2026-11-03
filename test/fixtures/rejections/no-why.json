@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1,
+  "defs": [ { "id": "OBJ+1", "names": { "ko": "컵" }, "mobility": "portable" } ] }

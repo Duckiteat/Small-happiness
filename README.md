@@ -22,6 +22,8 @@ node src/node/cli.ts validate examples/patches/fridge-chain.json   # 병합·관
 node src/node/cli.ts merge <패치.json> [--dry] [--allow-warnings] # 관문 통과 시 저장소와 기록에 씀
 node src/node/cli.ts chains [규칙 번호]                       # 자동으로 이어진 규칙 사슬
 node src/node/cli.ts appendix [--write | --check]              # 자동 생성 부록
+node src/node/cli.ts verify                                    # data/db.json이 기록된 패치의 결과와 같은지
+node src/node/cli.ts guard [기준 커밋]                          # 규칙을 바꾼 변경에 결정 기록이 있는지
 ```
 
 데이터(`data/db.json`)는 직접 고치지 않고 **패치**로만 바꾼다. 패치는 관문을 통과해야 들어가며, 거부되면 아무것도 쓰지 않는다.
@@ -49,6 +51,8 @@ node src/node/cli.ts appendix [--write | --check]              # 자동 생성 �
 - `docs/세계-설정.md` — 주인공 하루씨와 그의 집
 - `docs/인물-명세.md` — 내면, 밖의 하루, 자율 행동
 - `docs/상호작용-명세.md` — 이벤트의 정체와 구축 순서
+- `docs/언어와-문법.md` — 구현 언어, 시뮬레이터 이식 방식, 줄글 문법
+- `docs/꼼수-방지.md` — AI가 얕은 수를 쓰지 못하게 하는 구조
 - `docs/번짐-명세.md` — 오염이 퍼지는 방식
 - `docs/사전-명세.md` — 사전(통제 어휘)
 - `docs/DB-개념-이식.md` — 별도 프로젝트에서 가져온 설계 개념과 도구

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "ts-suppress",
+    "scope": "all",
+    "pattern": "@ts-(ignore|nocheck|expect-error)",
+    "sample": "// @ts-ignore",
+    "why": "타입 오류를 숨기지 말고 고친다"
+  },
+  {
+    "id": "any-cast",
+    "scope": "all",
+    "pattern": "\\bas any\\b|<any>",
+    "sample": "const x = y as any;",
+    "why": "any로 타입 검사를 우회하지 않는다"
+  },
+  {
+    "id": "silence-cast",
+    "scope": "src",
+    "pattern": "\\bas never\\b|\\bas unknown as\\b",
+    "sample": "const x = y as never;",
+    "why": "코어와 어댑터에서 타입을 강제로 맞추지 않는다 (시험에서 일부러 틀린 값을 넣는 경우만 허용)"
+  },
+  {
+    "id": "skip-todo-only",
+    "scope": "all",
+    "pattern": "\\b(test|it|describe)\\.(skip|todo|only)\\b|\\b(skip|todo)\\s*:\\s*(true|['\"`])",
+    "sample": "test.skip('a', () => {});",
+    "why": "시험을 끄거나 미루거나 하나만 돌리지 않는다"
+  },
+  {
+    "id": "empty-catch",
+    "scope": "all",
+    "pattern": "catch\\s*(\\([^)]*\\))?\\s*\\{\\s*\\}",
+    "sample": "try { f(); } catch (e) {}",
+    "why": "오류를 삼키지 않는다"
+  },
+  {
+    "id": "lint-disable",
+    "scope": "all",
+    "pattern": "eslint-disable",
+    "sample": "/* eslint-disable */",
+    "why": "검사를 끄지 않는다"
+  },
+  {
+    "id": "tautology",
+    "scope": "all",
+    "pattern": "assert\\.(ok|equal|strictEqual|deepEqual)\\(\\s*(true|1)\\s*(,\\s*(true|1)\\s*)?[,)]",
+    "sample": "assert.ok(true);",
+    "why": "항상 참인 단언은 아무것도 검증하지 않는다"
+  },
+  {
+    "id": "core-nondeterminism",
+    "scope": "core",
+    "pattern": "Math\\.random|Date\\.now|new Date\\(|performance\\.now",
+    "sample": "const t = Date.now();",
+    "why": "코어는 현재 시각과 난수를 직접 만들지 않고 인자로 받는다"
+  },
+  {
+    "id": "core-io",
+    "scope": "core",
+    "pattern": "from 'node:|require\\(",
+    "sample": "import fs from 'node:fs';",
+    "why": "코어는 입출력이 없는 순수 모듈이다 (파일·프로세스는 src/node)"
+  }
+]

@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 규칙이 가리키는 정의를 지움",
+  "remove": ["PLC000002"] }

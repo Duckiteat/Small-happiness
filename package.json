@@ -8,7 +8,9 @@
     "test": "node --test \"test/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "appendix": "node src/node/cli.ts appendix --write",
-    "appendix:check": "node src/node/cli.ts appendix --check"
+    "appendix:check": "node src/node/cli.ts appendix --check",
+    "verify": "node src/node/cli.ts verify",
+    "guard": "node src/node/cli.ts guard"
   },
   "engines": {
     "node": ">=22.18"

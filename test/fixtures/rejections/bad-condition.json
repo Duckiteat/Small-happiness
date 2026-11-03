@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 상태 의미 조건 형식 오류",
+  "defs": [ { "id": "OBJ000001", "meanings": [ { "label": "나쁨", "when": ["body:rot>>2"], "means": "bad" }, { "label": "기본", "when": [], "means": "ok" } ] } ] }

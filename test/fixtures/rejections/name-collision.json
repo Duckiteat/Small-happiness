@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 같은 종류 안의 이름 충돌 (식재료는 음식의 별칭)",
+  "defs": [ { "id": "OBJ+1", "names": { "ko": "식재료" }, "mobility": "portable" } ] }

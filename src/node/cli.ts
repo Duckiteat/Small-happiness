@@ -12,7 +12,8 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEdges, chainRoots, chainsFrom, collectRules } from '../core/chains.ts';
 import { patchReportMarkdown } from '../core/report.ts';
-import { appendix, commitPatch, loadDb } from './clerk.ts';
+import { appendix, commitPatch, loadDb, replay } from './clerk.ts';
+import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
 
 const HERE = fileURLToPath(new URL('../..', import.meta.url));
@@ -87,8 +88,29 @@ function main(): void {
       else console.log(mode === 'write' ? '저장: docs/자동생성-부록.md' : '부록이 최신이다');
       return;
     }
+    case 'verify': {
+      const r = replay(root, vocab);
+      console.log(`기록된 패치 ${r.patches}건을 다시 적용했다`);
+      for (const p of r.problems) console.error('  - ' + p);
+      if (!r.ok) process.exit(1);
+      console.log('data/db.json이 기록과 일치한다');
+      return;
+    }
+    case 'guard': {
+      const base = arg ?? 'HEAD~1';
+      const changes = changesSince(base, root);
+      if (changes === null) {
+        console.log(`비교할 커밋(${base})이 없어 건너뛴다`);
+        return;
+      }
+      const g = guardCheck(changes);
+      for (const p of g.problems) console.error('  - ' + p);
+      if (!g.ok) process.exit(1);
+      console.log(`가드 통과 (변경 ${changes.length}건)`);
+      return;
+    }
     default:
-      die('명령: status | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 
