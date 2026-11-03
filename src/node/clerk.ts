@@ -152,3 +152,24 @@ export function appendix(root: string, vocab: Vocab, mode: 'write' | 'check' | '
   }
   return { ok: true, content };
 }
+
+export const WEB_PAGE = 'web/prototype/index.html';
+export const VIEW_DIR = 'examples/view/fridge-smell';
+const FIXTURE_BLOCK = /(<script id="fixtures" type="application\/json">\n)[\s\S]*?(\n<\/script>)/;
+
+/** 시제품 HTML 안의 장면 JSON을 examples/view 파일과 맞춘다. 파일명 순서가 장면 순서. */
+export function syncWeb(root: string, mode: 'write' | 'check'): { ok: boolean; count: number } {
+  const dir = join(root, VIEW_DIR);
+  const names = readdirSync(dir).filter((n) => n.endsWith('.json')).sort();
+  const views: unknown[] = names.map((n) => JSON.parse(readFileSync(join(dir, n), 'utf8')) as unknown);
+  const json = JSON.stringify(views).replace(/</g, '\\u003c');
+  const file = join(root, WEB_PAGE);
+  const html = readFileSync(file, 'utf8');
+  if (!FIXTURE_BLOCK.test(html)) return { ok: false, count: names.length };
+  const next = html.replace(FIXTURE_BLOCK, (_m, a: string, b: string) => a + json + b);
+  if (mode === 'write') {
+    atomicWrite(file, next);
+    return { ok: true, count: names.length };
+  }
+  return { ok: next === html, count: names.length };
+}

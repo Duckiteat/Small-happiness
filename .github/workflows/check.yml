@@ -18,5 +18,6 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run appendix:check
+      - run: npm run web:check
       - run: npm run verify
       - run: npm run guard

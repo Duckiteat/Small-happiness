@@ -5,6 +5,7 @@
 //   node src/node/cli.ts merge <patch.json> [--dry] [--allow-warnings]
 //   node src/node/cli.ts chains [규칙 번호]                  자동으로 이어진 규칙 사슬
 //   node src/node/cli.ts appendix [--write | --check]
+//   node src/node/cli.ts web [--write | --check]
 //   옵션: --root <폴더>  (기본: 현재 폴더)
 
 import { readFileSync } from 'node:fs';
@@ -12,7 +13,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEdges, chainRoots, chainsFrom, collectRules } from '../core/chains.ts';
 import { patchReportMarkdown } from '../core/report.ts';
-import { appendix, commitPatch, loadDb, replay } from './clerk.ts';
+import { appendix, commitPatch, loadDb, replay, syncWeb } from './clerk.ts';
 import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
 
@@ -88,6 +89,13 @@ function main(): void {
       else console.log(mode === 'write' ? '저장: docs/자동생성-부록.md' : '부록이 최신이다');
       return;
     }
+    case 'web': {
+      const mode = flags.has('--check') ? 'check' : 'write';
+      const r = syncWeb(root, mode);
+      if (!r.ok) die('시제품 HTML의 장면 JSON이 examples/view와 다름 — npm run web');
+      console.log(mode === 'write' ? `저장: web/prototype/index.html (장면 ${r.count}개)` : '시제품이 최신이다');
+      return;
+    }
     case 'verify': {
       const r = replay(root, vocab);
       console.log(`기록된 패치 ${r.patches}건을 다시 적용했다`);
@@ -110,7 +118,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 
