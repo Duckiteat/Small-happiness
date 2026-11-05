@@ -141,3 +141,12 @@ export function patchReportMarkdown(report: PatchReport, after: Db): string {
   out.push('');
   return out.join('\n');
 }
+
+function isRec(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/** 저장된 패치 기록의 report 가 보고서 모양인지 확인한다 (손으로 고친 기록을 거른다). */
+export function isPatchReport(v: unknown): v is PatchReport {
+  return isRec(v) && typeof v['why'] === 'string' && isRec(v['scope']) && isRec(v['impact']) && isRec(v['verification']);
+}

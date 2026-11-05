@@ -15,7 +15,7 @@ import { runGate } from '../core/gate.ts';
 import type { GateResult } from '../core/gate.ts';
 import { mergePatch, parsePatch } from '../core/patch.ts';
 import type { MergeReport } from '../core/patch.ts';
-import { patchReport } from '../core/report.ts';
+import { isPatchReport, patchReport } from '../core/report.ts';
 import type { PatchReport } from '../core/report.ts';
 import type { Vocab } from '../core/vocab.ts';
 import { SaveError, parseSave, serializeSave } from '../core/save.ts';
@@ -213,4 +213,29 @@ export function readSave(root: string, name: string): ParsedSave {
   const file = saveFile(root, name);
   if (!existsSync(file)) throw new SaveError(`저장 파일이 없다: ${name}`);
   return parseSave(readFileSync(file, 'utf8'), contentHash(root));
+}
+
+// ── 패치 보고서 다시 보기 ───────────────────────────────────────────────────
+
+/** 패치 기록 파일 이름을 찾는다. ref 는 파일 이름 또는 앞 번호(1, 0001)다. */
+export function findRecord(root: string, ref: string): string | null {
+  const dir = join(root, PATCH_DIR);
+  if (!existsSync(dir)) return null;
+  const files = readdirSync(dir).filter((f) => f.endsWith('.json')).sort();
+  if (files.includes(ref)) return ref;
+  if (/^\d+$/.test(ref)) {
+    const prefix = `${ref.padStart(4, '0')}-`;
+    return files.find((f) => f.startsWith(prefix)) ?? null;
+  }
+  return null;
+}
+
+/** 기록에 저장된 패치 보고서를 읽는다. 읽기만 한다. */
+export function readRecordReport(root: string, ref: string): { file: string; report: PatchReport } {
+  const file = findRecord(root, ref);
+  if (file === null) throw new Error(`패치 기록이 없다: ${ref}`);
+  const raw: unknown = JSON.parse(readFileSync(join(root, PATCH_DIR, file), 'utf8'));
+  const report = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>)['report'] : undefined;
+  if (!isPatchReport(report)) throw new Error(`${file}: 기록에 올바른 보고서가 없다`);
+  return { file, report };
 }

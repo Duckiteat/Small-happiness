@@ -20,6 +20,7 @@ Node 22.18 이상이 필요하다. TypeScript를 빌드 없이 바로 실행한�
 node src/node/cli.ts status                                   # 정의 수, 다음 번호, 사전 규모
 node src/node/cli.ts validate examples/patches/fridge-chain.json   # 병합·관문만 확인 (쓰지 않음)
 node src/node/cli.ts merge <패치.json> [--dry] [--allow-warnings] # 관문 통과 시 저장소와 기록에 씀
+node src/node/cli.ts report <패치 기록>                              # 저장된 패치 보고서 다시 보기 (파일 이름 또는 번호)
 node src/node/cli.ts chains [규칙 번호]                       # 자동으로 이어진 규칙 사슬
 node src/node/cli.ts appendix [--write | --check]              # 자동 생성 부록
 node src/node/cli.ts verify                                    # data/db.json이 기록된 패치의 결과와 같은지
@@ -49,7 +50,6 @@ node src/node/cli.ts guard [기준 커밋]                          # 규칙을 
 - `docs/결정-기록.md` — 결정 현황
 - `docs/축과-층위.md` — 이벤트가 변하지 않게 하는 축 가족·층위·품질판 (구현보다 먼저)
 - `docs/화면-계약.md` — 디자인이 붙는 뷰 모델(코어가 내고 화면이 그림)과 첫 장면 픽스처
-- `docs/캔바-프롬프트.md` — 첫 장면 여섯 상태를 캔바에서 디자인하기 위한 프롬프트와 슬롯 표
 - `docs/시스템-명세.md` — 시스템 분리와 계약
 - `docs/기반층-명세.md` — 번호, 상태 키, 사건, 기록, 난수, 시계, 저장
 - `docs/세계-설정.md` — 주인공 하루씨와 그의 집

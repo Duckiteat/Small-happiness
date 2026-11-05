@@ -32,6 +32,7 @@
 npm run typecheck && npm test && npm run appendix:check && npm run verify
 npm run guard          # 직전 커밋과 비교
 ```
+- 코드·형식·어휘·문서 구조를 바꾸면 `CHANGES.md` 맨 위에 **한 행**(Scope · Why · Impact · Verification)을 같은 커밋에서 더한다 (행은 고치지 않는다). 새 문서는 `docs/보고서-목록.md`에 올린다 (시험이 확인).
 - 새 규칙에는 **거부 시험**(말뭉치 파일 + `EXPECT.json`)을 더하고 `test/fixtures/FLOOR.json`의 바닥값을 올린다 (내리지 않는다).
 - 설계가 바뀌면 관련 명세와 `결정-기록.md`를 같은 커밋에서 고친다. 자동 생성 부록이 낡으면 `npm run appendix`.
 - 보고할 때는 확인한 것과 **확인하지 못한 것**을 구분한다.

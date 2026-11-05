@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { buildEdges, chainRoots, chainsFrom, collectRules } from '../core/chains.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
-import { appendix, commitPatch, loadDb, replay, syncWeb } from './clerk.ts';
+import { appendix, commitPatch, loadDb, readRecordReport, replay, syncWeb } from './clerk.ts';
 import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
 
@@ -118,6 +118,14 @@ function main(): void {
       console.log(`가드 통과 (변경 ${changes.length}건)`);
       return;
     }
+    case 'report': {
+      // 저장된 패치 기록의 보고서를 다시 본다 (읽기만). 이름은 지금 저장소 기준으로 보인다.
+      if (arg === undefined) die('패치 기록(파일 이름 또는 번호)을 지정하세요');
+      const { file, report } = readRecordReport(root, arg);
+      console.log(`# ${file}\n`);
+      console.log(patchReportMarkdown(report, loadDb(root)));
+      return;
+    }
     case 'compile': {
       // 원본 파일들 → 패치 JSON (표준 출력). 형식·사전·펼치기 검사 후 기존 패치 형식으로 낸다. 파일은 쓰지 않는다.
       const files = positional.slice(1);
@@ -132,7 +140,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | compile <원본...> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 
