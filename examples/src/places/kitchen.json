@@ -1,0 +1,65 @@
+{
+  "format_version": 1,
+  "file_kind": "places",
+  "why": "주방 장소 (예시 원본, 임시 번호)",
+  "defs": [
+    {
+      "id": "PLC+1",
+      "names": {
+        "ko": "주방",
+        "en": "kitchen"
+      },
+      "slots": {
+        "space": {
+          "features": [
+            "smell",
+            "bug"
+          ]
+        }
+      },
+      "rules": {
+        "odor_reach": {
+          "label": "상한 음식의 냄새가 주방에 퍼진다",
+          "on": [
+            "OBJ+1|body:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC+1|space:smell@>=faint"
+          ]
+        },
+        "bugs": {
+          "label": "냄새가 뚜렷해지면 벌레가 꼬인다",
+          "on": [
+            "PLC+1|space:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC+1|space:bug@=few"
+          ]
+        },
+        "spread": {
+          "label": "벌레가 거실로 번진다",
+          "on": [
+            "PLC+1|space:bug@>=few"
+          ],
+          "emits": [
+            "PLC+2|space:bug@=few"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PLC+2",
+      "names": {
+        "ko": "거실",
+        "en": "living room"
+      },
+      "slots": {
+        "space": {
+          "features": [
+            "bug"
+          ]
+        }
+      }
+    }
+  ]
+}

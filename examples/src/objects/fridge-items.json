@@ -1,0 +1,27 @@
+{
+  "format_version": 1,
+  "file_kind": "objects",
+  "why": "냉장고 시나리오 원본: 음식 기본 항목과 사과 개별 항목 (예시, 임시 번호)",
+  "defs": [
+    {
+      "id": "OBJ+1",
+      "names": { "ko": "음식", "en": "food" },
+      "aliases": ["식재료"],
+      "mobility": "가변",
+      "slots": { "body": { "features": ["rot", "smell"] } },
+      "meanings": [
+        { "label": "먹을 수 있음", "when": ["body:rot@<=wilted"], "means": "edible" },
+        { "label": "먹을 수 없음", "when": [], "means": "inedible" }
+      ],
+      "rules": {
+        "spoil": { "label": "상하면 냄새가 뚜렷해진다", "on": ["OBJ+1|body:rot@>=spoiled"], "emits": ["OBJ+1|body:smell@>=distinct"] }
+      }
+    },
+    {
+      "id": "OBJ+2",
+      "is_a": "OBJ+1",
+      "names": { "ko": "사과", "en": "apple" },
+      "override": { "mobility": "가변" }
+    }
+  ]
+}
