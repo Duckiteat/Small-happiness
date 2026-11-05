@@ -5,6 +5,7 @@
 //
 // 순수 코어(src/core)는 병합·검사·보고를 계산하고, 파일 쓰기는 여기서만 한다. 현재 시각은 인자로 받는다.
 
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { appendixMarkdown, APPENDIX_PATH } from '../core/appendix.ts';
@@ -17,6 +18,8 @@ import type { MergeReport } from '../core/patch.ts';
 import { patchReport } from '../core/report.ts';
 import type { PatchReport } from '../core/report.ts';
 import type { Vocab } from '../core/vocab.ts';
+import { SaveError, parseSave, serializeSave } from '../core/save.ts';
+import type { ParsedSave, SaveFile } from '../core/save.ts';
 
 export const DB_PATH = 'data/db.json';
 export const PATCH_DIR = 'data/patches';
@@ -172,4 +175,42 @@ export function syncWeb(root: string, mode: 'write' | 'check'): { ok: boolean; c
     return { ok: true, count: names.length };
   }
   return { ok: next === html, count: names.length };
+}
+
+// ── 저장 (docs/기반층-명세.md 4장) ──────────────────────────────────────────
+
+export const SAVE_DIR = 'saves';
+
+/** 콘텐츠 데이터(정의 저장소 + 사전)의 해시. 저장한 뒤 데이터가 바뀌었는지 알리는 데 쓴다. */
+export function contentHash(root: string): string {
+  const h = createHash('sha256');
+  const dbFile = join(root, DB_PATH);
+  h.update(existsSync(dbFile) ? readFileSync(dbFile, 'utf8') : '');
+  const vocabDir = join(root, 'data', 'vocab');
+  if (existsSync(vocabDir)) {
+    for (const f of readdirSync(vocabDir).filter((x) => x.endsWith('.json')).sort()) {
+      h.update(`\n#${f}\n`);
+      h.update(readFileSync(join(vocabDir, f), 'utf8'));
+    }
+  }
+  return h.digest('hex');
+}
+
+function saveFile(root: string, name: string): string {
+  if (!/^[A-Za-z0-9_-]+$/.test(name)) throw new SaveError(`저장 이름은 영문·숫자·밑줄·하이픈만 쓸 수 있다: ${name}`);
+  return join(root, SAVE_DIR, `${name}.json`);
+}
+
+/** 저장 파일을 쓴다. 정규 JSON, 원자적 쓰기. 파일에 쓰는 것은 이 모듈뿐이다. */
+export function writeSave(root: string, name: string, save: SaveFile): string {
+  const file = saveFile(root, name);
+  atomicWrite(file, serializeSave(save));
+  return file;
+}
+
+/** 저장 파일을 읽는다. 버전 불일치는 오류, 콘텐츠 해시 불일치는 경고로 돌려준다. */
+export function readSave(root: string, name: string): ParsedSave {
+  const file = saveFile(root, name);
+  if (!existsSync(file)) throw new SaveError(`저장 파일이 없다: ${name}`);
+  return parseSave(readFileSync(file, 'utf8'), contentHash(root));
 }
