@@ -38,6 +38,7 @@ node src/node/cli.ts guard [기준 커밋]                          # 규칙을 
 | `data/db.json` | 정의 저장소 (패치로만 변경) |
 | `examples/patches/` | 예시 패치 |
 | `test/` | 테스트 |
+| `docs/` | 명세, 설계, 분석, 결정 기록. 목록은 `docs/보고서-목록.md`, 형식은 `docs/보고서-형식.md` |
 | `docs/` | 기획과 설계 문서 |
 
 ## 문서
