@@ -20,7 +20,20 @@
         "ext": {
           "cards": []
         },
-        "plan": {},
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
         "self": {},
         "perceived": [],
         "visible_to_player": [],
@@ -30,7 +43,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 07:00] 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 07:00] 집에 있음 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
       ]
     },
     {
@@ -53,7 +66,20 @@
         "ext": {
           "cards": []
         },
-        "plan": {},
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
         "self": {},
         "perceived": [],
         "visible_to_player": [],
@@ -63,7 +89,145 @@
         "scene": {}
       },
       "lines": [
-        "[1일 08:30] 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 08:30] 외출 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    },
+    {
+      "t": 690,
+      "values": {
+        "time": {
+          "t": 690
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[1일 11:30] 외출 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    },
+    {
+      "t": 870,
+      "values": {
+        "time": {
+          "t": 870
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[1일 14:30] 외출 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    },
+    {
+      "t": 1050,
+      "values": {
+        "time": {
+          "t": 1050
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[1일 17:30] 외출 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
       ]
     },
     {
@@ -86,7 +250,20 @@
         "ext": {
           "cards": []
         },
-        "plan": {},
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
         "self": {},
         "perceived": [],
         "visible_to_player": [],
@@ -96,7 +273,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 19:30] 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 19:30] 집에 있음 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
       ]
     },
     {
@@ -119,7 +296,20 @@
         "ext": {
           "cards": []
         },
-        "plan": {},
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
         "self": {},
         "perceived": [],
         "visible_to_player": [],
@@ -129,7 +319,145 @@
         "scene": {}
       },
       "lines": [
-        "[1일 23:00] 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 23:00] 잠 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    },
+    {
+      "t": 1560,
+      "values": {
+        "time": {
+          "t": 1560
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[2일 02:00] 잠 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    },
+    {
+      "t": 1740,
+      "values": {
+        "time": {
+          "t": 1740
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[2일 05:00] 잠 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    },
+    {
+      "t": 1860,
+      "values": {
+        "time": {
+          "t": 1860
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[2일 07:00] 집에 있음 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
       ]
     }
   ],

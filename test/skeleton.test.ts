@@ -16,10 +16,12 @@ test('골든 트레이스: 뼈대 하루가 기록된 결과와 바이트까지 
   assert.equal(golden(ROOT, vocab, 'check').ok, true);
 });
 
-test('뼈대 하루는 시나리오의 단계마다 판 하나와 한 줄을 낸다', () => {
+test('뼈대 하루의 단계는 시간 모델대로 잡힌다: 외출·잠은 3시간마다, 경계(나감·귀가·잠듦·기상)는 항상', () => {
   const scenario = parseScenario(JSON.parse(readFileSync(join(ROOT, SKELETON_SCENARIO), 'utf8')));
   const trace = skeletonDay(ROOT, vocab);
-  assert.deepEqual(trace.steps.map((s) => s.t), scenario.steps);
+  // 07:00 시작 · 08:30 나감 · 11:30 14:30 17:30 · 19:30 귀가 · 23:00 잠듦 · 02:00 05:00 · 07:00 기상(끝)
+  assert.deepEqual(trace.steps.map((s) => s.t), [420, 510, 690, 870, 1050, 1170, 1380, 1560, 1740, 1860]);
+  assert.equal(trace.steps.at(-1)?.t, scenario.end);
   for (const s of trace.steps) {
     assert.deepEqual(Object.keys(s.values), NAMESPACES);
     assert.equal(s.lines.length, 1);
@@ -34,6 +36,7 @@ test('시나리오의 시작 상태가 세계 상태에 들어 있다', () => {
   const first = skeletonDay(ROOT, vocab).steps[0];
   assert.ok(first);
   assert.deepEqual(first.values['world.state'], { 'OBJ000001#1|body:rot': 'spoiled' });
+  assert.match(first.lines.join(''), /집에 있음/);
 });
 
 test('골든 파일은 저장소에 있고 비어 있지 않다', () => {
@@ -44,6 +47,6 @@ test('거부: 이유 없는 시나리오', () => {
   assert.throws(() => parseScenario({ patch: 'p', seed: 1, spawn: [], set: [], steps: [] }), /why/);
 });
 
-test('거부: 시나리오의 단계 시각이 정수(분)가 아니다', () => {
-  assert.throws(() => parseScenario({ why: 'w', patch: 'p', seed: 1, spawn: [], set: [], steps: [1.5] }), /steps는 0 이상의 정수/);
+test('거부: 시나리오의 끝이 시작보다 앞선다', () => {
+  assert.throws(() => parseScenario({ why: 'w', patch: 'p', seed: 1, spawn: [], set: [], start: 100, end: 50, routine: {} }), /start와 end/);
 });
