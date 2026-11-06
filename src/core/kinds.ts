@@ -49,3 +49,46 @@ export function effectiveRules(db: Db, def: string): Inherited<RuleDef>[] {
 export function effectiveOffers(db: Db, def: string): Inherited<OfferDef>[] {
   return effective(db, def, (d) => d.offers);
 }
+
+/** 완성된 진행 법칙 하나 (종류의 표 + 물건의 덮어쓰기를 합친 것). */
+export interface FullProgress {
+  readonly feature: string;
+  readonly slot: string;
+  readonly base_s: number;
+  readonly inputs: { readonly [feature: string]: { readonly [level: string]: number } };
+  readonly edges: readonly (number | null)[];
+  readonly tuned: boolean;
+}
+
+/**
+ * 정의 def의 인스턴스에 걸리는 진행 법칙. 종류의 항목과 자기 항목을 필드별로 합친다(자기 것이 이김).
+ * **그 특징을 가진 물건에만 걸린다** — 종류는 여러 과정(부패·시어짐·익음·시듦·곰팡이)의 표를 모두 갖고,
+ * 물건은 자기 부위에 둔 특징의 과정만 받는다. 합쳐도 빈 칸이 있으면 완성되지 않은 것으로 돌려준다(관문이 거부).
+ */
+export function effectiveProgress(db: Db, def: string): { readonly full: FullProgress[]; readonly incomplete: string[] } {
+  const own = db.defs[def]?.progress ?? {};
+  const baseId = db.defs[def]?.is_a;
+  const base = baseId === undefined ? {} : db.defs[baseId]?.progress ?? {};
+  const slots = db.defs[def]?.slots ?? {};
+  const full: FullProgress[] = [];
+  const incomplete: string[] = [];
+  for (const feature of [...new Set([...Object.keys(base), ...Object.keys(own)])].sort()) {
+    const m = { ...(base[feature] ?? {}), ...(own[feature] ?? {}) };
+    const has = m.slot !== undefined && (slots[m.slot]?.features ?? []).includes(feature);
+    // 이 물건에 없는 과정: 종류의 표이거나(종류 자신은 표를 들고 있을 뿐), 종류에서 물려받은 것 → 걸지 않는다.
+    // 종류에 속한 물건이 자기에게 없는 특징의 진행을 적었으면 잘못이다 → 완성되지 않은 것으로 보고 관문이 거부한다.
+    if (!has && (own[feature] === undefined || db.defs[def]?.is_a === undefined)) continue;
+    if (m.slot === undefined || m.base_s === undefined || m.inputs === undefined || m.edges === undefined || m.tuned === undefined || !has) {
+      incomplete.push(feature);
+      continue;
+    }
+    full.push({ feature, slot: m.slot, base_s: m.base_s, inputs: m.inputs, edges: m.edges, tuned: m.tuned });
+  }
+  return { full, incomplete };
+}
+
+/** 들여놓을 때의 상태: 종류의 것 + 자기 것 (자기 것이 이김). */
+export function effectiveInitial(db: Db, def: string): { readonly [slotFeature: string]: string } {
+  const baseId = db.defs[def]?.is_a;
+  return { ...(baseId === undefined ? {} : db.defs[baseId]?.initial ?? {}), ...(db.defs[def]?.initial ?? {}) };
+}

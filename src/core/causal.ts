@@ -16,6 +16,7 @@
 
 import type { Db } from './db.ts';
 import { effectiveRules, instancesOfKind } from './kinds.ts';
+import { Progress } from './progress.ts';
 import type { GameEvent } from './events.ts';
 import type { EventLog } from './log.ts';
 import { condRange, formatStateKey, parsePattern } from './statekey.ts';
@@ -100,6 +101,7 @@ export class Causal {
   readonly #log: EventLog;
   readonly #rules: readonly Rule[];
   readonly #reservations = new Map<string, Reservation>(); // `${owner}/${key}@${instance}` → 예약
+  readonly #progress: Progress;
   #now: number;
 
   /** @param start 인과가 시작되는 시각(분). 이 시각부터 규칙을 본다. */
@@ -109,11 +111,17 @@ export class Causal {
     this.#vocab = vocab;
     this.#log = log;
     this.#rules = compileRules(db);
+    this.#progress = new Progress(db, vocab, log);
     this.#now = start;
   }
 
   get now(): number {
     return this.#now;
+  }
+
+  /** 진행 법칙의 지금 양 (0~1000). 진행하지 않는 상태면 null. 시험·화면용. */
+  amount(key: string): number | null {
+    return this.#progress.amount(key);
   }
 
   /** 지금 걸려 있는 예약 (발화 시각, 규칙, 인스턴스). 화면의 예고와 시험에 쓴다. */
@@ -127,10 +135,14 @@ export class Causal {
   advance(world: World, to: number): void {
     if (!Number.isInteger(to) || to < this.#now) throw new CausalError(`시간은 거꾸로 가지 않는다 (${this.#now} → ${to})`);
     let fires = 0;
+    this.#progress.integrate(world, this.#now);
     this.#schedule(world, this.#now);
     for (;;) {
-      const due = this.#nextDue(to);
+      const dueRule = this.#nextDue(to);
+      const dueProgress = this.#progress.next(world, to);
+      const due = dueRule === null ? dueProgress : dueProgress === null ? dueRule : Math.min(dueRule, dueProgress);
       if (due === null) break;
+      this.#progress.integrate(world, due); // 조건이 바뀌기 전까지 옛 속도로 쌓는다
       this.#now = due;
       const batch = [...this.#reservations.entries()].filter(([, r]) => r.due === due).sort(([a], [b]) => a.localeCompare(b));
       // 동시 갱신: 모든 조건을 먼저 판정하고(직전 값), 그다음 한꺼번에 쓴다
@@ -146,8 +158,11 @@ export class Causal {
         this.#emit(world, r.rule, r.at, fired);
         if (++fires > MAX_FIRES_PER_ADVANCE) throw new CausalError(`한 번에 ${MAX_FIRES_PER_ADVANCE}번 넘게 발화했다 — 끝나지 않는 규칙 사슬이 있다`);
       }
+      this.#progress.fire(world, due); // 진행 법칙의 경계를 넘은 축
+      if (++fires > MAX_FIRES_PER_ADVANCE) throw new CausalError(`한 번에 ${MAX_FIRES_PER_ADVANCE}번 넘게 돌았다 — 끝나지 않는 사슬이 있다`);
       this.#schedule(world, due);
     }
+    this.#progress.integrate(world, to);
     this.#now = to;
   }
 
@@ -190,9 +205,18 @@ export class Causal {
     );
   }
 
-  /** emits가 이미 모두 이루어져 있는가. */
+  /**
+   * emits가 이미 모두 이루어져 있는가. 종결 단계(소멸·고정)는 = 로만 바뀌므로, >=·<= 결과가 종결 단계에 걸리면
+   * 할 일이 없는 것으로 본다 (버린 음식의 "상하면 냄새" 규칙이 끝없이 다시 걸리지 않게).
+   */
   #done(world: World, rule: Rule, at: string): boolean {
-    return rule.emits.every((p) => this.#targets(world, p, rule.owner, at).every((i) => this.#matches(world, p, i)));
+    return rule.emits.every((p) =>
+      this.#targets(world, p, rule.owner, at).every((i) => {
+        if (this.#matches(world, p, i)) return true;
+        const key = formatStateKey({ subject: i, slot: p.slot, feature: p.feature });
+        return p.cond !== null && p.cond.op !== '=' && world.levelIndex(key) === null;
+      }),
+    );
   }
 
   /** 결과를 세계 상태(주인)에 요청한다. */

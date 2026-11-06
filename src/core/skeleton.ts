@@ -15,6 +15,7 @@ import type { RecentAction } from './agency.ts';
 import { applyLevel, Causal } from './causal.ts';
 import { parseAware, Perception } from './perception.ts';
 import { defOf } from './ids.ts';
+import { effectiveInitial } from './kinds.ts';
 import { parseStateKey } from './statekey.ts';
 import type { Db } from './db.ts';
 import { EventLog } from './log.ts';
@@ -32,13 +33,17 @@ function size(v: BoardValue): number {
   return 0;
 }
 
-/** 세계 상태를 사람이 읽는 말로: 이름은 정의에서, 특징·단계 이름은 사전에서 (코드에 이름을 박지 않는다). */
+/**
+ * 세계 상태를 사람이 읽는 말로: 이름은 정의에서, 특징·단계 이름은 사전에서 (코드에 이름을 박지 않는다).
+ * 살 때의 상태(initial) 그대로인 것은 변화가 아니므로 빼고 보인다.
+ */
 function stateText(states: BoardValue, db: Db, vocab: Vocab): string {
   if (typeof states !== 'object' || Array.isArray(states)) return '';
   const parts: string[] = [];
   for (const [key, level] of Object.entries(states)) {
     const k = parseStateKey(key);
     if (k === null || typeof level !== 'string') continue;
+    if (effectiveInitial(db, defOf(k.subject) ?? '')[`${k.slot}:${k.feature}`] === level) continue;
     const name = db.defs[defOf(k.subject) ?? '']?.names.ko ?? k.subject;
     const feature = vocab.entry('feature', k.feature);
     const levels = feature?.attrs['levels'];
@@ -58,14 +63,14 @@ function name(db: Db, instance: string): string {
 function perceivedText(perceived: BoardValue, aware: BoardValue, db: Db, vocab: Vocab): string {
   if (!Array.isArray(perceived) || perceived.length === 0) return '';
   const knows = parseAware(aware);
-  const parts = perceived.map((p) => {
+  const parts = perceived.flatMap((p) => {
     const o = p as { who: string; key: string; level: string };
-    const k = parseStateKey(o.key);
-    const state = k === null ? o.key : stateText({ [o.key]: o.level }, db, vocab);
+    const state = stateText({ [o.key]: o.level }, db, vocab);
+    if (state === '') return []; // 살 때 그대로인 상태는 줄에서 뺀다
     const a = knows[o.who]?.[o.key];
-    return `${state}(${a === undefined ? '' : vocab.entry('awareness', a)?.ko ?? a})`;
+    return [`${state}(${a === undefined ? '' : vocab.entry('awareness', a)?.ko ?? a})`];
   });
-  return ` | 느낌: ${parts.join(', ')}`;
+  return parts.length === 0 ? '' : ` | 느낌: ${parts.join(', ')}`;
 }
 
 /** 하루씨가 이 단계에 고른 행동. */

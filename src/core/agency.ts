@@ -13,6 +13,7 @@ import { stateMatches } from './causal.ts';
 import type { BoardValue } from './board.ts';
 import type { Db } from './db.ts';
 import { effectiveOffers, instancesOfKind } from './kinds.ts';
+import { meaningOf } from './meaning.ts';
 import type { EventLog } from './log.ts';
 import type { AwareMap } from './perception.ts';
 import { OBSERVED } from './schedule.ts';
@@ -98,6 +99,15 @@ export class Agency {
             (p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def)).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
           const needs = offer.needs.map((n) => ({ keys: targets(pattern(n.aware)), min: rank(n.at_least) }));
           if (!needs.every((n) => n.keys.some((k) => rank(knows[k] ?? 'unknown') >= n.min))) continue;
+          if (offer.when_meaning !== undefined) {
+            const d = this.#db.defs[def];
+            const levels: Record<string, number> = {};
+            for (const k of world.keysOf(at)) {
+              const idx = world.levelIndex(k);
+              levels[k.slice(k.indexOf('|') + 1)] = idx ?? -1;
+            }
+            if (d === undefined || meaningOf(d, levels, this.#vocab)?.means !== offer.when_meaning) continue;
+          }
           const when = (offer.when ?? []).map(pattern);
           if (!when.every((p) => targets(p).some((k) => stateMatches(world, this.#vocab, k, p.feature, p.cond)))) continue;
           const effects = offer.effect.flatMap((text) => {

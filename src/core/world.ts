@@ -15,6 +15,7 @@
 import type { Db } from './db.ts';
 import type { GameEvent, JsonValue } from './events.ts';
 import { defOf, IdAllocator, parseId } from './ids.ts';
+import { effectiveInitial } from './kinds.ts';
 import type { EventLog } from './log.ts';
 import { formatStateKey, parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
@@ -65,13 +66,19 @@ export class World {
     return world;
   }
 
-  /** 정의의 인스턴스를 하나 만든다. */
+  /** 정의의 인스턴스를 하나 만든다. 정의의 initial(살 때의 상태)이 있으면 같은 시각에 그 상태로 둔다. */
   spawn(defId: string, meta: WriteMeta): { readonly id: string; readonly event: GameEvent } {
     const parsed = parseId(defId);
     if (parsed === null || parsed.kind !== 'def') throw new WorldError(`정의 번호가 아니다: ${defId}`);
     if (this.#db.defs[defId] === undefined) throw new WorldError(`없는 정의다: ${defId}`);
     const id = new IdAllocator(this.#ids.snapshot()).nextInstance(defId); // 미리 보기: 기록에 성공해야 발급한다
     const event = this.#write(INSTANCE_CREATED, { id, def: defId }, meta);
+    const slots = this.#db.defs[defId]?.slots ?? {};
+    for (const [sf, level] of Object.entries(effectiveInitial(this.#db, defId))) {
+      const [slot, feature] = sf.split(':') as [string, string];
+      if (!(slots[slot]?.features ?? []).includes(feature)) continue; // 종류의 처음 상태 중 이 물건에 없는 특징
+      this.set(formatStateKey({ subject: id, slot, feature }), level, { t: meta.t, cause: event.seq });
+    }
     return { id, event };
   }
 

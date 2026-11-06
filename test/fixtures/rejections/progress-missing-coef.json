@@ -1,0 +1,4 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 진행 법칙의 입력 표에 빠진 단계가 있다 (멸균의 계수 없음)",
+  "defs": [ { "id": "OBJ000001", "slots": { "body": { "features": ["rot", "smell"] }, "cond": { "features": ["seal"] } },
+    "progress": { "rot": { "slot": "body", "base_s": 86400, "edges": [0, 300, null, 600, null, 1000], "tuned": false,
+      "inputs": { "seal": { "open": 130, "half": 115, "sealed": 100, "pasteurized": 40 } } } } } ] }

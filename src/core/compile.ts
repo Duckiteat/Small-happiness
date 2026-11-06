@@ -13,7 +13,7 @@ const KIND_PREFIX: Readonly<Record<string, string>> = { objects: 'OBJ', places: 
 
 /** 종류별로 지금 받는 최상위 필드. */
 const FIELDS: Readonly<Record<string, readonly string[]>> = {
-  objects: ['id', 'names', 'aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'is_a', 'override'],
+  objects: ['id', 'names', 'aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial', 'is_a', 'override'],
   places: ['id', 'names', 'aliases', 'desc', 'slots', 'meanings', 'rules', 'offers'],
   characters: ['id', 'names', 'aliases', 'desc', 'senses'],
 };
@@ -140,9 +140,9 @@ export function compileSource(source: unknown): CompileResult {
     }
     // 기본 항목의 필드 → 개별 항목 자신의 필드 → override 순서로 덮는다. 번호·names·aliases·desc 는 개별 항목 것이다.
     // 이름·별칭·설명은 개별 항목 것만 쓴다 (기본 항목의 별칭이 복사되면 이름 충돌이 난다)
-    const { names: _n, aliases: _al, desc: _de, rules: _ru, offers: _of, ...inherited } = stripSource(base);
+    const { names: _n, aliases: _al, desc: _de, rules: _ru, offers: _of, progress: _pr, initial: _in, ...inherited } = stripSource(base);
     const merged: Obj = { ...inherited, id, names: d['names'], is_a: isA };
-    for (const k of ['aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers'] as const) {
+    for (const k of ['aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'] as const) {
       if (d[k] !== undefined) merged[k] = d[k];
     }
     if (isObj(override)) for (const [k, v] of Object.entries(override)) merged[k] = v;

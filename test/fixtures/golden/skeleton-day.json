@@ -668,6 +668,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -688,7 +690,7 @@
               }
             ],
             "ends": 1870,
-            "event": "L000025",
+            "event": "L000027",
             "offer": "OBJ000001/discard",
             "verb": "discard",
             "who": "CHR000001#1"
@@ -765,6 +767,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -829,6 +833,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -892,6 +898,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -955,6 +963,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -1018,6 +1028,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -1081,6 +1093,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -1144,6 +1158,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -1207,6 +1223,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -1270,6 +1288,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -1333,6 +1353,8 @@
           "CHR000001#1": {
             "OBJ000001#1|body:rot": "understood",
             "OBJ000001#1|body:smell": "understood",
+            "OBJ000002#1|sole:dirt": "understood",
+            "OBJ000003#1|surface:dirt": "understood",
             "PLC000001#1|space:smell": "noticed"
           }
         },
@@ -1629,6 +1651,30 @@
     {
       "seq": "L000025",
       "t": 1865,
+      "type": "awareness_up",
+      "src": "perception",
+      "cause": null,
+      "data": {
+        "who": "CHR000001#1",
+        "key": "OBJ000002#1|sole:dirt",
+        "to": "understood"
+      }
+    },
+    {
+      "seq": "L000026",
+      "t": 1865,
+      "type": "awareness_up",
+      "src": "perception",
+      "cause": null,
+      "data": {
+        "who": "CHR000001#1",
+        "key": "OBJ000003#1|surface:dirt",
+        "to": "understood"
+      }
+    },
+    {
+      "seq": "L000027",
+      "t": 1865,
       "type": "action_chosen",
       "src": "agency",
       "cause": null,
@@ -1641,11 +1687,11 @@
       }
     },
     {
-      "seq": "L000026",
+      "seq": "L000028",
       "t": 1870,
       "type": "action_done",
       "src": "world",
-      "cause": "L000025",
+      "cause": "L000027",
       "data": {
         "who": "CHR000001#1",
         "verb": "discard",
@@ -1653,11 +1699,11 @@
       }
     },
     {
-      "seq": "L000027",
+      "seq": "L000029",
       "t": 1870,
       "type": "state_changed",
       "src": "world",
-      "cause": "L000026",
+      "cause": "L000028",
       "data": {
         "key": "OBJ000001#1|body:rot",
         "from": "spoiled",
@@ -1665,11 +1711,11 @@
       }
     },
     {
-      "seq": "L000028",
+      "seq": "L000030",
       "t": 1870,
       "type": "state_changed",
       "src": "world",
-      "cause": "L000026",
+      "cause": "L000028",
       "data": {
         "key": "OBJ000001#1|body:smell",
         "from": "distinct",
@@ -1677,7 +1723,7 @@
       }
     },
     {
-      "seq": "L000029",
+      "seq": "L000031",
       "t": 1870,
       "type": "delay_scheduled",
       "src": "causal",
@@ -1689,7 +1735,7 @@
       }
     },
     {
-      "seq": "L000030",
+      "seq": "L000032",
       "t": 1980,
       "type": "delay_cancelled",
       "src": "causal",
@@ -1700,22 +1746,22 @@
       }
     },
     {
-      "seq": "L000031",
+      "seq": "L000033",
       "t": 2050,
       "type": "delay_fired",
       "src": "causal",
-      "cause": "L000029",
+      "cause": "L000031",
       "data": {
         "rule": "PLC000001/air_out",
         "at": "PLC000001#1"
       }
     },
     {
-      "seq": "L000032",
+      "seq": "L000034",
       "t": 2050,
       "type": "state_changed",
       "src": "world",
-      "cause": "L000031",
+      "cause": "L000033",
       "data": {
         "key": "PLC000001#1|space:smell",
         "from": "faint",

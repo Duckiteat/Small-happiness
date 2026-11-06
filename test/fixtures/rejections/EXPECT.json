@@ -114,5 +114,13 @@
   "kind-missing-feature.json": {
     "stage": "gate",
     "match": "부위 body에 특징 smell가 있어야 한다"
+  },
+  "progress-missing-coef.json": {
+    "stage": "gate",
+    "match": "단계 sterilized의 계수가 없다"
+  },
+  "progress-not-own.json": {
+    "stage": "gate",
+    "match": "진행 법칙이 완성되지 않았다"
   }
 }

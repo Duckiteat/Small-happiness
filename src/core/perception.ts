@@ -88,6 +88,8 @@ export class Perception {
         };
         look(places.flatMap((p) => world.keysOf(p)), NOTICED);
         look(objects.flatMap((o) => world.keysOf(o)), UNDERSTOOD);
+        // 가까이 살핀 물건은 임계와 상관없이 모든 상태를 안다 (냄새가 없어도 곰팡이·보관 상태가 보인다)
+        for (const key of objects.flatMap((o) => world.keysOf(o))) this.#raise(who, key, UNDERSTOOD, t);
       }
     }
     return { perceived, aware: this.snapshot() };

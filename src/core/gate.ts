@@ -9,6 +9,7 @@ import type { Db, Definition, Issue } from './db.ts';
 import { collectRules, selfLoops } from './chains.ts';
 import { condRange, parseLocalCondition, parsePattern } from './statekey.ts';
 import type { Cond } from './statekey.ts';
+import { effectiveInitial, effectiveProgress } from './kinds.ts';
 import { normalizeWord } from './vocab.ts';
 import type { Vocab } from './vocab.ts';
 
@@ -157,6 +158,50 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
       if (!(def.slots?.[slot]?.features ?? []).includes(feature)) {
         error(at, `${def.is_a}의 규칙·행동을 물려받으려면 부위 ${slot}에 특징 ${feature}가 있어야 한다`);
       }
+    }
+  }
+
+  // 진행 법칙: 물건마다 완성되어야 하고(종류 + 덮어쓰기), 입력은 그 물건의 특징이며 잠기지 않은 모든 단계에 계수가 있다
+  for (const id of Object.keys(db.defs)) {
+    const { full, incomplete } = effectiveProgress(db, id);
+    for (const f of incomplete) error(`${id}.progress.${f}`, `진행 법칙이 완성되지 않았다 (slot·base_s·inputs·edges·tuned, 그리고 부위에 특징 ${f})`);
+    const features = new Set(Object.values(db.defs[id]?.slots ?? {}).flatMap((s) => s.features));
+    for (const p of full) {
+      const at = `${id}.progress.${p.feature}`;
+      const order = vocab.levelOrder(p.feature);
+      if (order === undefined) {
+        error(at, `특징 "${p.feature}"에 단계 목록이 없다`);
+        continue;
+      }
+      if (p.edges.length !== order.length) error(at, `edges는 사다리 칸 수(${order.length})만큼이어야 한다`);
+      let last = -1;
+      p.edges.forEach((e, i) => {
+        const key = order.at(i) ?? '';
+        const locked = vocab.isLocked(p.feature, key);
+        if (locked && e !== null) error(at, `잠긴 칸(${key})의 경계는 null이어야 한다`);
+        if (!locked && e === null) error(at, `칸 ${key}의 경계가 없다`);
+        if (i === 0 && e !== 0) error(at, '0칸의 경계는 0이어야 한다');
+        if (e !== null) {
+          if (e <= last) error(at, `경계는 칸마다 커져야 한다 (${key}: ${e})`);
+          last = e;
+        }
+      });
+      for (const [input, table] of Object.entries(p.inputs)) {
+        if (!features.has(input)) error(`${at}.inputs.${input}`, `${id}에 입력 특징 "${input}"이 없다 (부위에 둔다)`);
+        const levels = vocab.levelOrder(input) ?? [];
+        for (const lv of levels) {
+          if (!vocab.isLocked(input, lv) && table[lv] === undefined) error(`${at}.inputs.${input}`, `단계 ${lv}의 계수가 없다`);
+        }
+        for (const lv of Object.keys(table)) if (!levels.includes(lv)) error(`${at}.inputs.${input}`, `"${input}"에 없는 단계: ${lv}`);
+      }
+    }
+    for (const [sf, level] of Object.entries(effectiveInitial(db, id))) {
+      const [slot, feature] = sf.split(':') as [string, string];
+      if (!(db.defs[id]?.slots?.[slot]?.features ?? []).includes(feature)) {
+        if (db.defs[id]?.initial?.[sf] !== undefined) error(`${id}.initial.${sf}`, `${id}에 부위 ${slot}의 특징 ${feature}가 없다`);
+        continue;
+      }
+      if (!(vocab.levelOrder(feature) ?? []).includes(level) || vocab.isLocked(feature, level)) error(`${id}.initial.${sf}`, `"${feature}"의 쓸 수 있는 단계가 아니다: ${level}`);
     }
   }
 

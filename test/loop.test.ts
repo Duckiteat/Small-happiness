@@ -42,7 +42,14 @@ test('고리가 닫힌다: 알아챔 → 살피기 → 이해함 → 버리기 �
   );
   assert.deepEqual(
     events(trace, 'awareness_up').map((e) => `${e.t} ${String(e.data['key'])} ${String(e.data['to'])}`),
-    ['1860 PLC000001#1|space:smell noticed', '1865 OBJ000001#1|body:rot understood', '1865 OBJ000001#1|body:smell understood'],
+    // 살핀 물건은 임계와 상관없이 모든 상태를 안다. 위치가 없어 집 안 물건 전부(신발·현관 바닥 포함)가 보인다
+    [
+      '1860 PLC000001#1|space:smell noticed',
+      '1865 OBJ000001#1|body:rot understood',
+      '1865 OBJ000001#1|body:smell understood',
+      '1865 OBJ000002#1|sole:dirt understood',
+      '1865 OBJ000003#1|surface:dirt understood',
+    ],
   );
   assert.deepEqual(bugs(trace), []);
   assert.ok(events(trace, 'delay_cancelled').some((e) => e.data['rule'] === 'PLC000001/odor_thicken'), '짙어지기 예약이 취소된다');
