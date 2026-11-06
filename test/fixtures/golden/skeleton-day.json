@@ -1,0 +1,205 @@
+{
+  "steps": [
+    {
+      "t": 420,
+      "values": {
+        "time": {
+          "t": 420
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {},
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[1일 07:00] 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    },
+    {
+      "t": 510,
+      "values": {
+        "time": {
+          "t": 510
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {},
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[1일 08:30] 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    },
+    {
+      "t": 1170,
+      "values": {
+        "time": {
+          "t": 1170
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {},
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[1일 19:30] 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    },
+    {
+      "t": 1380,
+      "values": {
+        "time": {
+          "t": 1380
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {},
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[1일 23:00] 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+      ]
+    }
+  ],
+  "log": [
+    {
+      "seq": "L000001",
+      "t": 0,
+      "type": "instance_created",
+      "src": "world",
+      "cause": null,
+      "data": {
+        "id": "OBJ000001#1",
+        "def": "OBJ000001"
+      }
+    },
+    {
+      "seq": "L000002",
+      "t": 0,
+      "type": "instance_created",
+      "src": "world",
+      "cause": null,
+      "data": {
+        "id": "OBJ000002#1",
+        "def": "OBJ000002"
+      }
+    },
+    {
+      "seq": "L000003",
+      "t": 0,
+      "type": "instance_created",
+      "src": "world",
+      "cause": null,
+      "data": {
+        "id": "OBJ000003#1",
+        "def": "OBJ000003"
+      }
+    },
+    {
+      "seq": "L000004",
+      "t": 0,
+      "type": "instance_created",
+      "src": "world",
+      "cause": null,
+      "data": {
+        "id": "PLC000001#1",
+        "def": "PLC000001"
+      }
+    },
+    {
+      "seq": "L000005",
+      "t": 0,
+      "type": "instance_created",
+      "src": "world",
+      "cause": null,
+      "data": {
+        "id": "PLC000002#1",
+        "def": "PLC000002"
+      }
+    },
+    {
+      "seq": "L000006",
+      "t": 0,
+      "type": "state_changed",
+      "src": "world",
+      "cause": null,
+      "data": {
+        "key": "OBJ000001#1|body:rot",
+        "from": "fresh",
+        "to": "spoiled"
+      }
+    }
+  ]
+}

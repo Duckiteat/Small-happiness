@@ -1,0 +1,8 @@
+{
+  "why": "뼈대 시험용 하루 (시각은 시험용 가정, 게임 값 아님): 예시 패치의 정의를 하나씩 세우고 음식이 상한 상태로 시작한다. 층이 비어 있어도 하루가 끝까지 도는지 본다.",
+  "patch": "examples/patches/fridge-chain.json",
+  "seed": 1,
+  "spawn": ["OBJ000001", "OBJ000002", "OBJ000003", "PLC000001", "PLC000002"],
+  "set": [{ "t": 0, "key": "OBJ000001#1|body:rot", "level": "spoiled" }],
+  "steps": [420, 510, 1170, 1380]
+}

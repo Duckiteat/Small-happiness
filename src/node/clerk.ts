@@ -2,6 +2,7 @@
 //
 //   data/db.json, data/patches/  ← 관문을 통과한 패치만. 거부되면 아무것도 쓰지 않는다.
 //   docs/자동생성-부록.md          ← 계산된 파생 문서만.
+//   test/fixtures/golden/          ← 골든 트레이스 (`golden --write`로만. 바뀌면 결정 기록에 이유를 남긴다)
 //
 // 순수 코어(src/core)는 병합·검사·보고를 계산하고, 파일 쓰기는 여기서만 한다. 현재 시각은 인자로 받는다.
 
@@ -19,6 +20,8 @@ import { isPatchReport, patchReport } from '../core/report.ts';
 import type { PatchReport } from '../core/report.ts';
 import type { Vocab } from '../core/vocab.ts';
 import { SaveError, parseSave, serializeSave } from '../core/save.ts';
+import { parseScenario, runScenario, serializeTrace } from '../core/skeleton.ts';
+import type { DayTrace } from '../core/skeleton.ts';
 import type { ParsedSave, SaveFile } from '../core/save.ts';
 
 export const DB_PATH = 'data/db.json';
@@ -238,4 +241,32 @@ export function readRecordReport(root: string, ref: string): { file: string; rep
   const report = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>)['report'] : undefined;
   if (!isPatchReport(report)) throw new Error(`${file}: 기록에 올바른 보고서가 없다`);
   return { file, report };
+}
+
+// ── 골든 트레이스 (docs/축과-층위.md 6장 · 품질판-명세 8장) ─────────────────
+
+export const SKELETON_SCENARIO = 'examples/scenarios/skeleton-day.json';
+export const SKELETON_GOLDEN = 'test/fixtures/golden/skeleton-day.json';
+
+/** 뼈대 하루를 돌린다. 시나리오의 패치는 빈 저장소에 병합한다 (실제 data/db.json은 건드리지 않는다). */
+export function skeletonDay(root: string, vocab: Vocab): DayTrace {
+  const scenario = parseScenario(JSON.parse(readFileSync(join(root, SKELETON_SCENARIO), 'utf8')));
+  const parsed = parsePatch(JSON.parse(readFileSync(join(root, scenario.patch), 'utf8')));
+  if (parsed.patch === null) throw new Error(`시나리오 패치 형식 오류: ${scenario.patch}`);
+  const merged = mergePatch(emptyDb(), parsed.patch, vocab);
+  const gate = runGate(emptyDb(), merged.db, vocab, merged.report.errors);
+  if (!gate.pass) throw new Error(`시나리오 패치가 관문을 통과하지 못했다: ${gate.reason}`);
+  return runScenario(merged.db, vocab, scenario);
+}
+
+/** 골든 트레이스를 쓰거나(--write) 지금 결과와 바이트까지 같은지 본다(--check). */
+export function golden(root: string, vocab: Vocab, mode: 'write' | 'check'): { ok: boolean; content: string } {
+  const content = serializeTrace(skeletonDay(root, vocab));
+  const file = join(root, SKELETON_GOLDEN);
+  if (mode === 'write') {
+    atomicWrite(file, content);
+    return { ok: true, content };
+  }
+  const current = existsSync(file) ? readFileSync(file, 'utf8') : '';
+  return { ok: current === content, content };
 }

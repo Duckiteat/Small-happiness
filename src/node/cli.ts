@@ -6,6 +6,8 @@
 //   node src/node/cli.ts chains [규칙 번호]                  자동으로 이어진 규칙 사슬
 //   node src/node/cli.ts appendix [--write | --check]
 //   node src/node/cli.ts web [--write | --check]
+//   node src/node/cli.ts day                                 뼈대 하루를 돌려 단계마다 한 줄씩 보인다
+//   node src/node/cli.ts golden [--write | --check]          뼈대 하루의 골든 트레이스
 //   옵션: --root <폴더>  (기본: 현재 폴더)
 
 import { readFileSync } from 'node:fs';
@@ -14,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { buildEdges, chainRoots, chainsFrom, collectRules } from '../core/chains.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
-import { appendix, commitPatch, loadDb, readRecordReport, replay, syncWeb } from './clerk.ts';
+import { appendix, commitPatch, golden, loadDb, readRecordReport, replay, skeletonDay, syncWeb } from './clerk.ts';
 import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
 
@@ -97,6 +99,17 @@ function main(): void {
       console.log(mode === 'write' ? `저장: web/prototype/index.html (장면 ${r.count}개)` : '시제품이 최신이다');
       return;
     }
+    case 'day': {
+      for (const step of skeletonDay(root, vocab).steps) for (const line of step.lines) console.log(line);
+      return;
+    }
+    case 'golden': {
+      const mode = flags.has('--write') ? 'write' : 'check';
+      const r = golden(root, vocab, mode);
+      if (!r.ok) die('골든 트레이스가 바뀌었다 — 의도한 변화면 결정 기록에 이유를 적고 node src/node/cli.ts golden --write');
+      console.log(mode === 'write' ? '저장: test/fixtures/golden/skeleton-day.json' : '골든 트레이스가 같다');
+      return;
+    }
     case 'verify': {
       const r = replay(root, vocab);
       console.log(`기록된 패치 ${r.patches}건을 다시 적용했다`);
@@ -140,7 +153,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | day | golden [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 

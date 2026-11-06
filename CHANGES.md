@@ -5,6 +5,7 @@
 
 | 날짜 · 주제 | Scope | Why | Impact | Verification |
 |---|---|---|---|---|
+| 2026-11-06 · 뼈대 (품질판 + 아홉 층) | `src/core/board.ts`·`step.ts`·`skeleton.ts`(신설), `src/node/clerk.ts`(`skeletonDay`·`golden`), `src/node/cli.ts`(`day`·`golden`), `package.json` 스크립트, `examples/scenarios/skeleton-day.json`, `test/fixtures/golden/skeleton-day.json`, `test/board.test.ts`·`skeleton.test.ts`, `test/fixtures/FLOOR.json`(165→192), `docs/결정-기록.md`·`구현-계획.md`(9A)·`품질판-명세.md` 10장, `README.md` | 아홉 층을 얇게 세워 하루가 끝까지 돌게 하고, 층 사이 약속을 코드로 강제한다 | 이후 층은 `skeleton.ts`의 해당 층을 채운다. 결과가 바뀌면 골든 트레이스 갱신 + 결정 기록 | typecheck 0 · 시험 211/211 · golden --check · appendix:check · verify · guard |
 | 2026-11-06 · 기획서 (한 문서) | `docs/기획서.md`(신설), `docs/images/기획서-*.png`(그림 3개), `docs/보고서-목록.md`(행·집계·읽는 순서), `README.md` 문서 목록 | 처음 보는 사람이 게임과 엔진 전체를 한 문서로 이해하게 한다. Claude Docs 공유본의 사본 | 문서 구조만. 코드·데이터 영향 없음 | 시험 184/184 (문서 목록 시험 포함) · typecheck 0 |
 | 2026-11-06 · 시험 바닥값 바로잡음 | `test/fixtures/FLOOR.json`(tests 184→165), `docs/결정-기록.md` | 직전 행에서 바닥값을 실행된 시험 수(184)로 올렸으나 래칫은 소스의 `test(` 줄 수(165)를 센다. 직전 커밋은 래칫 시험 1건이 실패한 채 푸시됐다 | 바닥값 144 → 165 (내리지 않음) | 아래 명령 출력 |
 | 2026-11-06 · 세계 상태 (9번) | `src/core/world.ts`(신설), `test/world.test.ts`(신설), `data/vocab/10-events.json`(`instance_created`), `docs/자동생성-부록.md`, `test/fixtures/FLOOR.json`(tests 144→184), `docs/결정-기록.md`·`구현-계획.md`, `README.md` | 한 사슬이 끌고 가는 엔진의 첫 층. 상태 변경을 사건으로만 하고 기록에서 같은 상태를 다시 만든다 | 10번 규칙 실행기가 `World.set`으로 쓰고 `level()`로 읽는다. 양 저장은 아직 없음 | typecheck 0 · 시험 184/184 · appendix:check · verify · web:check · guard |

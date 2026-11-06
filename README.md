@@ -24,6 +24,8 @@ node src/node/cli.ts report <패치 기록>                              # 저�
 node src/node/cli.ts chains [규칙 번호]                       # 자동으로 이어진 규칙 사슬
 node src/node/cli.ts appendix [--write | --check]              # 자동 생성 부록
 node src/node/cli.ts verify                                    # data/db.json이 기록된 패치의 결과와 같은지
+node src/node/cli.ts day                                       # 뼈대 하루를 돌려 단계마다 한 줄씩 (npm run day)
+node src/node/cli.ts golden [--write | --check]                # 뼈대 하루의 골든 트레이스
 node src/node/cli.ts guard [기준 커밋]                          # 규칙을 바꾼 변경에 결정 기록이 있는지
 ```
 
@@ -33,7 +35,7 @@ node src/node/cli.ts guard [기준 커밋]                          # 규칙을 
 
 | 경로 | 내용 |
 |---|---|
-| `src/core/` | 시뮬레이션 코어 (번호, 상태 키, 사건, 기록, 사전, 정의 저장소, 패치, 관문, 사슬, 보고서, 세계 상태). 입출력 없음 |
+| `src/core/` | 시뮬레이션 코어 (번호, 상태 키, 사건, 기록, 사전, 정의 저장소, 패치, 관문, 사슬, 보고서, 세계 상태, 품질판, 단계, 뼈대 층). 입출력 없음 |
 | `src/node/` | 파일을 읽고 쓰는 어댑터 (서기, 명령줄) |
 | `data/vocab/` | 사전 (게임이 쓰는 모든 단어) |
 | `data/db.json` | 정의 저장소 (패치로만 변경) |
