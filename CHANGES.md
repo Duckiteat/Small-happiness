@@ -5,6 +5,7 @@
 
 | 날짜 · 주제 | Scope | Why | Impact | Verification |
 |---|---|---|---|---|
+| 2026-11-06 · 선행 개념 이식 (설계 제안) | `docs/선행-개념-이식.md`(신설), `docs/선행-사례.md` 2A·3장, `docs/보고서-목록.md`(행·집계·확인 대기), `docs/결정-기록.md` 7장(미정 1행) | 아홉 층을 이미 구현한 사례가 있는지, 그쪽은 어떻게 풀었고 우리와 무엇이 다른지 정리해 층마다 넣을 자리를 정하려고 | 코드·데이터 변경 없음. 작가가 P1~P9를 고르면 14B·18·19·19A·19B·20·11의 끝나는 조건에 더함 | typecheck · test · appendix:check · verify · guard (커밋 전 실행) |
 | 2026-11-06 · 뼈대 (품질판 + 아홉 층) | `src/core/board.ts`·`step.ts`·`skeleton.ts`(신설), `src/node/clerk.ts`(`skeletonDay`·`golden`), `src/node/cli.ts`(`day`·`golden`), `package.json` 스크립트, `examples/scenarios/skeleton-day.json`, `test/fixtures/golden/skeleton-day.json`, `test/board.test.ts`·`skeleton.test.ts`, `test/fixtures/FLOOR.json`(165→192), `docs/결정-기록.md`·`구현-계획.md`(9A)·`품질판-명세.md` 10장, `README.md` | 아홉 층을 얇게 세워 하루가 끝까지 돌게 하고, 층 사이 약속을 코드로 강제한다 | 이후 층은 `skeleton.ts`의 해당 층을 채운다. 결과가 바뀌면 골든 트레이스 갱신 + 결정 기록 | typecheck 0 · 시험 211/211 · golden --check · appendix:check · verify · guard |
 | 2026-11-06 · 기획서 (한 문서) | `docs/기획서.md`(신설), `docs/images/기획서-*.png`(그림 3개), `docs/보고서-목록.md`(행·집계·읽는 순서), `README.md` 문서 목록 | 처음 보는 사람이 게임과 엔진 전체를 한 문서로 이해하게 한다. Claude Docs 공유본의 사본 | 문서 구조만. 코드·데이터 영향 없음 | 시험 184/184 (문서 목록 시험 포함) · typecheck 0 |
 | 2026-11-06 · 시험 바닥값 바로잡음 | `test/fixtures/FLOOR.json`(tests 184→165), `docs/결정-기록.md` | 직전 행에서 바닥값을 실행된 시험 수(184)로 올렸으나 래칫은 소스의 `test(` 줄 수(165)를 센다. 직전 커밋은 래칫 시험 1건이 실패한 채 푸시됐다 | 바닥값 144 → 165 (내리지 않음) | 아래 명령 출력 |
