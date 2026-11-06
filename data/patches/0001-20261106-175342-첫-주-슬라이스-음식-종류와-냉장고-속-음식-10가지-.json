@@ -1,0 +1,1006 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "첫 주 슬라이스: 음식 종류와 냉장고 속 음식 10가지. 시들고 상하기까지의 날짜는 냉장·개봉 기준의 일상적 대략값이며 확인하지 않은 임시값(tuned:false)이다. 종류의 규칙(냄새)과 행동(버리기)은 모두 물려받는다. / 첫 주 슬라이스: 현관, 주방, 거실 (세계-설정의 확정 부분). 냄새와 벌레의 규칙은 '어떤 음식이든'에 걸린다. 지연은 임시값(tuned:false). / 첫 주 슬라이스: 하루씨. 감각 임계는 임시값(tuned:false)이며 작가 확인 전이다.",
+    "defs": [
+      {
+        "id": "OBJ+1",
+        "names": {
+          "ko": "음식",
+          "en": "food"
+        },
+        "aliases": [
+          "식재료",
+          "먹을거리"
+        ],
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "rules": {
+          "wilt": {
+            "label": "신선한 음식이 시든다",
+            "on": [
+              "OBJ+1|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+1|body:rot@=wilted"
+            ],
+            "delay_s": 259200,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "시든 음식이 상한다",
+            "on": [
+              "OBJ+1|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+1|body:rot@=spoiled"
+            ],
+            "delay_s": 172800,
+            "tuned": false
+          },
+          "spoil": {
+            "label": "상하면 냄새가 뚜렷해진다",
+            "on": [
+              "OBJ+1|body:rot@>=spoiled"
+            ],
+            "emits": [
+              "OBJ+1|body:smell@>=distinct"
+            ],
+            "delay_s": 21600,
+            "tuned": false
+          }
+        },
+        "offers": {
+          "discard": {
+            "label": "상한 음식을 버린다",
+            "verb": "discard",
+            "needs": [
+              {
+                "aware": "OBJ+1|body:rot",
+                "at_least": "understood"
+              }
+            ],
+            "when": [
+              "OBJ+1|body:rot@>=spoiled"
+            ],
+            "effect": [
+              "OBJ+1|body:rot@=gone",
+              "OBJ+1|body:smell@=gone"
+            ],
+            "minutes": 2,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "음식의 종류. 직접 두지 않고 개별 음식이 물려받는다. 기본은 뚜껑을 딴 냉장 음식(우유 기준)."
+        ]
+      },
+      {
+        "id": "OBJ+2",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "우유",
+          "en": "milk"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "뚜껑을 딴 우유. 종류의 기본값을 그대로 쓴다"
+        ]
+      },
+      {
+        "id": "OBJ+3",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "두부",
+          "en": "tofu"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "뜯은 두부"
+        ],
+        "rules": {
+          "wilt": {
+            "label": "두부가(이) 시든다",
+            "on": [
+              "OBJ+3|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+3|body:rot@=wilted"
+            ],
+            "delay_s": 172800,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "두부가(이) 상한다",
+            "on": [
+              "OBJ+3|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+3|body:rot@=spoiled"
+            ],
+            "delay_s": 86400,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ+4",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "계란",
+          "en": "egg"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "껍데기째 냉장"
+        ],
+        "rules": {
+          "wilt": {
+            "label": "계란가(이) 시든다",
+            "on": [
+              "OBJ+4|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+4|body:rot@=wilted"
+            ],
+            "delay_s": 1814400,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "계란가(이) 상한다",
+            "on": [
+              "OBJ+4|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+4|body:rot@=spoiled"
+            ],
+            "delay_s": 1209600,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ+5",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "김치",
+          "en": "kimchi"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "시어지다가 물러진다"
+        ],
+        "rules": {
+          "wilt": {
+            "label": "김치가(이) 시든다",
+            "on": [
+              "OBJ+5|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+5|body:rot@=wilted"
+            ],
+            "delay_s": 1209600,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "김치가(이) 상한다",
+            "on": [
+              "OBJ+5|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+5|body:rot@=spoiled"
+            ],
+            "delay_s": 1209600,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ+6",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "사과",
+          "en": "apple"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "통째로 냉장"
+        ],
+        "rules": {
+          "wilt": {
+            "label": "사과가(이) 시든다",
+            "on": [
+              "OBJ+6|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+6|body:rot@=wilted"
+            ],
+            "delay_s": 1814400,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "사과가(이) 상한다",
+            "on": [
+              "OBJ+6|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+6|body:rot@=spoiled"
+            ],
+            "delay_s": 864000,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ+7",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "상추",
+          "en": "lettuce"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "씻지 않은 잎채소"
+        ],
+        "rules": {
+          "wilt": {
+            "label": "상추가(이) 시든다",
+            "on": [
+              "OBJ+7|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+7|body:rot@=wilted"
+            ],
+            "delay_s": 259200,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "상추가(이) 상한다",
+            "on": [
+              "OBJ+7|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+7|body:rot@=spoiled"
+            ],
+            "delay_s": 172800,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ+8",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "요거트",
+          "en": "yogurt"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "뚜껑을 딴 떠먹는 요거트"
+        ],
+        "rules": {
+          "wilt": {
+            "label": "요거트가(이) 시든다",
+            "on": [
+              "OBJ+8|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+8|body:rot@=wilted"
+            ],
+            "delay_s": 604800,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "요거트가(이) 상한다",
+            "on": [
+              "OBJ+8|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+8|body:rot@=spoiled"
+            ],
+            "delay_s": 259200,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ+9",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "햄",
+          "en": "ham"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "뜯은 슬라이스 햄"
+        ],
+        "rules": {
+          "wilt": {
+            "label": "햄가(이) 시든다",
+            "on": [
+              "OBJ+9|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+9|body:rot@=wilted"
+            ],
+            "delay_s": 345600,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "햄가(이) 상한다",
+            "on": [
+              "OBJ+9|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+9|body:rot@=spoiled"
+            ],
+            "delay_s": 172800,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ+10",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "남은 치킨",
+          "en": "leftover chicken"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "배달시켜 먹고 남긴 것"
+        ],
+        "rules": {
+          "wilt": {
+            "label": "남은 치킨가(이) 시든다",
+            "on": [
+              "OBJ+10|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+10|body:rot@=wilted"
+            ],
+            "delay_s": 172800,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "남은 치킨가(이) 상한다",
+            "on": [
+              "OBJ+10|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+10|body:rot@=spoiled"
+            ],
+            "delay_s": 86400,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ+11",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "rot",
+              "smell"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [
+              "body:rot@<=wilted"
+            ],
+            "means": "edible"
+          },
+          {
+            "label": "먹을 수 없음",
+            "when": [],
+            "means": "inedible"
+          }
+        ],
+        "names": {
+          "ko": "대파",
+          "en": "green onion"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "다듬지 않은 대파"
+        ],
+        "rules": {
+          "wilt": {
+            "label": "대파가(이) 시든다",
+            "on": [
+              "OBJ+11|body:rot@=fresh"
+            ],
+            "emits": [
+              "OBJ+11|body:rot@=wilted"
+            ],
+            "delay_s": 604800,
+            "tuned": false
+          },
+          "go_bad": {
+            "label": "대파가(이) 상한다",
+            "on": [
+              "OBJ+11|body:rot@=wilted"
+            ],
+            "emits": [
+              "OBJ+11|body:rot@=spoiled"
+            ],
+            "delay_s": 432000,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "PLC+1",
+        "names": {
+          "ko": "현관",
+          "en": "entrance"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell"
+            ]
+          }
+        },
+        "desc": [
+          "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "PLC+2",
+        "names": {
+          "ko": "주방",
+          "en": "kitchen"
+        },
+        "aliases": [
+          "부엌"
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "rules": {
+          "odor_reach": {
+            "label": "상한 음식의 냄새가 주방에 퍼진다",
+            "on": [
+              "OBJ+1|body:smell@>=distinct"
+            ],
+            "emits": [
+              "PLC+2|space:smell@>=faint"
+            ]
+          },
+          "odor_thicken": {
+            "label": "냄새나는 음식이 남아 있으면 주방 냄새가 짙어진다",
+            "on": [
+              "OBJ+1|body:smell@>=distinct",
+              "PLC+2|space:smell@=faint"
+            ],
+            "emits": [
+              "PLC+2|space:smell@>=distinct"
+            ],
+            "delay_s": 10800,
+            "tuned": false
+          },
+          "air_out": {
+            "label": "냄새나는 음식이 하나도 없으면 주방 냄새가 빠진다",
+            "on": [
+              "PLC+2|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC+2|space:smell@<=none"
+            ],
+            "on_all": [
+              "OBJ+1|body:smell@<=faint"
+            ],
+            "delay_s": 10800,
+            "tuned": false
+          },
+          "bugs": {
+            "label": "주방 냄새가 뚜렷하면 벌레가 꼬인다",
+            "on": [
+              "PLC+2|space:smell@>=distinct"
+            ],
+            "emits": [
+              "PLC+2|space:bug@=few"
+            ],
+            "delay_s": 28800,
+            "tuned": false
+          },
+          "spread": {
+            "label": "벌레가 거실로 번진다",
+            "on": [
+              "PLC+2|space:bug@>=few"
+            ],
+            "emits": [
+              "PLC+3|space:bug@=few"
+            ],
+            "delay_s": 21600,
+            "tuned": false
+          }
+        },
+        "offers": {
+          "inspect": {
+            "label": "냄새가 어디서 나는지 주방과 냉장고를 살핀다",
+            "verb": "inspect",
+            "needs": [
+              {
+                "aware": "PLC+2|space:smell",
+                "at_least": "noticed"
+              }
+            ],
+            "effect": [],
+            "reveals": true,
+            "minutes": 5,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "현관을 열면 바로 있다. 냄새가 고인다. 냉장고의 자리 (세계-설정 2·3장)"
+        ]
+      },
+      {
+        "id": "PLC+3",
+        "names": {
+          "ko": "거실",
+          "en": "living room"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "가장 큰 공간. 중문 너머 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "CHR+1",
+        "names": {
+          "ko": "하루씨",
+          "en": "Haru"
+        },
+        "senses": {
+          "smell": {
+            "notice": 1,
+            "tuned": false
+          },
+          "sight": {
+            "notice": 1,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "혼자 사는 직장인 (세계-설정 1장). 직업·출퇴근은 미정"
+        ]
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {
+    "OBJ+1": "OBJ000001",
+    "OBJ+2": "OBJ000002",
+    "OBJ+3": "OBJ000003",
+    "OBJ+4": "OBJ000004",
+    "OBJ+5": "OBJ000005",
+    "OBJ+6": "OBJ000006",
+    "OBJ+7": "OBJ000007",
+    "OBJ+8": "OBJ000008",
+    "OBJ+9": "OBJ000009",
+    "OBJ+10": "OBJ000010",
+    "OBJ+11": "OBJ000011",
+    "PLC+1": "PLC000001",
+    "PLC+2": "PLC000002",
+    "PLC+3": "PLC000003",
+    "CHR+1": "CHR000001"
+  },
+  "mapped": [
+    {
+      "where": "OBJ000001.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000002.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000003.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000004.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000005.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000006.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000007.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000008.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000009.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000010.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000011.mobility",
+      "from": "가변",
+      "to": "portable"
+    }
+  ],
+  "report": {
+    "why": "첫 주 슬라이스: 음식 종류와 냉장고 속 음식 10가지. 시들고 상하기까지의 날짜는 냉장·개봉 기준의 일상적 대략값이며 확인하지 않은 임시값(tuned:false)이다. 종류의 규칙(냄새)과 행동(버리기)은 모두 물려받는다. / 첫 주 슬라이스: 현관, 주방, 거실 (세계-설정의 확정 부분). 냄새와 벌레의 규칙은 '어떤 음식이든'에 걸린다. 지연은 임시값(tuned:false). / 첫 주 슬라이스: 하루씨. 감각 임계는 임시값(tuned:false)이며 작가 확인 전이다.",
+    "scope": {
+      "added": {
+        "character": [
+          "CHR000001"
+        ],
+        "object": [
+          "OBJ000001",
+          "OBJ000002",
+          "OBJ000003",
+          "OBJ000004",
+          "OBJ000005",
+          "OBJ000006",
+          "OBJ000007",
+          "OBJ000008",
+          "OBJ000009",
+          "OBJ000010",
+          "OBJ000011"
+        ],
+        "place": [
+          "PLC000001",
+          "PLC000002",
+          "PLC000003"
+        ]
+      },
+      "updated": {},
+      "removed": {},
+      "mapped": 11
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [
+        {
+          "from": "OBJ000001/rule/go_bad",
+          "to": "OBJ000001/rule/spoil"
+        },
+        {
+          "from": "OBJ000001/rule/spoil",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000001/rule/spoil",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000001/rule/wilt",
+          "to": "OBJ000001/rule/go_bad"
+        },
+        {
+          "from": "OBJ000003/rule/wilt",
+          "to": "OBJ000003/rule/go_bad"
+        },
+        {
+          "from": "OBJ000004/rule/wilt",
+          "to": "OBJ000004/rule/go_bad"
+        },
+        {
+          "from": "OBJ000005/rule/wilt",
+          "to": "OBJ000005/rule/go_bad"
+        },
+        {
+          "from": "OBJ000006/rule/wilt",
+          "to": "OBJ000006/rule/go_bad"
+        },
+        {
+          "from": "OBJ000007/rule/wilt",
+          "to": "OBJ000007/rule/go_bad"
+        },
+        {
+          "from": "OBJ000008/rule/wilt",
+          "to": "OBJ000008/rule/go_bad"
+        },
+        {
+          "from": "OBJ000009/rule/wilt",
+          "to": "OBJ000009/rule/go_bad"
+        },
+        {
+          "from": "OBJ000010/rule/wilt",
+          "to": "OBJ000010/rule/go_bad"
+        },
+        {
+          "from": "OBJ000011/rule/wilt",
+          "to": "OBJ000011/rule/go_bad"
+        },
+        {
+          "from": "PLC000002/rule/bugs",
+          "to": "PLC000002/rule/spread"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/bugs"
+        }
+      ],
+      "newChainEdges": 19
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

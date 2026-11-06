@@ -11,7 +11,8 @@
 
 import { stateMatches } from './causal.ts';
 import type { BoardValue } from './board.ts';
-import type { Db, OfferDef } from './db.ts';
+import type { Db } from './db.ts';
+import { effectiveOffers, instancesOfKind } from './kinds.ts';
 import type { EventLog } from './log.ts';
 import type { AwareMap } from './perception.ts';
 import { OBSERVED } from './schedule.ts';
@@ -90,16 +91,15 @@ export class Agency {
       const r = this.#vocab.entry('awareness', k)?.attrs['rank'];
       return typeof r === 'number' ? r : 0;
     };
-    const ofDef = (def: string): string[] => instances.filter((i) => world.defOfInstance(i) === def);
-
-    for (const owner of Object.keys(this.#db.defs).sort()) {
-      const offers = this.#db.defs[owner]?.offers ?? {};
-      for (const key of Object.keys(offers).sort()) {
-        const offer = offers[key] as OfferDef;
-        for (const at of ofDef(owner)) {
-          const targets = (p: StatePattern): string[] => (p.def === owner ? [at] : ofDef(p.def)).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
+    for (const def of Object.keys(this.#db.defs).sort()) {
+      for (const { owner, key, item: offer } of effectiveOffers(this.#db, def)) {
+        for (const at of instances.filter((i) => world.defOfInstance(i) === def)) {
+          const targets = (p: StatePattern): string[] =>
+            (p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def)).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
           const needs = offer.needs.map((n) => ({ keys: targets(pattern(n.aware)), min: rank(n.at_least) }));
           if (!needs.every((n) => n.keys.some((k) => rank(knows[k] ?? 'unknown') >= n.min))) continue;
+          const when = (offer.when ?? []).map(pattern);
+          if (!when.every((p) => targets(p).some((k) => stateMatches(world, this.#vocab, k, p.feature, p.cond)))) continue;
           const effects = offer.effect.flatMap((text) => {
             const p = pattern(text);
             return targets(p).map((k) => ({ key: k, feature: p.feature, cond: p.cond }));

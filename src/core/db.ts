@@ -34,7 +34,7 @@ export const PREFIX_KIND: Readonly<Record<DefPrefix, string>> = {
 
 const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
-  OBJ: [...COMMON_FIELDS, 'mobility', 'slots', 'meanings', 'rules', 'offers'],
+  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'slots', 'meanings', 'rules', 'offers'],
   PLC: [...COMMON_FIELDS, 'slots', 'meanings', 'rules', 'offers'],
   CHR: [...COMMON_FIELDS, 'senses'],
 };
@@ -69,7 +69,10 @@ export interface MeaningDef {
  */
 export interface RuleDef {
   readonly label?: string;
+  /** 다른 정의를 가리키는 패턴은 그 정의(와 그 종류)의 인스턴스 중 **하나라도** 맞으면 된다. */
   readonly on: readonly string[];
+  /** 다른 정의를 가리키는 패턴이 그 정의(와 그 종류)의 **모든** 인스턴스에서 맞아야 한다 (없으면 참). */
+  readonly on_all?: readonly string[];
   readonly emits: readonly string[];
   readonly note?: string;
   /** 지연(초). 게임 시간은 분이므로 60의 배수. 없으면 0 (즉시). */
@@ -85,6 +88,8 @@ export interface OfferDef {
   readonly label?: string;
   readonly verb: string; // 사전 action
   readonly needs: readonly { readonly aware: string; readonly at_least: string }[]; // 패턴(조건 없음) + 사전 awareness
+  /** 행동할 수 있는 상태 (규칙의 on과 같은 패턴). 예: 상했을 때만 버린다. 없으면 언제나. */
+  readonly when?: readonly string[];
   readonly effect: readonly string[]; // 결과 패턴 (=, >=, <=)
   readonly reveals?: boolean;
   readonly minutes: number;
@@ -100,6 +105,11 @@ export interface SenseDef {
 export interface Definition {
   readonly id: string;
   readonly names: Names;
+  /**
+   * 종류 (한 단계): 이 정의는 그 정의의 한 종류다. 그 정의의 규칙과 제공 행동을 물려받고,
+   * 같은 키의 규칙·행동을 자기가 가지면 그것이 이긴다 (덮어쓰기). 부위는 물려받지 않으므로 직접 갖는다.
+   */
+  readonly is_a?: string;
   readonly aliases: readonly string[];
   readonly desc: readonly string[];
   readonly mobility?: string;
@@ -238,9 +248,10 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ok = false;
       continue;
     }
-    onlyKeys(rule, ['label', 'on', 'emits', 'note', 'delay_s', 'tuned'], at, push);
-    if (!isStrArr(rule['on']) || rule['on'].length === 0 || !isStrArr(rule['emits']) || rule['emits'].length === 0) {
-      push(at, 'on과 emits(패턴 문자열 목록, 1개 이상)가 필요하다');
+    onlyKeys(rule, ['label', 'on', 'on_all', 'emits', 'note', 'delay_s', 'tuned'], at, push);
+    const onAll = rule['on_all'] ?? [];
+    if (!isStrArr(rule['on']) || !isStrArr(onAll) || rule['on'].length + onAll.length === 0 || !isStrArr(rule['emits']) || rule['emits'].length === 0) {
+      push(at, 'on(또는 on_all)과 emits(패턴 문자열 목록, 1개 이상)가 필요하다');
       ok = false;
       continue;
     }
@@ -273,6 +284,7 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
     const r: RuleDef = {
       ...(typeof rule['label'] === 'string' ? { label: rule['label'] } : {}),
       on: rule['on'].map((s) => s.trim()),
+      ...(onAll.length > 0 ? { on_all: onAll.map((s) => s.trim()) } : {}),
       emits: rule['emits'].map((s) => s.trim()),
       ...(typeof rule['note'] === 'string' ? { note: rule['note'] } : {}),
       ...(typeof delay === 'number' ? { delay_s: delay } : {}),
@@ -302,12 +314,13 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
       bad(at, '제공 행동은 객체여야 한다');
       continue;
     }
-    onlyKeys(o, ['label', 'verb', 'needs', 'effect', 'reveals', 'minutes', 'tuned'], at, push);
+    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'effect', 'reveals', 'minutes', 'tuned'], at, push);
     const needs = o['needs'];
     const needsOk = Array.isArray(needs) && needs.every((n) => isObj(n) && typeof n['aware'] === 'string' && typeof n['at_least'] === 'string' && Object.keys(n).length === 2);
     if (typeof o['verb'] !== 'string') bad(at, 'verb(사전 action 키)가 필요하다');
     else if (!needsOk) bad(at, 'needs는 { aware, at_least } 목록이어야 한다 (앎이 필요 없으면 빈 목록)');
     else if (!isStrArr(o['effect'])) bad(at, 'effect는 결과 패턴 목록이어야 한다 (세계를 바꾸지 않으면 빈 목록)');
+    else if (o['when'] !== undefined && !isStrArr(o['when'])) bad(at, 'when은 상태 패턴 목록이어야 한다');
     else if (o['reveals'] !== undefined && typeof o['reveals'] !== 'boolean') bad(at, 'reveals는 true/false여야 한다');
     else if (typeof o['minutes'] !== 'number' || !Number.isInteger(o['minutes']) || o['minutes'] <= 0) bad(at, 'minutes(걸리는 시간, 분)는 양의 정수여야 한다');
     else if (typeof o['tuned'] !== 'boolean') bad(at, 'tuned(걸리는 시간이 조정된 값인지)를 true/false로 적어야 한다');
@@ -317,6 +330,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
         ...(typeof o['label'] === 'string' ? { label: o['label'] } : {}),
         verb: o['verb'],
         needs: (needs as { aware: string; at_least: string }[]).map((n) => ({ aware: n.aware.trim(), at_least: n.at_least })),
+        ...(isStrArr(o['when']) && o['when'].length > 0 ? { when: o['when'].map((s) => s.trim()) } : {}),
         effect: (o['effect'] as string[]).map((s) => s.trim()),
         ...(o['reveals'] === true ? { reveals: true } : {}),
         minutes: o['minutes'],
@@ -347,6 +361,7 @@ function fieldSenses(v: unknown, where: string, push: Push): Record<string, Sens
 
 export type Fields = Partial<{
   id: string;
+  is_a: string;
   names: Names;
   aliases: string[];
   desc: string[];
@@ -391,6 +406,10 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.desc = v;
         break;
       }
+      case 'is_a':
+        if (typeof value !== 'string' || value.trim() === '') push(at, 'is_a는 정의 번호 문자열이어야 한다');
+        else out.is_a = value.trim();
+        break;
       case 'mobility':
         if (typeof value !== 'string' || value.trim() === '') push(at, 'mobility는 문자열이어야 한다');
         else out.mobility = value.trim();
@@ -433,6 +452,7 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
   return {
     id,
     names: f.names,
+    ...(f.is_a !== undefined ? { is_a: f.is_a } : {}),
     aliases: f.aliases ?? [],
     ...(f.mobility !== undefined ? { mobility: f.mobility } : {}),
     ...(f.slots !== undefined ? { slots: f.slots } : {}),

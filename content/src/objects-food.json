@@ -1,0 +1,506 @@
+{
+  "format_version": 1,
+  "file_kind": "objects",
+  "why": "첫 주 슬라이스: 음식 종류와 냉장고 속 음식 10가지. 시들고 상하기까지의 날짜는 냉장·개봉 기준의 일상적 대략값이며 확인하지 않은 임시값(tuned:false)이다. 종류의 규칙(냄새)과 행동(버리기)은 모두 물려받는다.",
+  "defs": [
+    {
+      "id": "OBJ+1",
+      "names": {
+        "ko": "음식",
+        "en": "food"
+      },
+      "aliases": [
+        "식재료",
+        "먹을거리"
+      ],
+      "mobility": "가변",
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "먹을 수 있음",
+          "when": [
+            "body:rot@<=wilted"
+          ],
+          "means": "edible"
+        },
+        {
+          "label": "먹을 수 없음",
+          "when": [],
+          "means": "inedible"
+        }
+      ],
+      "rules": {
+        "wilt": {
+          "label": "신선한 음식이 시든다",
+          "on": [
+            "OBJ+1|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+1|body:rot@=wilted"
+          ],
+          "delay_s": 259200,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "시든 음식이 상한다",
+          "on": [
+            "OBJ+1|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+1|body:rot@=spoiled"
+          ],
+          "delay_s": 172800,
+          "tuned": false
+        },
+        "spoil": {
+          "label": "상하면 냄새가 뚜렷해진다",
+          "on": [
+            "OBJ+1|body:rot@>=spoiled"
+          ],
+          "emits": [
+            "OBJ+1|body:smell@>=distinct"
+          ],
+          "delay_s": 21600,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "discard": {
+          "label": "상한 음식을 버린다",
+          "verb": "discard",
+          "needs": [
+            {
+              "aware": "OBJ+1|body:rot",
+              "at_least": "understood"
+            }
+          ],
+          "when": [
+            "OBJ+1|body:rot@>=spoiled"
+          ],
+          "effect": [
+            "OBJ+1|body:rot@=gone",
+            "OBJ+1|body:smell@=gone"
+          ],
+          "minutes": 2,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "음식의 종류. 직접 두지 않고 개별 음식이 물려받는다. 기본은 뚜껑을 딴 냉장 음식(우유 기준)."
+      ]
+    },
+    {
+      "id": "OBJ+2",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "우유",
+        "en": "milk"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "뚜껑을 딴 우유. 종류의 기본값을 그대로 쓴다"
+      ]
+    },
+    {
+      "id": "OBJ+3",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "두부",
+        "en": "tofu"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "뜯은 두부"
+      ],
+      "rules": {
+        "wilt": {
+          "label": "두부가(이) 시든다",
+          "on": [
+            "OBJ+3|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+3|body:rot@=wilted"
+          ],
+          "delay_s": 172800,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "두부가(이) 상한다",
+          "on": [
+            "OBJ+3|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+3|body:rot@=spoiled"
+          ],
+          "delay_s": 86400,
+          "tuned": false
+        }
+      }
+    },
+    {
+      "id": "OBJ+4",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "계란",
+        "en": "egg"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "껍데기째 냉장"
+      ],
+      "rules": {
+        "wilt": {
+          "label": "계란가(이) 시든다",
+          "on": [
+            "OBJ+4|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+4|body:rot@=wilted"
+          ],
+          "delay_s": 1814400,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "계란가(이) 상한다",
+          "on": [
+            "OBJ+4|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+4|body:rot@=spoiled"
+          ],
+          "delay_s": 1209600,
+          "tuned": false
+        }
+      }
+    },
+    {
+      "id": "OBJ+5",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "김치",
+        "en": "kimchi"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "시어지다가 물러진다"
+      ],
+      "rules": {
+        "wilt": {
+          "label": "김치가(이) 시든다",
+          "on": [
+            "OBJ+5|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+5|body:rot@=wilted"
+          ],
+          "delay_s": 1209600,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "김치가(이) 상한다",
+          "on": [
+            "OBJ+5|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+5|body:rot@=spoiled"
+          ],
+          "delay_s": 1209600,
+          "tuned": false
+        }
+      }
+    },
+    {
+      "id": "OBJ+6",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "사과",
+        "en": "apple"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "통째로 냉장"
+      ],
+      "rules": {
+        "wilt": {
+          "label": "사과가(이) 시든다",
+          "on": [
+            "OBJ+6|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+6|body:rot@=wilted"
+          ],
+          "delay_s": 1814400,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "사과가(이) 상한다",
+          "on": [
+            "OBJ+6|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+6|body:rot@=spoiled"
+          ],
+          "delay_s": 864000,
+          "tuned": false
+        }
+      }
+    },
+    {
+      "id": "OBJ+7",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "상추",
+        "en": "lettuce"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "씻지 않은 잎채소"
+      ],
+      "rules": {
+        "wilt": {
+          "label": "상추가(이) 시든다",
+          "on": [
+            "OBJ+7|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+7|body:rot@=wilted"
+          ],
+          "delay_s": 259200,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "상추가(이) 상한다",
+          "on": [
+            "OBJ+7|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+7|body:rot@=spoiled"
+          ],
+          "delay_s": 172800,
+          "tuned": false
+        }
+      }
+    },
+    {
+      "id": "OBJ+8",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "요거트",
+        "en": "yogurt"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "뚜껑을 딴 떠먹는 요거트"
+      ],
+      "rules": {
+        "wilt": {
+          "label": "요거트가(이) 시든다",
+          "on": [
+            "OBJ+8|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+8|body:rot@=wilted"
+          ],
+          "delay_s": 604800,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "요거트가(이) 상한다",
+          "on": [
+            "OBJ+8|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+8|body:rot@=spoiled"
+          ],
+          "delay_s": 259200,
+          "tuned": false
+        }
+      }
+    },
+    {
+      "id": "OBJ+9",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "햄",
+        "en": "ham"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "뜯은 슬라이스 햄"
+      ],
+      "rules": {
+        "wilt": {
+          "label": "햄가(이) 시든다",
+          "on": [
+            "OBJ+9|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+9|body:rot@=wilted"
+          ],
+          "delay_s": 345600,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "햄가(이) 상한다",
+          "on": [
+            "OBJ+9|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+9|body:rot@=spoiled"
+          ],
+          "delay_s": 172800,
+          "tuned": false
+        }
+      }
+    },
+    {
+      "id": "OBJ+10",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "남은 치킨",
+        "en": "leftover chicken"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "배달시켜 먹고 남긴 것"
+      ],
+      "rules": {
+        "wilt": {
+          "label": "남은 치킨가(이) 시든다",
+          "on": [
+            "OBJ+10|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+10|body:rot@=wilted"
+          ],
+          "delay_s": 172800,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "남은 치킨가(이) 상한다",
+          "on": [
+            "OBJ+10|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+10|body:rot@=spoiled"
+          ],
+          "delay_s": 86400,
+          "tuned": false
+        }
+      }
+    },
+    {
+      "id": "OBJ+11",
+      "is_a": "OBJ+1",
+      "names": {
+        "ko": "대파",
+        "en": "green onion"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "rot",
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "다듬지 않은 대파"
+      ],
+      "rules": {
+        "wilt": {
+          "label": "대파가(이) 시든다",
+          "on": [
+            "OBJ+11|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ+11|body:rot@=wilted"
+          ],
+          "delay_s": 604800,
+          "tuned": false
+        },
+        "go_bad": {
+          "label": "대파가(이) 상한다",
+          "on": [
+            "OBJ+11|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ+11|body:rot@=spoiled"
+          ],
+          "delay_s": 432000,
+          "tuned": false
+        }
+      }
+    }
+  ]
+}

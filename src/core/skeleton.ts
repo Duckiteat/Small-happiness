@@ -187,8 +187,9 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
 
 export interface Scenario {
   readonly why: string;
-  /** 정의를 담은 패치들. 빈 저장소에 차례로 병합한다. */
+  /** 정의를 담은 패치들. 빈 저장소에 차례로 병합한다. use_db면 비어 있고 실제 저장소(data/db.json)를 쓴다. */
   readonly patches: readonly string[];
+  readonly use_db: boolean;
   readonly seed: number;
   readonly spawn: readonly string[];
   readonly set: readonly { readonly t: number; readonly key: string; readonly level: string }[];
@@ -206,10 +207,12 @@ function isObj(v: unknown): v is Record<string, unknown> {
 /** 시나리오 파일을 해석한다. 모양이 틀리면 던진다. */
 export function parseScenario(raw: unknown): Scenario {
   if (!isObj(raw)) throw new TypeError('시나리오는 객체여야 한다');
-  const { why, patches, seed, spawn, set, start, end, routine } = raw;
+  const { why, patches, use_db, seed, spawn, set, start, end, routine } = raw;
   if (typeof why !== 'string' || why.trim() === '') throw new TypeError('why(이 시나리오를 두는 이유)가 필요하다');
-  if (!Array.isArray(patches) || patches.length === 0 || !patches.every((x) => typeof x === 'string')) {
-    throw new TypeError('patches(정의를 담은 패치 경로 목록)가 필요하다');
+  if (use_db !== undefined && typeof use_db !== 'boolean') throw new TypeError('use_db는 true/false여야 한다');
+  const fromDb = use_db === true;
+  if (fromDb ? patches !== undefined : !Array.isArray(patches) || patches.length === 0 || !patches.every((x) => typeof x === 'string')) {
+    throw new TypeError('patches(정의를 담은 패치 경로 목록)가 필요하다 (실제 저장소를 쓰려면 patches 없이 use_db: true)');
   }
   if (typeof seed !== 'number' || !Number.isInteger(seed)) throw new TypeError('seed는 정수여야 한다');
   if (!Array.isArray(spawn) || !spawn.every((s) => typeof s === 'string')) throw new TypeError('spawn은 정의 번호 목록이어야 한다');
@@ -223,7 +226,7 @@ export function parseScenario(raw: unknown): Scenario {
     }
     return { t: s['t'], key: s['key'], level: s['level'] };
   });
-  return { why, patches: [...patches] as string[], seed, spawn: [...spawn] as string[], set: sets, start, end, routine };
+  return { why, patches: fromDb ? [] : ([...(patches as string[])] as string[]), use_db: fromDb, seed, spawn: [...spawn] as string[], set: sets, start, end, routine };
 }
 
 export interface DayTrace {

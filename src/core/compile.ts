@@ -9,24 +9,25 @@ import { PATCH_FORMAT, PATCH_VERSION } from './patch.ts';
 export const SOURCE_FORMAT_VERSION = 1;
 
 /** 지금 받는 종류와 그 접두. 나머지 종류는 명세 단계다. */
-const KIND_PREFIX: Readonly<Record<string, string>> = { objects: 'OBJ', places: 'PLC' };
+const KIND_PREFIX: Readonly<Record<string, string>> = { objects: 'OBJ', places: 'PLC', characters: 'CHR' };
 
 /** 종류별로 지금 받는 최상위 필드. */
 const FIELDS: Readonly<Record<string, readonly string[]>> = {
-  objects: ['id', 'names', 'aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'is_a', 'override'],
-  places: ['id', 'names', 'aliases', 'desc', 'slots', 'meanings', 'rules'],
+  objects: ['id', 'names', 'aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'is_a', 'override'],
+  places: ['id', 'names', 'aliases', 'desc', 'slots', 'meanings', 'rules', 'offers'],
+  characters: ['id', 'names', 'aliases', 'desc', 'senses'],
 };
 
 /** 펼치기(override)로 바꿀 수 있는 필드. */
-const OVERRIDABLE: readonly string[] = ['mobility', 'slots', 'meanings', 'rules'];
+const OVERRIDABLE: readonly string[] = ['mobility', 'slots', 'meanings', 'rules', 'offers'];
 
 /** 규칙 블록에서 받는 키. warn_before_s 는 명세 단계다. */
-const RULE_FIELDS: readonly string[] = ['label', 'on', 'emits', 'delay_s', 'tuned'];
+const RULE_FIELDS: readonly string[] = ['label', 'on', 'on_all', 'emits', 'delay_s', 'tuned'];
 
 /** 명세 단계 필드가 쓰였을 때의 안내용 목록 (거부 메시지에 쓴다). */
 const SPEC_ONLY: readonly string[] = [
-  'material', 'parts', 'offers', 'traits', 'environment', 'passages', 'senses', 'params', 'habits',
-  'verb', 'needs', 'cost', 'effect', 'warn_before_s',
+  'material', 'parts', 'traits', 'environment', 'passages', 'params', 'habits',
+  'cost', 'warn_before_s',
 ];
 
 export interface CompileResult {
@@ -101,7 +102,9 @@ export function compileSource(source: unknown): CompileResult {
   }
   if (issues.length > 0) return { patch: null, issues };
 
-  // ③ 펼치기: is_a 는 같은 파일의 기본 항목 하나만 가리킨다 (한 단계)
+  // ③ 펼치기: is_a 는 같은 파일의 기본 항목 하나만 가리킨다 (한 단계).
+  //    구조(부위·상태 의미·이동성)는 복사하고, 규칙·제공 행동은 복사하지 않는다 — 실행 중에 종류에서 물려받는다
+  //    (kinds.ts). 복사하면 규칙이 기본 항목의 번호를 가리킨 채 남아 엉뚱한 물건에 걸린다. is_a는 패치에 남긴다.
   const out: Obj[] = [];
   for (const [i, d] of defs.entries()) {
     const at = `defs[${i}]`;
@@ -137,14 +140,15 @@ export function compileSource(source: unknown): CompileResult {
     }
     // 기본 항목의 필드 → 개별 항목 자신의 필드 → override 순서로 덮는다. 번호·names·aliases·desc 는 개별 항목 것이다.
     // 이름·별칭·설명은 개별 항목 것만 쓴다 (기본 항목의 별칭이 복사되면 이름 충돌이 난다)
-    const { names: _n, aliases: _al, desc: _de, ...inherited } = stripSource(base);
-    const merged: Obj = { ...inherited, id, names: d['names'] };
-    for (const k of ['aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules'] as const) {
+    const { names: _n, aliases: _al, desc: _de, rules: _ru, offers: _of, ...inherited } = stripSource(base);
+    const merged: Obj = { ...inherited, id, names: d['names'], is_a: isA };
+    for (const k of ['aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers'] as const) {
       if (d[k] !== undefined) merged[k] = d[k];
     }
     if (isObj(override)) for (const [k, v] of Object.entries(override)) merged[k] = v;
     if (merged['names'] === undefined) err(`${at}.names`, '개별 항목에 names가 필요하다');
-    out.push(stripSource(merged));
+    const { override: _o, ...kept } = merged;
+    out.push(kept);
   }
   if (issues.length > 0) return { patch: null, issues };
 

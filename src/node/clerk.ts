@@ -250,7 +250,13 @@ export const SKELETON_GOLDEN = 'test/fixtures/golden/skeleton-day.json';
 
 /** 뼈대 하루를 돌린다. 시나리오의 패치는 빈 저장소에 병합한다 (실제 data/db.json은 건드리지 않는다). */
 export function skeletonDay(root: string, vocab: Vocab, stepMin?: number): DayTrace {
-  const scenario = parseScenario(JSON.parse(readFileSync(join(root, SKELETON_SCENARIO), 'utf8')));
+  return scenarioRun(root, vocab, SKELETON_SCENARIO, stepMin);
+}
+
+/** 시나리오 파일을 돌린다. use_db면 실제 저장소(data/db.json)로, 아니면 시나리오의 패치를 빈 저장소에 병합해서. */
+export function scenarioRun(root: string, vocab: Vocab, file: string, stepMin?: number): DayTrace {
+  const scenario = parseScenario(JSON.parse(readFileSync(join(root, file), 'utf8')));
+  if (scenario.use_db) return runScenario(loadDb(root), vocab, scenario, stepMin);
   let db = emptyDb();
   for (const file of scenario.patches) {
     const parsed = parsePatch(JSON.parse(readFileSync(join(root, file), 'utf8')));

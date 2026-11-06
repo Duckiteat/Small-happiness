@@ -8,13 +8,14 @@
 //     간격을 바꿔도 결과(사건의 시각과 순서)가 같다. 시험이 확인한다.
 //   - 난수를 받지 않는다. 같은 입력이면 같은 결과다.
 //
-// 인스턴스 묶기 (기본안, 위치·번짐(11번) 전까지): 규칙은 주인 정의의 인스턴스마다 따로 본다.
-//   주인 정의를 가리키는 패턴은 그 인스턴스에, 다른 정의를 가리키는 패턴은 `on`에서는 "그 정의의 인스턴스 중 하나라도",
-//   `emits`에서는 "그 정의의 모든 인스턴스"에 건다.
+// 인스턴스 묶기 (기본안, 위치·번짐(11번) 전까지): 규칙은 그 규칙이 걸리는 인스턴스마다 따로 본다 (종류에서 물려받은 규칙 포함, kinds.ts).
+//   규칙을 선언한 정의를 가리키는 패턴은 그 인스턴스 자신에, 다른 정의를 가리키는 패턴은 그 정의의 종류 전부에 건다:
+//   `on`은 "하나라도", `on_all`은 "모두(없으면 참)", `emits`는 "모두".
 //
 // 상태를 바꾸는 것은 세계 상태(2층, 주인)다. 이 모듈은 언제 무엇을 바꿀지 정하고 World.set으로 요청한다.
 
-import type { Db, RuleDef } from './db.ts';
+import type { Db } from './db.ts';
+import { effectiveRules, instancesOfKind } from './kinds.ts';
 import type { GameEvent } from './events.ts';
 import type { EventLog } from './log.ts';
 import { condRange, formatStateKey, parsePattern } from './statekey.ts';
@@ -35,6 +36,7 @@ export function stateMatches(world: World, vocab: Vocab, key: string, feature: s
   if (cond === null) return true;
   const level = world.level(key);
   if (vocab.has('terminal', cond.level)) return cond.op === '=' && level === cond.level;
+  if (level === 'gone') return cond.op === '<=' || cond.op === '<'; // 소멸 = 축에서 빠짐: "이하"에는 맞는다 (냄새 없음)
   const idx = world.levelIndex(key);
   if (idx === null) return false; // 종결 단계는 사다리 조건에 맞지 않는다
   const r = condRange(cond, vocab.levelOrder(feature));
@@ -61,9 +63,11 @@ export class CausalError extends Error {
 }
 
 interface Rule {
-  readonly owner: string; // 정의 번호
+  readonly def: string; // 이 규칙이 걸리는 인스턴스의 정의
+  readonly owner: string; // 규칙을 선언한 정의 (자기 자신에 묶이는 패턴의 정의)
   readonly key: string; // 규칙 키
   readonly on: readonly StatePattern[];
+  readonly onAll: readonly StatePattern[];
   readonly emits: readonly StatePattern[];
   readonly delayMin: number;
 }
@@ -77,22 +81,21 @@ interface Reservation {
 
 function compileRules(db: Db): Rule[] {
   const rules: Rule[] = [];
-  for (const owner of Object.keys(db.defs).sort()) {
-    const defRules = db.defs[owner]?.rules ?? {};
-    for (const key of Object.keys(defRules).sort()) {
-      const r = defRules[key] as RuleDef;
+  for (const def of Object.keys(db.defs).sort()) {
+    for (const { owner, key, item: r } of effectiveRules(db, def)) {
       const parse = (text: string): StatePattern => {
         const p = parsePattern(text);
         if (p === null) throw new CausalError(`${owner}.rules.${key}: 패턴 형식이 아니다 (${text}) — 관문을 지난 저장소만 쓴다`);
         return p;
       };
-      rules.push({ owner, key, on: r.on.map(parse), emits: r.emits.map(parse), delayMin: (r.delay_s ?? 0) / 60 });
+      rules.push({ def, owner, key, on: r.on.map(parse), onAll: (r.on_all ?? []).map(parse), emits: r.emits.map(parse), delayMin: (r.delay_s ?? 0) / 60 });
     }
   }
   return rules;
 }
 
 export class Causal {
+  readonly #db: Db;
   readonly #vocab: Vocab;
   readonly #log: EventLog;
   readonly #rules: readonly Rule[];
@@ -102,6 +105,7 @@ export class Causal {
   /** @param start 인과가 시작되는 시각(분). 이 시각부터 규칙을 본다. */
   constructor(db: Db, vocab: Vocab, log: EventLog, start: number) {
     if (!Number.isInteger(start) || start < 0) throw new CausalError(`시작 시각은 0 이상의 정수(분)여야 한다: ${start}`);
+    this.#db = db;
     this.#vocab = vocab;
     this.#log = log;
     this.#rules = compileRules(db);
@@ -158,7 +162,7 @@ export class Causal {
   /** 조건이 맞고 결과가 아직 이루어지지 않은 원인마다 예약을 하나 건다. */
   #schedule(world: World, t: number): void {
     for (const rule of this.#rules) {
-      for (const at of this.#instancesOf(world, rule.owner)) {
+      for (const at of world.instances().filter((i) => world.defOfInstance(i) === rule.def)) {
         const id = `${rule.owner}/${rule.key}@${at}`;
         if (this.#reservations.has(id)) continue;
         if (!this.#holds(world, rule, at) || this.#done(world, rule, at)) continue;
@@ -169,22 +173,21 @@ export class Causal {
     }
   }
 
-  #instancesOf(world: World, def: string): string[] {
-    return world.instances().filter((id) => world.defOfInstance(id) === def);
-  }
-
-  /** 패턴이 걸리는 인스턴스들: 주인 정의면 그 인스턴스 하나, 아니면 그 정의의 모든 인스턴스. */
+  /** 패턴이 걸리는 인스턴스들: 규칙을 선언한 정의면 그 인스턴스 하나, 아니면 그 정의의 종류 전부. */
   #targets(world: World, p: StatePattern, owner: string, at: string): string[] {
-    return p.def === owner ? [at] : this.#instancesOf(world, p.def);
+    return p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def);
   }
 
   #matches(world: World, p: StatePattern, instance: string): boolean {
     return stateMatches(world, this.#vocab, formatStateKey({ subject: instance, slot: p.slot, feature: p.feature }), p.feature, p.cond);
   }
 
-  /** on이 모두 맞는가 (다른 정의의 패턴은 그 정의의 인스턴스 중 하나라도). */
+  /** on이 모두 맞는가 (다른 정의의 패턴은 하나라도), on_all도 모두 맞는가 (다른 정의의 패턴은 모두). */
   #holds(world: World, rule: Rule, at: string): boolean {
-    return rule.on.every((p) => this.#targets(world, p, rule.owner, at).some((i) => this.#matches(world, p, i)));
+    return (
+      rule.on.every((p) => this.#targets(world, p, rule.owner, at).some((i) => this.#matches(world, p, i))) &&
+      rule.onAll.every((p) => this.#targets(world, p, rule.owner, at).every((i) => this.#matches(world, p, i)))
+    );
   }
 
   /** emits가 이미 모두 이루어져 있는가. */

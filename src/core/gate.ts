@@ -114,8 +114,8 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
   // 규칙 패턴: 형식, 대상 정의 존재, 부위·특징·단계 범위
   for (const [id, def] of Object.entries(db.defs)) {
     for (const [ruleKey, rule] of Object.entries(def.rules ?? {})) {
-      for (const side of ['on', 'emits'] as const) {
-        rule[side].forEach((text, i) => {
+      for (const side of ['on', 'on_all', 'emits'] as const) {
+        (rule[side] ?? []).forEach((text, i) => {
           const at = `${id}.rules.${ruleKey}.${side}[${i}]`;
           const p = parsePattern(text);
           if (p === null) return void error(at, `패턴 형식이 아니다: ${text}`);
@@ -127,6 +127,35 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
           }
           slotCheck(target, p.slot, p.feature, p.cond, vocab, at, error);
         });
+      }
+    }
+  }
+
+  // 종류(is_a): 같은 종류의 정의를 한 단계만 가리키고, 물려받는 규칙·행동이 쓰는 부위·특징을 모두 갖는다
+  for (const [id, def] of Object.entries(db.defs)) {
+    if (def.is_a === undefined) continue;
+    const at = `${id}.is_a`;
+    const base = db.defs[def.is_a];
+    if (base === undefined) {
+      error(at, `없는 정의를 가리킨다: ${def.is_a}`);
+      continue;
+    }
+    if (def.is_a === id) error(at, '자기 자신의 종류일 수 없다');
+    else if (def.is_a.slice(0, 3) !== id.slice(0, 3)) error(at, `같은 종류의 정의만 가리킨다 (${id.slice(0, 3)} ≠ ${def.is_a.slice(0, 3)})`);
+    else if (base.is_a !== undefined) error(at, `종류는 한 단계만 가능하다 (${def.is_a}도 is_a가 있다)`);
+    const inherited = [
+      ...Object.values(base.rules ?? {}).flatMap((r) => [...r.on, ...(r.on_all ?? []), ...r.emits]),
+      ...Object.values(base.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect]),
+    ];
+    const need = new Set<string>();
+    for (const text of inherited) {
+      const p = parsePattern(text);
+      if (p !== null && p.def === def.is_a) need.add(`${p.slot}:${p.feature}`);
+    }
+    for (const sf of [...need].sort()) {
+      const [slot, feature] = sf.split(':') as [string, string];
+      if (!(def.slots?.[slot]?.features ?? []).includes(feature)) {
+        error(at, `${def.is_a}의 규칙·행동을 물려받으려면 부위 ${slot}에 특징 ${feature}가 있어야 한다`);
       }
     }
   }
@@ -145,6 +174,14 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
         const target = db.defs[p.def];
         if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
         slotCheck(target, p.slot, p.feature, null, vocab, w, error);
+      });
+      (offer.when ?? []).forEach((text, i) => {
+        const w = `${at}.when[${i}]`;
+        const p = parsePattern(text);
+        if (p === null) return void error(w, `패턴 형식이 아니다 (번호로 쓴다): ${text}`);
+        const target = db.defs[p.def];
+        if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
+        slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
       });
       offer.effect.forEach((text, i) => {
         const w = `${at}.effect[${i}]`;

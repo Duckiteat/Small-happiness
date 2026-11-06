@@ -106,5 +106,13 @@
   "sense-unknown.json": {
     "stage": "gate",
     "match": "사전에 없는 감각: sixth"
+  },
+  "kind-missing.json": {
+    "stage": "gate",
+    "match": "없는 정의를 가리킨다: OBJ000099"
+  },
+  "kind-missing-feature.json": {
+    "stage": "gate",
+    "match": "부위 body에 특징 smell가 있어야 한다"
   }
 }

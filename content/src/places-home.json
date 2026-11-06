@@ -1,0 +1,138 @@
+{
+  "format_version": 1,
+  "file_kind": "places",
+  "why": "첫 주 슬라이스: 현관, 주방, 거실 (세계-설정의 확정 부분). 냄새와 벌레의 규칙은 '어떤 음식이든'에 걸린다. 지연은 임시값(tuned:false).",
+  "defs": [
+    {
+      "id": "PLC+1",
+      "names": {
+        "ko": "현관",
+        "en": "entrance"
+      },
+      "slots": {
+        "space": {
+          "features": [
+            "smell"
+          ]
+        }
+      },
+      "desc": [
+        "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)"
+      ]
+    },
+    {
+      "id": "PLC+2",
+      "names": {
+        "ko": "주방",
+        "en": "kitchen"
+      },
+      "aliases": [
+        "부엌"
+      ],
+      "slots": {
+        "space": {
+          "features": [
+            "smell",
+            "bug"
+          ]
+        }
+      },
+      "rules": {
+        "odor_reach": {
+          "label": "상한 음식의 냄새가 주방에 퍼진다",
+          "on": [
+            "OBJ+1|body:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC+2|space:smell@>=faint"
+          ]
+        },
+        "odor_thicken": {
+          "label": "냄새나는 음식이 남아 있으면 주방 냄새가 짙어진다",
+          "on": [
+            "OBJ+1|body:smell@>=distinct",
+            "PLC+2|space:smell@=faint"
+          ],
+          "emits": [
+            "PLC+2|space:smell@>=distinct"
+          ],
+          "delay_s": 10800,
+          "tuned": false
+        },
+        "air_out": {
+          "label": "냄새나는 음식이 하나도 없으면 주방 냄새가 빠진다",
+          "on": [
+            "PLC+2|space:smell@>=faint"
+          ],
+          "emits": [
+            "PLC+2|space:smell@<=none"
+          ],
+          "on_all": [
+            "OBJ+1|body:smell@<=faint"
+          ],
+          "delay_s": 10800,
+          "tuned": false
+        },
+        "bugs": {
+          "label": "주방 냄새가 뚜렷하면 벌레가 꼬인다",
+          "on": [
+            "PLC+2|space:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC+2|space:bug@=few"
+          ],
+          "delay_s": 28800,
+          "tuned": false
+        },
+        "spread": {
+          "label": "벌레가 거실로 번진다",
+          "on": [
+            "PLC+2|space:bug@>=few"
+          ],
+          "emits": [
+            "PLC+3|space:bug@=few"
+          ],
+          "delay_s": 21600,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "inspect": {
+          "label": "냄새가 어디서 나는지 주방과 냉장고를 살핀다",
+          "verb": "inspect",
+          "needs": [
+            {
+              "aware": "PLC+2|space:smell",
+              "at_least": "noticed"
+            }
+          ],
+          "effect": [],
+          "reveals": true,
+          "minutes": 5,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "현관을 열면 바로 있다. 냄새가 고인다. 냉장고의 자리 (세계-설정 2·3장)"
+      ]
+    },
+    {
+      "id": "PLC+3",
+      "names": {
+        "ko": "거실",
+        "en": "living room"
+      },
+      "slots": {
+        "space": {
+          "features": [
+            "smell",
+            "bug"
+          ]
+        }
+      },
+      "desc": [
+        "가장 큰 공간. 중문 너머 (세계-설정 2장)"
+      ]
+    }
+  ]
+}

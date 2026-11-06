@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 종류(음식)의 규칙이 쓰는 특징(냄새)이 없는 물건",
+  "defs": [ { "id": "OBJ+1", "is_a": "OBJ000001", "names": { "ko": "냄새 없는 음식" }, "slots": { "body": { "features": ["rot"] } } } ] }

@@ -154,13 +154,20 @@ test('명령줄: status와 validate (쓰지 않음)', () => {
   const run = (...args: string[]) =>
     spawnSync(process.execPath, [join(ROOT, 'src', 'node', 'cli.ts'), ...args, '--root', ROOT], { encoding: 'utf8' });
 
+  const before = readFileSync(join(ROOT, 'data', 'db.json'), 'utf8');
   const status = run('status');
   assert.equal(status.status, 0, status.stderr);
-  assert.match(status.stdout, /정의 0개/);
+  assert.match(status.stdout, new RegExp(`정의 ${Object.keys(loadDb(ROOT).defs).length}개`));
 
-  const validate = run('validate', join(ROOT, 'examples', 'patches', 'fridge-chain.json'));
+  // 실제 저장소에 맞는 작은 패치 (2026-11-06부터 실제 저장소에 내용이 있다): 음식 종류에 하나를 더한다
+  const dir = mkdtempSync(join(tmpdir(), 'sh-cli-'));
+  const file = join(dir, 'p.json');
+  writeFileSync(file, JSON.stringify({ format: 'small-happiness-patch', version: 1, why: '시험: validate는 쓰지 않는다',
+    defs: [{ id: 'OBJ+1', is_a: 'OBJ000001', names: { ko: '시험용 반찬' }, mobility: '가변', slots: { body: { features: ['rot', 'smell'] } } }] }));
+  const validate = run('validate', file);
+  rmSync(dir, { recursive: true, force: true });
   assert.equal(validate.status, 0, validate.stderr);
   assert.match(validate.stdout, /관문: \*\*통과\*\*/);
   assert.match(validate.stdout, /결과: dry-ok/);
-  assert.equal(loadDb(ROOT).meta.next['OBJ'], 1); // 실제 저장소는 그대로
+  assert.equal(readFileSync(join(ROOT, 'data', 'db.json'), 'utf8'), before); // 실제 저장소는 그대로
 });

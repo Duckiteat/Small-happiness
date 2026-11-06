@@ -156,6 +156,7 @@ function mapDefinition(db: Db, vocab: Vocab | undefined, def: Definition, errors
         {
           ...rule,
           on: mapList(rule.on, `${at}.on`, (t) => mapPattern(db, vocab, t)),
+          ...(rule.on_all !== undefined ? { on_all: mapList(rule.on_all, `${at}.on_all`, (t) => mapPattern(db, vocab, t)) } : {}),
           emits: mapList(rule.emits, `${at}.emits`, (t) => mapPattern(db, vocab, t)),
         },
       ];
@@ -269,6 +270,7 @@ export function mergePatch(dbIn: Db, patch: Patch, vocab?: Vocab): MergeResult {
       const changedFields = Object.keys(fields).filter((k) => k !== 'id');
       const merged = buildDefinition(id, {
         names: old.names,
+        ...(old.is_a !== undefined ? { is_a: old.is_a } : {}),
         aliases: [...old.aliases],
         desc: [...old.desc],
         ...(old.mobility !== undefined ? { mobility: old.mobility } : {}),

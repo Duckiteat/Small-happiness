@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 없는 정의를 종류로 삼는다",
+  "defs": [ { "id": "OBJ+1", "is_a": "OBJ000099", "names": { "ko": "유령 음식" }, "slots": { "body": { "features": ["rot"] } } } ] }

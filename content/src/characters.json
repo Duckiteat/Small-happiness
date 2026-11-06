@@ -1,0 +1,27 @@
+{
+  "format_version": 1,
+  "file_kind": "characters",
+  "why": "첫 주 슬라이스: 하루씨. 감각 임계는 임시값(tuned:false)이며 작가 확인 전이다.",
+  "defs": [
+    {
+      "id": "CHR+1",
+      "names": {
+        "ko": "하루씨",
+        "en": "Haru"
+      },
+      "senses": {
+        "smell": {
+          "notice": 1,
+          "tuned": false
+        },
+        "sight": {
+          "notice": 1,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "혼자 사는 직장인 (세계-설정 1장). 직업·출퇴근은 미정"
+      ]
+    }
+  ]
+}

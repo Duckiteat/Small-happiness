@@ -38,6 +38,8 @@ node src/node/cli.ts guard [기준 커밋]                          # 규칙을 
 | `src/core/` | 시뮬레이션 코어 (번호, 상태 키, 사건, 기록, 사전, 정의 저장소, 패치, 관문, 사슬, 보고서, 세계 상태, 품질판, 단계, 뼈대 층). 입출력 없음 |
 | `src/node/` | 파일을 읽고 쓰는 어댑터 (서기, 명령줄) |
 | `data/vocab/` | 사전 (게임이 쓰는 모든 단어) |
+| `content/src/` | 게임 내용의 원본 (`compile` → `validate` → `merge`로 `data/db.json`에 들어간다) |
+| `content/scenarios/` | 실제 저장소로 돌리는 시나리오 (`node src/node/cli.ts day content/scenarios/first-week.json`) |
 | `data/db.json` | 정의 저장소 (패치로만 변경) |
 | `examples/patches/` | 예시 패치 |
 | `test/` | 테스트 |
