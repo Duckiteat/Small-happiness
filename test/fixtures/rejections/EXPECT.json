@@ -90,5 +90,21 @@
   "delay-no-tuned.json": {
     "stage": "gate",
     "match": "tuned\\(조정 완료 여부\\)를 true/false로"
+  },
+  "offer-unknown-verb.json": {
+    "stage": "gate",
+    "match": "사전에 없는 행동: juggle"
+  },
+  "offer-needs-level.json": {
+    "stage": "gate",
+    "match": "필요한 앎에는 단계 조건을 쓰지 않는다"
+  },
+  "offer-effect-unclear.json": {
+    "stage": "gate",
+    "match": "결과에는 =, >=, <= 조건이 필요하다"
+  },
+  "sense-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 감각: sixth"
   }
 }

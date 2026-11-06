@@ -18,7 +18,7 @@ import type { Db, RuleDef } from './db.ts';
 import type { GameEvent } from './events.ts';
 import type { EventLog } from './log.ts';
 import { condRange, formatStateKey, parsePattern } from './statekey.ts';
-import type { StatePattern } from './statekey.ts';
+import type { Cond, StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
 import type { World } from './world.ts';
 
@@ -29,6 +29,29 @@ export const DELAY_CANCELLED = 'delay_cancelled';
 
 /** 한 번의 진행에서 같은 시각에 이어질 수 있는 발화의 상한. 넘으면 끝나지 않는 사슬이다. */
 const MAX_FIRES_PER_ADVANCE = 10_000;
+
+/** 상태 key가 조건 cond에 맞는가. 종결 단계(소멸·고정)는 = 조건으로만 맞는다. 인과·행동이 같이 쓴다. */
+export function stateMatches(world: World, vocab: Vocab, key: string, feature: string, cond: Cond): boolean {
+  if (cond === null) return true;
+  const level = world.level(key);
+  if (vocab.has('terminal', cond.level)) return cond.op === '=' && level === cond.level;
+  const idx = world.levelIndex(key);
+  if (idx === null) return false; // 종결 단계는 사다리 조건에 맞지 않는다
+  const r = condRange(cond, vocab.levelOrder(feature));
+  return r !== null && idx >= r.min && idx <= r.max;
+}
+
+/**
+ * 결과 조건대로 상태를 바꿔 달라고 세계 상태(주인)에 요청한다. =는 그 단계로, >=는 아래면 올리고, <=는 위면 내린다.
+ * 이미 맞으면 아무것도 하지 않는다. 종결 단계에서는 =로만 바뀐다. 바꿨으면 true.
+ */
+export function applyLevel(world: World, vocab: Vocab, key: string, feature: string, cond: Cond, meta: { t: number; cause: string }): boolean {
+  if (cond === null || !['=', '>=', '<='].includes(cond.op)) throw new CausalError(`결과에는 =, >=, <= 조건이 필요하다 (${key}) — 관문을 지난 저장소만 쓴다`);
+  if (stateMatches(world, vocab, key, feature, cond)) return false;
+  if (cond.op !== '=' && world.levelIndex(key) === null) return false;
+  world.set(key, cond.level, meta);
+  return true;
+}
 
 export class CausalError extends Error {
   constructor(message: string) {
@@ -156,14 +179,7 @@ export class Causal {
   }
 
   #matches(world: World, p: StatePattern, instance: string): boolean {
-    const key = formatStateKey({ subject: instance, slot: p.slot, feature: p.feature });
-    const level = world.level(key);
-    if (p.cond === null) return true;
-    if (this.#vocab.has('terminal', p.cond.level)) return p.cond.op === '=' && level === p.cond.level;
-    const idx = world.levelIndex(key);
-    if (idx === null) return false; // 종결 단계는 사다리 조건에 맞지 않는다
-    const r = condRange(p.cond, this.#vocab.levelOrder(p.feature));
-    return r !== null && idx >= r.min && idx <= r.max;
+    return stateMatches(world, this.#vocab, formatStateKey({ subject: instance, slot: p.slot, feature: p.feature }), p.feature, p.cond);
   }
 
   /** on이 모두 맞는가 (다른 정의의 패턴은 그 정의의 인스턴스 중 하나라도). */
@@ -176,18 +192,12 @@ export class Causal {
     return rule.emits.every((p) => this.#targets(world, p, rule.owner, at).every((i) => this.#matches(world, p, i)));
   }
 
-  /** 결과를 세계 상태(주인)에 요청한다. =는 그 단계로, >=는 아래면 올리고, <=는 위면 내린다. */
+  /** 결과를 세계 상태(주인)에 요청한다. */
   #emit(world: World, rule: Rule, at: string, cause: GameEvent): void {
     for (const p of rule.emits) {
-      const cond = p.cond;
-      if (cond === null || !['=', '>=', '<='].includes(cond.op)) {
-        throw new CausalError(`${rule.owner}.rules.${rule.key}: 결과에는 =, >=, <= 조건이 필요하다 — 관문을 지난 저장소만 쓴다`);
-      }
       for (const i of this.#targets(world, p, rule.owner, at)) {
-        if (this.#matches(world, p, i)) continue;
         const key = formatStateKey({ subject: i, slot: p.slot, feature: p.feature });
-        if (cond.op !== '=' && world.levelIndex(key) === null) continue; // 종결 단계는 =로만 바뀐다
-        world.set(key, cond.level, { t: cause.t, cause: cause.seq });
+        applyLevel(world, this.#vocab, key, p.feature, p.cond, { t: cause.t, cause: cause.seq });
       }
     }
   }

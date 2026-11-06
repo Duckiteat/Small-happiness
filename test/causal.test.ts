@@ -9,8 +9,9 @@ import { emptyDb } from '../src/core/db.ts';
 import type { Db } from '../src/core/db.ts';
 import { EventLog } from '../src/core/log.ts';
 import { mergePatch, parsePatch } from '../src/core/patch.ts';
+import { parseScenario, runScenario } from '../src/core/skeleton.ts';
 import { World } from '../src/core/world.ts';
-import { skeletonDay } from '../src/node/clerk.ts';
+import { SKELETON_SCENARIO, skeletonDay } from '../src/node/clerk.ts';
 import { loadVocabDir } from '../src/node/vocab-files.ts';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -38,7 +39,10 @@ test('간격을 바꿔도 세계의 결과(바뀐 시각·순서)가 같다: 3�
 });
 
 test('아무도 손대지 않으면 사슬이 정확한 시각에 진행된다 (지연은 예시 패치의 임시값)', () => {
-  assert.deepEqual(changes(skeletonDay(ROOT, vocab).log), [
+  // 하루씨 없이: 같은 시나리오에서 인물을 세우지 않는다
+  const base = parseScenario(JSON.parse(readFileSync(join(ROOT, SKELETON_SCENARIO), 'utf8')));
+  const untouched = runScenario(db, vocab, { ...base, spawn: base.spawn.filter((d) => !d.startsWith('CHR')) });
+  assert.deepEqual(changes(untouched.log), [
     '720 OBJ000001#1|body:rot wilted', // 12시간 뒤 시듦
     '1440 OBJ000001#1|body:rot spoiled', // 또 12시간 뒤 상함
     '1800 OBJ000001#1|body:smell distinct', // 6시간 뒤 냄새

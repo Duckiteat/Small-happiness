@@ -10,7 +10,10 @@
 
 import type { BoardValue } from './board.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
-import { Causal } from './causal.ts';
+import { Agency, parseRecent } from './agency.ts';
+import type { RecentAction } from './agency.ts';
+import { applyLevel, Causal } from './causal.ts';
+import { parseAware, Perception } from './perception.ts';
 import { defOf } from './ids.ts';
 import { parseStateKey } from './statekey.ts';
 import type { Db } from './db.ts';
@@ -47,14 +50,49 @@ function stateText(states: BoardValue, db: Db, vocab: Vocab): string {
   return parts.join(', ');
 }
 
+function name(db: Db, instance: string): string {
+  return db.defs[defOf(instance) ?? '']?.names.ko ?? instance;
+}
+
+/** 하루씨가 이 단계에 느낀 것과 그 앎의 단계 (알아챔·이해함). */
+function perceivedText(perceived: BoardValue, aware: BoardValue, db: Db, vocab: Vocab): string {
+  if (!Array.isArray(perceived) || perceived.length === 0) return '';
+  const knows = parseAware(aware);
+  const parts = perceived.map((p) => {
+    const o = p as { who: string; key: string; level: string };
+    const k = parseStateKey(o.key);
+    const state = k === null ? o.key : stateText({ [o.key]: o.level }, db, vocab);
+    const a = knows[o.who]?.[o.key];
+    return `${state}(${a === undefined ? '' : vocab.entry('awareness', a)?.ko ?? a})`;
+  });
+  return ` | 느낌: ${parts.join(', ')}`;
+}
+
+/** 하루씨가 이 단계에 고른 행동. */
+function actionText(recent: BoardValue, db: Db, vocab: Vocab): string {
+  const acts = parseRecent(recent);
+  if (acts.length === 0) return '';
+  return ` | 행동: ${acts.map((a) => `${name(db, a.at)} ${vocab.entry('action', a.verb)?.ko ?? a.verb}`).join(', ')}`;
+}
+
 function clockText(t: number): string {
   const day = Math.floor(t / MINUTES_PER_DAY) + 1;
   const m = t % MINUTES_PER_DAY;
   return `${day}일 ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }
 
-/** 뼈대 층 아홉 개. world와 causal은 2층만, routine(하루씨의 일정)은 4a층만 쓴다. */
-export function skeletonLayers(db: Db, world: World, causal: Causal, routine: readonly PlanBlock[], vocab: Vocab): Layer[] {
+export interface Engine {
+  readonly world: World;
+  readonly causal: Causal;
+  readonly perception: Perception;
+  readonly agency: Agency;
+  readonly log: EventLog;
+}
+
+/** 층 아홉 개. world·causal은 2층, perception은 5층, agency는 6층, routine(하루씨의 일정)은 4a층만 쓴다. */
+export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlock[], vocab: Vocab): Layer[] {
+  const { world, causal, perception, agency, log } = engine;
+  const pending: RecentAction[] = []; // 끝나기를 기다리는 행동의 효과 요청 (2층)
   return [
     {
       id: '0',
@@ -67,7 +105,21 @@ export function skeletonLayers(db: Db, world: World, causal: Causal, routine: re
     {
       id: '2',
       run: (c) => {
-        causal.advance(world, c.t); // 지난 단계부터 지금까지 규칙이 만든 변화를 각자의 시각으로 기록
+        // 끝난 행동의 효과 요청을 끝난 시각에 기록하고(F1), 그 사이 규칙이 만든 변화는 각자의 시각으로 기록한다
+        pending.push(...parseRecent(c.prev('recent')));
+        const due = pending.filter((a) => a.ends <= c.t).sort((a, b) => a.ends - b.ends || a.event.localeCompare(b.event));
+        pending.splice(0, pending.length, ...pending.filter((a) => a.ends > c.t));
+        for (const a of due) {
+          causal.advance(world, a.ends);
+          const done = log.append({ t: a.ends, type: 'action_done', src: 'world', cause: a.event, data: { who: a.who, verb: a.verb, at: a.at } });
+          for (const e of a.effects) {
+            const k = parseStateKey(e.key);
+            if (k !== null && (e.op === '=' || e.op === '>=' || e.op === '<=')) {
+              applyLevel(world, vocab, e.key, k.feature, { op: e.op, level: e.level }, { t: a.ends, cause: done.seq });
+            }
+          }
+        }
+        causal.advance(world, c.t);
         c.write('world.state', world.snapshot().states);
         c.write('kit', {});
       },
@@ -90,15 +142,22 @@ export function skeletonLayers(db: Db, world: World, causal: Causal, routine: re
     {
       id: '5',
       run: (c) => {
-        c.write('perceived', []);
-        c.write('visible_to_player', []);
-        c.write('aware', {});
+        const where = presenceAt(parsePlan(c.read('plan'), vocab), c.t);
+        const r = perception.step(world, c.t, where, c.prev('recent'));
+        const perceived = r.perceived.map((p) => ({ who: p.who, key: p.key, level: p.level }));
+        c.write('perceived', perceived);
+        c.write('visible_to_player', perceived); // 지금은 하루씨가 느낀 만큼만 보인다 (넓히는 규칙은 미정)
+        c.write('aware', r.aware);
         c.write('memory', []);
       },
     },
     {
       id: '6',
-      run: (c) => c.write('recent', []),
+      run: (c) => {
+        const where = presenceAt(parsePlan(c.read('plan'), vocab), c.t);
+        const chosen = agency.step(world, c.t, where, parseAware(c.read('aware')));
+        c.write('recent', chosen.map((a) => ({ ...a, effects: a.effects.map((e) => ({ ...e })) })));
+      },
     },
     {
       id: '7',
@@ -115,7 +174,9 @@ export function skeletonLayers(db: Db, world: World, causal: Causal, routine: re
         return [
           `[${clockText(c.t)}] ${vocab.entry('presence', where)?.ko ?? where} · 장소 ${placeCount} · 자극 ${size(c.read('world.stimulus_source'))}` +
             ` · 외부 카드 ${cards} · 지각 ${size(c.read('perceived'))} · 최근 행동 ${size(c.read('recent'))} · 장면 ${size(c.read('scene'))}` +
-            ` | ${stateText(c.read('world.state'), db, vocab) || '변화 없음'}`,
+            ` | ${stateText(c.read('world.state'), db, vocab) || '변화 없음'}` +
+            perceivedText(c.read('perceived'), c.read('aware'), db, vocab) +
+            actionText(c.read('recent'), db, vocab),
         ];
       },
     },
@@ -177,9 +238,15 @@ export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: 
   for (const def of scenario.spawn) world.spawn(def, { t: 0 });
   for (const s of scenario.set) world.set(s.key, s.level, { t: s.t });
   const setupEnd = Math.max(0, ...scenario.set.map((s) => s.t));
-  const causal = new Causal(db, vocab, log, setupEnd);
+  const engine: Engine = {
+    world,
+    causal: new Causal(db, vocab, log, setupEnd),
+    perception: new Perception(db, vocab, log),
+    agency: new Agency(db, vocab, log),
+    log,
+  };
   const routine = parsePlan(scenario.routine, vocab);
-  const layers = skeletonLayers(db, world, causal, routine, vocab);
+  const layers = skeletonLayers(db, engine, routine, vocab);
   const results = runDay(layers, scenario.start, scenario.end, Rng.fromSeed(scenario.seed), vocab, stepMin);
   return {
     steps: results.map((r) => ({ ...r.board.snapshot(), lines: r.lines })),

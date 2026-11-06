@@ -131,6 +131,36 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
   }
 
+  // 제공 행동: 동사는 사전에, 필요한 앎은 패턴(조건 없음)과 인지 단계, 결과는 =·>=·<= 패턴
+  for (const [id, def] of Object.entries(db.defs)) {
+    for (const [key, offer] of Object.entries(def.offers ?? {})) {
+      const at = `${id}.offers.${key}`;
+      if (!vocab.has('action', offer.verb)) error(`${at}.verb`, `사전에 없는 행동: ${offer.verb}`);
+      offer.needs.forEach((n, i) => {
+        const w = `${at}.needs[${i}]`;
+        const p = parsePattern(n.aware);
+        if (p === null) return void error(w, `패턴 형식이 아니다 (번호로 쓴다): ${n.aware}`);
+        if (p.cond !== null) error(w, `필요한 앎에는 단계 조건을 쓰지 않는다 (at_least로 인지 단계를 정한다): ${n.aware}`);
+        if (!vocab.has('awareness', n.at_least)) error(w, `사전에 없는 인지 단계: ${n.at_least}`);
+        const target = db.defs[p.def];
+        if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
+        slotCheck(target, p.slot, p.feature, null, vocab, w, error);
+      });
+      offer.effect.forEach((text, i) => {
+        const w = `${at}.effect[${i}]`;
+        const p = parsePattern(text);
+        if (p === null) return void error(w, `패턴 형식이 아니다 (번호로 쓴다): ${text}`);
+        if (p.cond === null || !['=', '>=', '<='].includes(p.cond.op)) error(w, `결과에는 =, >=, <= 조건이 필요하다: ${text}`);
+        const target = db.defs[p.def];
+        if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
+        slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
+      });
+    }
+    for (const sense of Object.keys(def.senses ?? {})) {
+      if (!vocab.has('sense', sense)) error(`${id}.senses.${sense}`, `사전에 없는 감각: ${sense}`);
+    }
+  }
+
   for (const ref of selfLoops(collectRules(db), vocab)) {
     warn(ref, '자기가 만든 상태가 자기 조건을 다시 만족시킨다 (자기 순환)');
   }

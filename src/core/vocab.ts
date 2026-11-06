@@ -72,6 +72,7 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
   switch (category) {
     case 'feature': {
       // 단계 사다리: 0~5 여섯 칸 고정. 칸 번호가 단계 숫자다. locked 칸은 아직 쓸 수 없다 (작가가 풀면 쓴다).
+      if (typeof attrs['sense'] !== 'string') push(`${path}.attrs.sense`, '이 특징을 느끼는 감각(sense 키)이 필요하다');
       const levels = attrs['levels'];
       if (!Array.isArray(levels) || levels.length !== LADDER_SIZE) {
         push(`${path}.attrs.levels`, `단계 목록은 정확히 ${LADDER_SIZE}칸(0~${LADDER_SIZE - 1})이어야 한다`);
@@ -93,6 +94,12 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
           }
         });
       }
+      break;
+    }
+    case 'awareness': {
+      // 인지 단계의 순서. 0 = 모름. 지각 층이 올리기만 하고 내리지 않는다
+      const r = attrs['rank'];
+      if (!isInt(r) || r < 0) push(`${path}.attrs.rank`, '인지 단계의 순서(rank)는 0 이상의 정수여야 한다');
       break;
     }
     case 'durability': {
@@ -131,6 +138,7 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
 const REFS: readonly (readonly [string, string, string])[] = [
   ['spreader', 'medium', 'medium'],
   ['spreader', 'stimulus', 'sense'],
+  ['feature', 'sense', 'sense'], // 이 특징을 어느 감각으로 느끼는가 (5층 지각)
 ];
 
 function groupByCategory(raw: readonly VocabCategoryRaw[]): Map<string, VocabEntryRaw[]> {

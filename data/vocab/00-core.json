@@ -53,6 +53,7 @@
         ],
         "desc": "표면이 더러워진 정도",
         "attrs": {
+          "sense": "sight",
           "levels": [
             {
               "key": "clean",
@@ -90,6 +91,7 @@
         ],
         "desc": "음식 등이 상한 정도",
         "attrs": {
+          "sense": "sight",
           "levels": [
             {
               "key": "fresh",
@@ -124,6 +126,7 @@
         "en": "smell",
         "desc": "장소나 물건에서 나는 냄새의 세기",
         "attrs": {
+          "sense": "smell",
           "levels": [
             {
               "key": "none",
@@ -158,6 +161,7 @@
         "en": "bug",
         "desc": "벌레가 보이는 정도",
         "attrs": {
+          "sense": "sight",
           "levels": [
             {
               "key": "none",
@@ -195,6 +199,7 @@
         ],
         "desc": "물기가 있는 정도",
         "attrs": {
+          "sense": "touch",
           "levels": [
             {
               "key": "dry",
@@ -232,6 +237,7 @@
         ],
         "desc": "물건이 흐트러진 정도",
         "attrs": {
+          "sense": "sight",
           "levels": [
             {
               "key": "tidy",
@@ -503,6 +509,57 @@
         "key": "move",
         "ko": "옮기기",
         "en": "move"
+      },
+      {
+        "key": "inspect",
+        "ko": "살피기",
+        "en": "inspect",
+        "aliases": [
+          "둘러보기",
+          "조사"
+        ],
+        "desc": "가까이 보고 냄새를 맡아 정체와 위치를 알아낸다. 세계를 바꾸지 않고 앎을 바꾼다"
+      },
+      {
+        "key": "discard",
+        "ko": "버리기",
+        "en": "discard",
+        "aliases": [
+          "내다 버리기"
+        ],
+        "desc": "물건을 쓰레기로 보낸다. 물건은 지워지지 않고 그 상태가 소멸(gone)로 바뀐다 (보관 장소는 위치 구현 뒤)"
+      }
+    ]
+  },
+  {
+    "category": "awareness",
+    "entries": [
+      {
+        "key": "unknown",
+        "ko": "모름",
+        "en": "unknown",
+        "desc": "아직 아무것도 느끼지 못했다",
+        "attrs": {
+          "rank": 0
+        }
+      },
+      {
+        "key": "noticed",
+        "ko": "알아챔",
+        "en": "noticed",
+        "desc": "뭔가 있다는 것은 안다. 정체나 위치는 모른다",
+        "attrs": {
+          "rank": 1
+        }
+      },
+      {
+        "key": "understood",
+        "ko": "이해함",
+        "en": "understood",
+        "desc": "무엇이 어디에 어떤 상태로 있는지 안다",
+        "attrs": {
+          "rank": 2
+        }
       }
     ]
   },

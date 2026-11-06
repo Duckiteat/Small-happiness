@@ -20,8 +20,10 @@ test('뼈대 하루의 단계는 시간 모델대로 잡힌다: 외출·잠은 3
   const scenario = parseScenario(JSON.parse(readFileSync(join(ROOT, SKELETON_SCENARIO), 'utf8')));
   const trace = skeletonDay(ROOT, vocab);
   // 하루마다: 07:00 기상 · 08:30 나감 · 11:30 14:30 17:30 · 19:30 귀가 · 23:00 잠듦 · 02:00 05:00 (이틀, 셋째 날 07:00 끝)
+  // 둘째 날 아침에는 행동이 끝나는 시각(07:05 살피기 끝, 07:10 버리기 끝)에도 돈다
   const day = [420, 510, 690, 870, 1050, 1170, 1380, 1560, 1740];
-  assert.deepEqual(trace.steps.map((s) => s.t), [...day, ...day.map((t) => t + 1440), 3300]);
+  const day2 = day.map((t) => t + 1440);
+  assert.deepEqual(trace.steps.map((s) => s.t), [...day, day2[0], 1865, 1870, ...day2.slice(1), 3300]);
   assert.equal(trace.steps.at(-1)?.t, scenario.end);
   for (const s of trace.steps) {
     assert.deepEqual(Object.keys(s.values), NAMESPACES);
@@ -33,15 +35,17 @@ test('같은 입력이면 같은 기록이 나온다', () => {
   assert.equal(serializeTrace(skeletonDay(ROOT, vocab)), serializeTrace(skeletonDay(ROOT, vocab)));
 });
 
-test('신선한 음식에서 시작해 아무도 손대지 않으면, 마지막 단계에는 거실까지 벌레가 번져 있다', () => {
+test('신선한 음식에서 시작해 세계가 스스로 변하고, 하루씨가 버린 뒤로는 벌레가 없다 (손대지 않을 때 번지는 것은 causal.test)', () => {
   const steps = skeletonDay(ROOT, vocab).steps;
   const first = steps.at(0);
   const last = steps.at(-1);
   assert.ok(first && last);
   assert.deepEqual(first.values['world.state'], {});
   assert.match(first.lines.join(''), /집에 있음 .*\| 변화 없음/);
-  assert.equal((last.values['world.state'] as Record<string, string>)['PLC000002#1|space:bug'], 'few');
-  assert.match(last.lines.join(''), /거실 벌레=한두 마리/);
+  const finalState = last.values['world.state'] as Record<string, string>;
+  assert.equal(finalState['OBJ000001#1|body:rot'], 'gone');
+  assert.equal(finalState['PLC000002#1|space:bug'], undefined);
+  assert.match(last.lines.join(''), /음식 상함=소멸/);
 });
 
 test('골든 파일은 저장소에 있고 비어 있지 않다', () => {

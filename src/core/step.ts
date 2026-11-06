@@ -8,6 +8,7 @@
 import { Board, BoardError, LAYERS, OWNER, RNG_LAYERS } from './board.ts';
 import type { BoardValue, LayerId, Namespace } from './board.ts';
 import type { Rng } from './rng.ts';
+import { parseRecent } from './agency.ts';
 import { nextStepTime, parsePlan } from './schedule.ts';
 import type { Vocab } from './vocab.ts';
 
@@ -100,7 +101,8 @@ export function runDay(layers: readonly Layer[], start: number, end: number, rng
     const r = runStep(layers, t, prev, rng);
     results.push(r);
     prev = r.board;
-    t = nextStepTime(parsePlan(Board.readPrev(prev, '0', 'plan'), vocab), t, end, [], stepMin);
+    const ends = parseRecent(Board.readPrev(prev, '0', 'recent')).map((a) => a.ends);
+    t = nextStepTime(parsePlan(Board.readPrev(prev, '0', 'plan'), vocab), t, end, ends, stepMin);
   }
   return results;
 }

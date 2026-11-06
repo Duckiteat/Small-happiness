@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 필요한 앎에 단계 조건을 붙였다 (인지 단계는 at_least로 정한다)",
+  "defs": [ { "id": "OBJ000001", "offers": { "bad": { "verb": "discard", "needs": [{ "aware": "OBJ000001|body:rot@>=spoiled", "at_least": "understood" }], "effect": [], "minutes": 5, "tuned": false } } } ] }

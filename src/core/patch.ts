@@ -275,6 +275,8 @@ export function mergePatch(dbIn: Db, patch: Patch, vocab?: Vocab): MergeResult {
         ...(old.slots !== undefined ? { slots: old.slots as Fields['slots'] } : {}),
         ...(old.meanings !== undefined ? { meanings: [...old.meanings] } : {}),
         ...(old.rules !== undefined ? { rules: old.rules as Fields['rules'] } : {}),
+        ...(old.offers !== undefined ? { offers: old.offers as Fields['offers'] } : {}),
+        ...(old.senses !== undefined ? { senses: old.senses as Fields['senses'] } : {}),
         ...fields,
       });
       if (merged === undefined) return;

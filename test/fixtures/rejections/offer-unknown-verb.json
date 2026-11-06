@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 사전에 없는 행동을 제공한다",
+  "defs": [ { "id": "OBJ000001", "offers": { "bad": { "verb": "juggle", "needs": [], "effect": [], "minutes": 5, "tuned": false } } } ] }

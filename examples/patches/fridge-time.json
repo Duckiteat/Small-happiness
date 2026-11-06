@@ -1,29 +1,41 @@
 {
   "format": "small-happiness-patch",
   "version": 1,
-  "why": "시험 케이스: 냉장고 사슬에 시간을 붙인다. 아무도 손대지 않으면 음식이 시들고 상하고, 냄새가 주방에 퍼져 짙어지고, 벌레가 꼬여 거실로 번진다. 지연 값은 모두 임시값(tuned:false)이며 게임 수치가 아니다.",
+  "why": "시험 케이스: 냉장고 사슬에 시간을 붙인다. 아무도 손대지 않으면 음식이 시들고 상하고, 냄새가 주방에 퍼져 짙어지고, 벌레가 꼬여 거실로 번진다. 원천이 사라지면 주방 냄새는 빠진다. 지연 값은 모두 임시값(tuned:false)이며 게임 수치가 아니다.",
   "defs": [
     {
       "id": "OBJ000001",
       "rules": {
         "wilt": {
           "label": "신선한 음식이 시든다",
-          "on": ["OBJ000001|body:rot@=fresh"],
-          "emits": ["OBJ000001|body:rot@=wilted"],
+          "on": [
+            "OBJ000001|body:rot@=fresh"
+          ],
+          "emits": [
+            "OBJ000001|body:rot@=wilted"
+          ],
           "delay_s": 43200,
           "tuned": false
         },
         "go_bad": {
           "label": "시든 음식이 상한다",
-          "on": ["OBJ000001|body:rot@=wilted"],
-          "emits": ["OBJ000001|body:rot@=spoiled"],
+          "on": [
+            "OBJ000001|body:rot@=wilted"
+          ],
+          "emits": [
+            "OBJ000001|body:rot@=spoiled"
+          ],
           "delay_s": 43200,
           "tuned": false
         },
         "spoil": {
           "label": "상하면 냄새가 뚜렷해진다",
-          "on": ["OBJ000001|body:rot@>=spoiled"],
-          "emits": ["OBJ000001|body:smell@>=distinct"],
+          "on": [
+            "OBJ000001|body:rot@>=spoiled"
+          ],
+          "emits": [
+            "OBJ000001|body:smell@>=distinct"
+          ],
           "delay_s": 21600,
           "tuned": false
         }
@@ -34,28 +46,57 @@
       "rules": {
         "odor_reach": {
           "label": "상한 음식의 냄새가 주방에 퍼진다",
-          "on": ["OBJ000001|body:smell@>=distinct"],
-          "emits": ["PLC000001|space:smell@>=faint"]
+          "on": [
+            "OBJ000001|body:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC000001|space:smell@>=faint"
+          ]
         },
         "odor_thicken": {
           "label": "원천이 남아 있으면 주방 냄새가 짙어진다",
-          "on": ["OBJ000001|body:smell@>=distinct", "PLC000001|space:smell@=faint"],
-          "emits": ["PLC000001|space:smell@>=distinct"],
+          "on": [
+            "OBJ000001|body:smell@>=distinct",
+            "PLC000001|space:smell@=faint"
+          ],
+          "emits": [
+            "PLC000001|space:smell@>=distinct"
+          ],
           "delay_s": 10800,
           "tuned": false
         },
         "bugs": {
           "label": "냄새가 뚜렷해지면 벌레가 꼬인다",
-          "on": ["PLC000001|space:smell@>=distinct"],
-          "emits": ["PLC000001|space:bug@=few"],
+          "on": [
+            "PLC000001|space:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC000001|space:bug@=few"
+          ],
           "delay_s": 28800,
           "tuned": false
         },
         "spread": {
           "label": "벌레가 거실로 번진다",
-          "on": ["PLC000001|space:bug@>=few"],
-          "emits": ["PLC000002|space:bug@=few"],
+          "on": [
+            "PLC000001|space:bug@>=few"
+          ],
+          "emits": [
+            "PLC000002|space:bug@=few"
+          ],
           "delay_s": 21600,
+          "tuned": false
+        },
+        "air_out": {
+          "label": "원천이 사라지면 주방 냄새가 빠진다",
+          "on": [
+            "OBJ000001|body:smell@=gone",
+            "PLC000001|space:smell@>=faint"
+          ],
+          "emits": [
+            "PLC000001|space:smell@<=none"
+          ],
+          "delay_s": 10800,
           "tuned": false
         }
       }
