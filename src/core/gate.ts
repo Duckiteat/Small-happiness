@@ -121,6 +121,10 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
           if (p === null) return void error(at, `패턴 형식이 아니다: ${text}`);
           const target = db.defs[p.def];
           if (target === undefined) return void error(at, `없는 정의를 가리킨다: ${p.def}`);
+          // 결과는 "어떤 단계로 만드는가"가 분명해야 한다: = (그 단계로), >= (적어도 그 단계까지 올림), <= (그 단계까지 내림)
+          if (side === 'emits' && (p.cond === null || !['=', '>=', '<='].includes(p.cond.op))) {
+            error(at, `결과(emits)에는 =, >=, <= 조건이 필요하다 (어떤 단계로 만드는지 정한다): ${text}`);
+          }
           slotCheck(target, p.slot, p.feature, p.cond, vocab, at, error);
         });
       }

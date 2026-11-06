@@ -1,13 +1,18 @@
 // 뼈대 층 (docs/구현-계획.md 1주차 · docs/기획서.md 10장)
 //
 // 아홉 층을 가장 얇게 세운 판이다. 하루가 처음부터 끝까지 돌고 판의 약속이 지켜지는지 보는 것이 목적이다.
-//   - 0·1·2층은 실제 값을 낸다 (시각, 장소 목록, 세계 상태). 4a층은 주어진 일정만 판에 옮긴다 (밖의 하루 카드는 아직 없다).
-//   - 3층, 4b층, 5층부터는 아직 계산하지 않고 **중립값**을 쓴다 (빈 목록·빈 객체). 중립값은 아무것도 바꾸지 않는다
+//   - 0·1·2·3층은 실제로 돈다: 시각, 장소 목록, 그리고 규칙이 시간에 따라 바꾼 세계 상태
+//     (3층의 인과 계산을 2층이 판을 쓰기 전에 불러 주인으로서 기록한다. 품질판-명세 2장 world.state의 "3 갱신 요청, 소유자 2").
+//     4a층은 주어진 일정만 판에 옮긴다 (밖의 하루 카드는 아직 없다).
+//   - 3층의 자극 원천, 4b층, 5층부터는 아직 계산하지 않고 **중립값**을 쓴다 (빈 목록·빈 객체). 중립값은 아무것도 바꾸지 않는다
 //     (품질판-명세 8장). 층을 채울 때 이 파일의 해당 층만 바꾸고, 골든 트레이스의 변화를 결정 기록에 남긴다.
 //   - 8층은 판을 읽어 한 단계를 한 줄로 요약한다 (문장 엔진 전의 임시 표현).
 
 import type { BoardValue } from './board.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
+import { Causal } from './causal.ts';
+import { defOf } from './ids.ts';
+import { parseStateKey } from './statekey.ts';
 import type { Db } from './db.ts';
 import { EventLog } from './log.ts';
 import { Rng } from './rng.ts';
@@ -24,14 +29,32 @@ function size(v: BoardValue): number {
   return 0;
 }
 
+/** 세계 상태를 사람이 읽는 말로: 이름은 정의에서, 특징·단계 이름은 사전에서 (코드에 이름을 박지 않는다). */
+function stateText(states: BoardValue, db: Db, vocab: Vocab): string {
+  if (typeof states !== 'object' || Array.isArray(states)) return '';
+  const parts: string[] = [];
+  for (const [key, level] of Object.entries(states)) {
+    const k = parseStateKey(key);
+    if (k === null || typeof level !== 'string') continue;
+    const name = db.defs[defOf(k.subject) ?? '']?.names.ko ?? k.subject;
+    const feature = vocab.entry('feature', k.feature);
+    const levels = feature?.attrs['levels'];
+    const levelKo = Array.isArray(levels)
+      ? levels.map((l) => (typeof l === 'object' && l !== null && !Array.isArray(l) && l['key'] === level ? l['ko'] : undefined)).find((x) => typeof x === 'string')
+      : undefined;
+    parts.push(`${name} ${feature?.ko ?? k.feature}=${typeof levelKo === 'string' ? levelKo : vocab.entry('terminal', level)?.ko ?? level}`);
+  }
+  return parts.join(', ');
+}
+
 function clockText(t: number): string {
   const day = Math.floor(t / MINUTES_PER_DAY) + 1;
   const m = t % MINUTES_PER_DAY;
   return `${day}일 ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }
 
-/** 뼈대 층 아홉 개. world는 2층만, routine(하루씨의 일정)은 4a층만 쓴다. */
-export function skeletonLayers(db: Db, world: World, routine: readonly PlanBlock[], vocab: Vocab): Layer[] {
+/** 뼈대 층 아홉 개. world와 causal은 2층만, routine(하루씨의 일정)은 4a층만 쓴다. */
+export function skeletonLayers(db: Db, world: World, causal: Causal, routine: readonly PlanBlock[], vocab: Vocab): Layer[] {
   return [
     {
       id: '0',
@@ -44,6 +67,7 @@ export function skeletonLayers(db: Db, world: World, routine: readonly PlanBlock
     {
       id: '2',
       run: (c) => {
+        causal.advance(world, c.t); // 지난 단계부터 지금까지 규칙이 만든 변화를 각자의 시각으로 기록
         c.write('world.state', world.snapshot().states);
         c.write('kit', {});
       },
@@ -89,8 +113,9 @@ export function skeletonLayers(db: Db, world: World, routine: readonly PlanBlock
         const ext = c.read('ext');
         const cards = typeof ext === 'object' && !Array.isArray(ext) && ext !== null ? size((ext as { cards: BoardValue }).cards) : 0;
         return [
-          `[${clockText(c.t)}] ${vocab.entry('presence', where)?.ko ?? where} · 장소 ${placeCount} · 바뀐 상태 ${size(c.read('world.state'))} · 자극 ${size(c.read('world.stimulus_source'))}` +
-            ` · 외부 카드 ${cards} · 지각 ${size(c.read('perceived'))} · 최근 행동 ${size(c.read('recent'))} · 장면 ${size(c.read('scene'))}`,
+          `[${clockText(c.t)}] ${vocab.entry('presence', where)?.ko ?? where} · 장소 ${placeCount} · 자극 ${size(c.read('world.stimulus_source'))}` +
+            ` · 외부 카드 ${cards} · 지각 ${size(c.read('perceived'))} · 최근 행동 ${size(c.read('recent'))} · 장면 ${size(c.read('scene'))}` +
+            ` | ${stateText(c.read('world.state'), db, vocab) || '변화 없음'}`,
         ];
       },
     },
@@ -101,7 +126,8 @@ export function skeletonLayers(db: Db, world: World, routine: readonly PlanBlock
 
 export interface Scenario {
   readonly why: string;
-  readonly patch: string;
+  /** 정의를 담은 패치들. 빈 저장소에 차례로 병합한다. */
+  readonly patches: readonly string[];
   readonly seed: number;
   readonly spawn: readonly string[];
   readonly set: readonly { readonly t: number; readonly key: string; readonly level: string }[];
@@ -119,9 +145,11 @@ function isObj(v: unknown): v is Record<string, unknown> {
 /** 시나리오 파일을 해석한다. 모양이 틀리면 던진다. */
 export function parseScenario(raw: unknown): Scenario {
   if (!isObj(raw)) throw new TypeError('시나리오는 객체여야 한다');
-  const { why, patch, seed, spawn, set, start, end, routine } = raw;
+  const { why, patches, seed, spawn, set, start, end, routine } = raw;
   if (typeof why !== 'string' || why.trim() === '') throw new TypeError('why(이 시나리오를 두는 이유)가 필요하다');
-  if (typeof patch !== 'string') throw new TypeError('patch(정의를 담은 패치 경로)가 필요하다');
+  if (!Array.isArray(patches) || patches.length === 0 || !patches.every((x) => typeof x === 'string')) {
+    throw new TypeError('patches(정의를 담은 패치 경로 목록)가 필요하다');
+  }
   if (typeof seed !== 'number' || !Number.isInteger(seed)) throw new TypeError('seed는 정수여야 한다');
   if (!Array.isArray(spawn) || !spawn.every((s) => typeof s === 'string')) throw new TypeError('spawn은 정의 번호 목록이어야 한다');
   if (typeof start !== 'number' || typeof end !== 'number' || !Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start) {
@@ -134,7 +162,7 @@ export function parseScenario(raw: unknown): Scenario {
     }
     return { t: s['t'], key: s['key'], level: s['level'] };
   });
-  return { why, patch, seed, spawn: [...spawn] as string[], set: sets, start, end, routine };
+  return { why, patches: [...patches] as string[], seed, spawn: [...spawn] as string[], set: sets, start, end, routine };
 }
 
 export interface DayTrace {
@@ -143,13 +171,16 @@ export interface DayTrace {
 }
 
 /** 시나리오대로 세계를 세우고 뼈대 층으로 하루를 돌린다. 같은 입력이면 같은 기록이 나온다. */
-export function runScenario(db: Db, vocab: Vocab, scenario: Scenario): DayTrace {
+export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: number): DayTrace {
   const log = new EventLog({ isKnownType: (type) => vocab.has('event_type', type) });
   const world = new World(db, vocab, log);
   for (const def of scenario.spawn) world.spawn(def, { t: 0 });
   for (const s of scenario.set) world.set(s.key, s.level, { t: s.t });
+  const setupEnd = Math.max(0, ...scenario.set.map((s) => s.t));
+  const causal = new Causal(db, vocab, log, setupEnd);
   const routine = parsePlan(scenario.routine, vocab);
-  const results = runDay(skeletonLayers(db, world, routine, vocab), scenario.start, scenario.end, Rng.fromSeed(scenario.seed), vocab);
+  const layers = skeletonLayers(db, world, causal, routine, vocab);
+  const results = runDay(layers, scenario.start, scenario.end, Rng.fromSeed(scenario.seed), vocab, stepMin);
   return {
     steps: results.map((r) => ({ ...r.board.snapshot(), lines: r.lines })),
     log: log.toJSON(),

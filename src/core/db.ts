@@ -61,12 +61,19 @@ export interface MeaningDef {
   readonly means: string;
 }
 
-/** 변화 규칙: `on` 패턴이 만족되면 `emits` 패턴의 상태가 생긴다. 사슬은 이 패턴에서 자동으로 이어진다. */
+/**
+ * 변화 규칙: `on` 패턴이 만족되면 `emits` 패턴의 상태가 생긴다. 사슬은 이 패턴에서 자동으로 이어진다.
+ * `delay_s`가 있으면 조건이 성립한 뒤 그만큼 지나 발화하고, 발화 시점에 조건을 다시 본다 (축-상호작용-설계 9장).
+ * 지연 값은 임시값일 수 있으므로 `tuned`(조정 완료 여부)를 반드시 함께 적는다.
+ */
 export interface RuleDef {
   readonly label?: string;
   readonly on: readonly string[];
   readonly emits: readonly string[];
   readonly note?: string;
+  /** 지연(초). 게임 시간은 분이므로 60의 배수. 없으면 0 (즉시). */
+  readonly delay_s?: number;
+  readonly tuned?: boolean;
 }
 
 export interface Definition {
@@ -208,7 +215,7 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ok = false;
       continue;
     }
-    onlyKeys(rule, ['label', 'on', 'emits', 'note'], at, push);
+    onlyKeys(rule, ['label', 'on', 'emits', 'note', 'delay_s', 'tuned'], at, push);
     if (!isStrArr(rule['on']) || rule['on'].length === 0 || !isStrArr(rule['emits']) || rule['emits'].length === 0) {
       push(at, 'on과 emits(패턴 문자열 목록, 1개 이상)가 필요하다');
       ok = false;
@@ -224,11 +231,29 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ok = false;
       continue;
     }
+    const delay = rule['delay_s'];
+    if (delay !== undefined && (typeof delay !== 'number' || !Number.isInteger(delay) || delay < 0 || delay % 60 !== 0)) {
+      push(at, 'delay_s는 0 이상이고 60의 배수인 정수(초)여야 한다 (게임 시간은 분 단위)');
+      ok = false;
+      continue;
+    }
+    if (rule['tuned'] !== undefined && typeof rule['tuned'] !== 'boolean') {
+      push(at, 'tuned는 true/false여야 한다');
+      ok = false;
+      continue;
+    }
+    if (delay !== undefined && rule['tuned'] === undefined) {
+      push(at, 'delay_s를 쓰면 tuned(조정 완료 여부)를 true/false로 적어야 한다 (임시값을 숨기지 않는다)');
+      ok = false;
+      continue;
+    }
     const r: RuleDef = {
       ...(typeof rule['label'] === 'string' ? { label: rule['label'] } : {}),
       on: rule['on'].map((s) => s.trim()),
       emits: rule['emits'].map((s) => s.trim()),
       ...(typeof rule['note'] === 'string' ? { note: rule['note'] } : {}),
+      ...(typeof delay === 'number' ? { delay_s: delay } : {}),
+      ...(typeof rule['tuned'] === 'boolean' ? { tuned: rule['tuned'] } : {}),
     };
     out[key] = r;
   }

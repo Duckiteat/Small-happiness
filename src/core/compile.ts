@@ -20,13 +20,13 @@ const FIELDS: Readonly<Record<string, readonly string[]>> = {
 /** 펼치기(override)로 바꿀 수 있는 필드. */
 const OVERRIDABLE: readonly string[] = ['mobility', 'slots', 'meanings', 'rules'];
 
-/** 규칙 블록에서 받는 키. delay_s·warn_before_s 는 명세 단계다. */
-const RULE_FIELDS: readonly string[] = ['label', 'on', 'emits'];
+/** 규칙 블록에서 받는 키. warn_before_s 는 명세 단계다. */
+const RULE_FIELDS: readonly string[] = ['label', 'on', 'emits', 'delay_s', 'tuned'];
 
 /** 명세 단계 필드가 쓰였을 때의 안내용 목록 (거부 메시지에 쓴다). */
 const SPEC_ONLY: readonly string[] = [
   'material', 'parts', 'offers', 'traits', 'environment', 'passages', 'senses', 'params', 'habits',
-  'verb', 'needs', 'cost', 'effect', 'delay_s', 'warn_before_s',
+  'verb', 'needs', 'cost', 'effect', 'warn_before_s',
 ];
 
 export interface CompileResult {

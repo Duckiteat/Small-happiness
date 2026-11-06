@@ -249,14 +249,18 @@ export const SKELETON_SCENARIO = 'examples/scenarios/skeleton-day.json';
 export const SKELETON_GOLDEN = 'test/fixtures/golden/skeleton-day.json';
 
 /** 뼈대 하루를 돌린다. 시나리오의 패치는 빈 저장소에 병합한다 (실제 data/db.json은 건드리지 않는다). */
-export function skeletonDay(root: string, vocab: Vocab): DayTrace {
+export function skeletonDay(root: string, vocab: Vocab, stepMin?: number): DayTrace {
   const scenario = parseScenario(JSON.parse(readFileSync(join(root, SKELETON_SCENARIO), 'utf8')));
-  const parsed = parsePatch(JSON.parse(readFileSync(join(root, scenario.patch), 'utf8')));
-  if (parsed.patch === null) throw new Error(`시나리오 패치 형식 오류: ${scenario.patch}`);
-  const merged = mergePatch(emptyDb(), parsed.patch, vocab);
-  const gate = runGate(emptyDb(), merged.db, vocab, merged.report.errors);
-  if (!gate.pass) throw new Error(`시나리오 패치가 관문을 통과하지 못했다: ${gate.reason}`);
-  return runScenario(merged.db, vocab, scenario);
+  let db = emptyDb();
+  for (const file of scenario.patches) {
+    const parsed = parsePatch(JSON.parse(readFileSync(join(root, file), 'utf8')));
+    if (parsed.patch === null) throw new Error(`시나리오 패치 형식 오류: ${file}`);
+    const merged = mergePatch(db, parsed.patch, vocab);
+    const gate = runGate(db, merged.db, vocab, merged.report.errors);
+    if (!gate.pass) throw new Error(`시나리오 패치가 관문을 통과하지 못했다 (${file}): ${gate.reason}`);
+    db = merged.db;
+  }
+  return runScenario(db, vocab, scenario, stepMin);
 }
 
 /** 골든 트레이스를 쓰거나(--write) 지금 결과와 바이트까지 같은지 본다(--check). */

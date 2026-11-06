@@ -89,7 +89,7 @@ export function runSteps(layers: readonly Layer[], times: readonly number[], rng
  * 시작부터 끝까지 하루를 돌린다. 다음 단계 시각은 시계(0층)가 직전 단계의 일정을 읽어 정한다 (F5, schedule.ts).
  * 끝 시각에도 한 단계를 돈다.
  */
-export function runDay(layers: readonly Layer[], start: number, end: number, rng: Rng, vocab: Vocab): StepResult[] {
+export function runDay(layers: readonly Layer[], start: number, end: number, rng: Rng, vocab: Vocab, stepMin?: number): StepResult[] {
   if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start) {
     throw new BoardError(`하루의 시작과 끝은 0 이상의 정수(분)이고 끝이 시작보다 앞서지 않아야 한다 (${start}, ${end})`);
   }
@@ -100,7 +100,7 @@ export function runDay(layers: readonly Layer[], start: number, end: number, rng
     const r = runStep(layers, t, prev, rng);
     results.push(r);
     prev = r.board;
-    t = nextStepTime(parsePlan(Board.readPrev(prev, '0', 'plan'), vocab), t, end);
+    t = nextStepTime(parsePlan(Board.readPrev(prev, '0', 'plan'), vocab), t, end, [], stepMin);
   }
   return results;
 }

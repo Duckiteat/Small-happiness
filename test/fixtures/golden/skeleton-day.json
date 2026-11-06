@@ -12,9 +12,7 @@
             "PLC000002"
           ]
         },
-        "world.state": {
-          "OBJ000001#1|body:rot": "spoiled"
-        },
+        "world.state": {},
         "kit": {},
         "world.stimulus_source": {},
         "ext": {
@@ -31,6 +29,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -43,7 +51,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 07:00] 집에 있음 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 07:00] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 변화 없음"
       ]
     },
     {
@@ -58,9 +66,7 @@
             "PLC000002"
           ]
         },
-        "world.state": {
-          "OBJ000001#1|body:rot": "spoiled"
-        },
+        "world.state": {},
         "kit": {},
         "world.stimulus_source": {},
         "ext": {
@@ -77,6 +83,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -89,7 +105,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 08:30] 외출 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 08:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 변화 없음"
       ]
     },
     {
@@ -104,9 +120,7 @@
             "PLC000002"
           ]
         },
-        "world.state": {
-          "OBJ000001#1|body:rot": "spoiled"
-        },
+        "world.state": {},
         "kit": {},
         "world.stimulus_source": {},
         "ext": {
@@ -123,6 +137,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -135,7 +159,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 11:30] 외출 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 11:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 변화 없음"
       ]
     },
     {
@@ -151,7 +175,7 @@
           ]
         },
         "world.state": {
-          "OBJ000001#1|body:rot": "spoiled"
+          "OBJ000001#1|body:rot": "wilted"
         },
         "kit": {},
         "world.stimulus_source": {},
@@ -169,6 +193,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -181,7 +215,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 14:30] 외출 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 14:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
       ]
     },
     {
@@ -197,7 +231,7 @@
           ]
         },
         "world.state": {
-          "OBJ000001#1|body:rot": "spoiled"
+          "OBJ000001#1|body:rot": "wilted"
         },
         "kit": {},
         "world.stimulus_source": {},
@@ -215,6 +249,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -227,7 +271,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 17:30] 외출 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 17:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
       ]
     },
     {
@@ -243,7 +287,7 @@
           ]
         },
         "world.state": {
-          "OBJ000001#1|body:rot": "spoiled"
+          "OBJ000001#1|body:rot": "wilted"
         },
         "kit": {},
         "world.stimulus_source": {},
@@ -261,6 +305,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -273,7 +327,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 19:30] 집에 있음 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 19:30] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
       ]
     },
     {
@@ -289,7 +343,7 @@
           ]
         },
         "world.state": {
-          "OBJ000001#1|body:rot": "spoiled"
+          "OBJ000001#1|body:rot": "wilted"
         },
         "kit": {},
         "world.stimulus_source": {},
@@ -307,6 +361,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -319,7 +383,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 23:00] 잠 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[1일 23:00] 잠 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
       ]
     },
     {
@@ -353,6 +417,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -365,7 +439,7 @@
         "scene": {}
       },
       "lines": [
-        "[2일 02:00] 잠 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[2일 02:00] 잠 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함"
       ]
     },
     {
@@ -399,6 +473,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -411,7 +495,7 @@
         "scene": {}
       },
       "lines": [
-        "[2일 05:00] 잠 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[2일 05:00] 잠 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함"
       ]
     },
     {
@@ -427,7 +511,9 @@
           ]
         },
         "world.state": {
-          "OBJ000001#1|body:rot": "spoiled"
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:smell": "faint"
         },
         "kit": {},
         "world.stimulus_source": {},
@@ -445,6 +531,16 @@
               "from": 1380,
               "kind": "asleep",
               "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
             }
           ]
         },
@@ -457,7 +553,539 @@
         "scene": {}
       },
       "lines": [
-        "[2일 07:00] 집에 있음 · 장소 2 · 바뀐 상태 1 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0"
+        "[2일 07:00] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 냄새=은은함"
+      ]
+    },
+    {
+      "t": 1950,
+      "values": {
+        "time": {
+          "t": 1950
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:smell": "faint"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[2일 08:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 냄새=은은함"
+      ]
+    },
+    {
+      "t": 2130,
+      "values": {
+        "time": {
+          "t": 2130
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:smell": "distinct"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[2일 11:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 냄새=뚜렷함"
+      ]
+    },
+    {
+      "t": 2310,
+      "values": {
+        "time": {
+          "t": 2310
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:smell": "distinct"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[2일 14:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 냄새=뚜렷함"
+      ]
+    },
+    {
+      "t": 2490,
+      "values": {
+        "time": {
+          "t": 2490
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:bug": "few",
+          "PLC000001#1|space:smell": "distinct"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[2일 17:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 벌레=한두 마리, 주방 냄새=뚜렷함"
+      ]
+    },
+    {
+      "t": 2610,
+      "values": {
+        "time": {
+          "t": 2610
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:bug": "few",
+          "PLC000001#1|space:smell": "distinct"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[2일 19:30] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 벌레=한두 마리, 주방 냄새=뚜렷함"
+      ]
+    },
+    {
+      "t": 2820,
+      "values": {
+        "time": {
+          "t": 2820
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:bug": "few",
+          "PLC000001#1|space:smell": "distinct",
+          "PLC000002#1|space:bug": "few"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[2일 23:00] 잠 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 벌레=한두 마리, 주방 냄새=뚜렷함, 거실 벌레=한두 마리"
+      ]
+    },
+    {
+      "t": 3000,
+      "values": {
+        "time": {
+          "t": 3000
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:bug": "few",
+          "PLC000001#1|space:smell": "distinct",
+          "PLC000002#1|space:bug": "few"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[3일 02:00] 잠 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 벌레=한두 마리, 주방 냄새=뚜렷함, 거실 벌레=한두 마리"
+      ]
+    },
+    {
+      "t": 3180,
+      "values": {
+        "time": {
+          "t": 3180
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:bug": "few",
+          "PLC000001#1|space:smell": "distinct",
+          "PLC000002#1|space:bug": "few"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[3일 05:00] 잠 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 벌레=한두 마리, 주방 냄새=뚜렷함, 거실 벌레=한두 마리"
+      ]
+    },
+    {
+      "t": 3300,
+      "values": {
+        "time": {
+          "t": 3300
+        },
+        "world.place": {
+          "places": [
+            "PLC000001",
+            "PLC000002"
+          ]
+        },
+        "world.state": {
+          "OBJ000001#1|body:rot": "spoiled",
+          "OBJ000001#1|body:smell": "distinct",
+          "PLC000001#1|space:bug": "few",
+          "PLC000001#1|space:smell": "distinct",
+          "PLC000002#1|space:bug": "few"
+        },
+        "kit": {},
+        "world.stimulus_source": {},
+        "ext": {
+          "cards": []
+        },
+        "plan": {
+          "blocks": [
+            {
+              "from": 510,
+              "kind": "out",
+              "to": 1170
+            },
+            {
+              "from": 1380,
+              "kind": "asleep",
+              "to": 1860
+            },
+            {
+              "from": 1950,
+              "kind": "out",
+              "to": 2610
+            },
+            {
+              "from": 2820,
+              "kind": "asleep",
+              "to": 3300
+            }
+          ]
+        },
+        "self": {},
+        "perceived": [],
+        "visible_to_player": [],
+        "aware": {},
+        "memory": [],
+        "recent": [],
+        "scene": {}
+      },
+      "lines": [
+        "[3일 07:00] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 벌레=한두 마리, 주방 냄새=뚜렷함, 거실 벌레=한두 마리"
       ]
     }
   ],
@@ -520,13 +1148,246 @@
     {
       "seq": "L000006",
       "t": 0,
+      "type": "delay_scheduled",
+      "src": "causal",
+      "cause": null,
+      "data": {
+        "rule": "OBJ000001/wilt",
+        "at": "OBJ000001#1",
+        "due": 720
+      }
+    },
+    {
+      "seq": "L000007",
+      "t": 720,
+      "type": "delay_fired",
+      "src": "causal",
+      "cause": "L000006",
+      "data": {
+        "rule": "OBJ000001/wilt",
+        "at": "OBJ000001#1"
+      }
+    },
+    {
+      "seq": "L000008",
+      "t": 720,
       "type": "state_changed",
       "src": "world",
-      "cause": null,
+      "cause": "L000007",
       "data": {
         "key": "OBJ000001#1|body:rot",
         "from": "fresh",
+        "to": "wilted"
+      }
+    },
+    {
+      "seq": "L000009",
+      "t": 720,
+      "type": "delay_scheduled",
+      "src": "causal",
+      "cause": null,
+      "data": {
+        "rule": "OBJ000001/go_bad",
+        "at": "OBJ000001#1",
+        "due": 1440
+      }
+    },
+    {
+      "seq": "L000010",
+      "t": 1440,
+      "type": "delay_fired",
+      "src": "causal",
+      "cause": "L000009",
+      "data": {
+        "rule": "OBJ000001/go_bad",
+        "at": "OBJ000001#1"
+      }
+    },
+    {
+      "seq": "L000011",
+      "t": 1440,
+      "type": "state_changed",
+      "src": "world",
+      "cause": "L000010",
+      "data": {
+        "key": "OBJ000001#1|body:rot",
+        "from": "wilted",
         "to": "spoiled"
+      }
+    },
+    {
+      "seq": "L000012",
+      "t": 1440,
+      "type": "delay_scheduled",
+      "src": "causal",
+      "cause": null,
+      "data": {
+        "rule": "OBJ000001/spoil",
+        "at": "OBJ000001#1",
+        "due": 1800
+      }
+    },
+    {
+      "seq": "L000013",
+      "t": 1800,
+      "type": "delay_fired",
+      "src": "causal",
+      "cause": "L000012",
+      "data": {
+        "rule": "OBJ000001/spoil",
+        "at": "OBJ000001#1"
+      }
+    },
+    {
+      "seq": "L000014",
+      "t": 1800,
+      "type": "state_changed",
+      "src": "world",
+      "cause": "L000013",
+      "data": {
+        "key": "OBJ000001#1|body:smell",
+        "from": "none",
+        "to": "distinct"
+      }
+    },
+    {
+      "seq": "L000015",
+      "t": 1800,
+      "type": "delay_scheduled",
+      "src": "causal",
+      "cause": null,
+      "data": {
+        "rule": "PLC000001/odor_reach",
+        "at": "PLC000001#1",
+        "due": 1800
+      }
+    },
+    {
+      "seq": "L000016",
+      "t": 1800,
+      "type": "delay_fired",
+      "src": "causal",
+      "cause": "L000015",
+      "data": {
+        "rule": "PLC000001/odor_reach",
+        "at": "PLC000001#1"
+      }
+    },
+    {
+      "seq": "L000017",
+      "t": 1800,
+      "type": "state_changed",
+      "src": "world",
+      "cause": "L000016",
+      "data": {
+        "key": "PLC000001#1|space:smell",
+        "from": "none",
+        "to": "faint"
+      }
+    },
+    {
+      "seq": "L000018",
+      "t": 1800,
+      "type": "delay_scheduled",
+      "src": "causal",
+      "cause": null,
+      "data": {
+        "rule": "PLC000001/odor_thicken",
+        "at": "PLC000001#1",
+        "due": 1980
+      }
+    },
+    {
+      "seq": "L000019",
+      "t": 1980,
+      "type": "delay_fired",
+      "src": "causal",
+      "cause": "L000018",
+      "data": {
+        "rule": "PLC000001/odor_thicken",
+        "at": "PLC000001#1"
+      }
+    },
+    {
+      "seq": "L000020",
+      "t": 1980,
+      "type": "state_changed",
+      "src": "world",
+      "cause": "L000019",
+      "data": {
+        "key": "PLC000001#1|space:smell",
+        "from": "faint",
+        "to": "distinct"
+      }
+    },
+    {
+      "seq": "L000021",
+      "t": 1980,
+      "type": "delay_scheduled",
+      "src": "causal",
+      "cause": null,
+      "data": {
+        "rule": "PLC000001/bugs",
+        "at": "PLC000001#1",
+        "due": 2460
+      }
+    },
+    {
+      "seq": "L000022",
+      "t": 2460,
+      "type": "delay_fired",
+      "src": "causal",
+      "cause": "L000021",
+      "data": {
+        "rule": "PLC000001/bugs",
+        "at": "PLC000001#1"
+      }
+    },
+    {
+      "seq": "L000023",
+      "t": 2460,
+      "type": "state_changed",
+      "src": "world",
+      "cause": "L000022",
+      "data": {
+        "key": "PLC000001#1|space:bug",
+        "from": "none",
+        "to": "few"
+      }
+    },
+    {
+      "seq": "L000024",
+      "t": 2460,
+      "type": "delay_scheduled",
+      "src": "causal",
+      "cause": null,
+      "data": {
+        "rule": "PLC000001/spread",
+        "at": "PLC000001#1",
+        "due": 2820
+      }
+    },
+    {
+      "seq": "L000025",
+      "t": 2820,
+      "type": "delay_fired",
+      "src": "causal",
+      "cause": "L000024",
+      "data": {
+        "rule": "PLC000001/spread",
+        "at": "PLC000001#1"
+      }
+    },
+    {
+      "seq": "L000026",
+      "t": 2820,
+      "type": "state_changed",
+      "src": "world",
+      "cause": "L000025",
+      "data": {
+        "key": "PLC000002#1|space:bug",
+        "from": "none",
+        "to": "few"
       }
     }
   ]

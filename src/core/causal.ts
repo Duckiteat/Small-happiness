@@ -1,0 +1,194 @@
+// 인과 (3층) — 정의의 규칙을 시간에 따라 실행한다 (docs/축-상호작용-설계.md 7·9장 · 결정-기록 "시간 모델")
+//
+// 규칙: `on`이 모두 맞으면 `emits`의 상태를 만든다. `delay_s`가 있으면 그만큼 뒤에 발화하고, 발화 시점에 `on`을 다시 본다.
+//   - 원인당 예약은 하나다 (규칙 × 인스턴스). 발화 시점에 조건이 풀려 있으면 취소한다.
+//   - 이미 결과가 이루어져 있으면 예약하지 않는다 (같은 시각의 끝없는 반복을 막는다).
+//   - 같은 시각에 발화하는 예약들은 모두 직전 값을 읽고 한꺼번에 쓴다 (동시 갱신, 결정 3).
+//   - **정확한 시각**: 단계 사이에 일어난 일은 그 일이 일어난 시각으로 기록한다. 단계 간격은 "보는 때"일 뿐이라
+//     간격을 바꿔도 결과(사건의 시각과 순서)가 같다. 시험이 확인한다.
+//   - 난수를 받지 않는다. 같은 입력이면 같은 결과다.
+//
+// 인스턴스 묶기 (기본안, 위치·번짐(11번) 전까지): 규칙은 주인 정의의 인스턴스마다 따로 본다.
+//   주인 정의를 가리키는 패턴은 그 인스턴스에, 다른 정의를 가리키는 패턴은 `on`에서는 "그 정의의 인스턴스 중 하나라도",
+//   `emits`에서는 "그 정의의 모든 인스턴스"에 건다.
+//
+// 상태를 바꾸는 것은 세계 상태(2층, 주인)다. 이 모듈은 언제 무엇을 바꿀지 정하고 World.set으로 요청한다.
+
+import type { Db, RuleDef } from './db.ts';
+import type { GameEvent } from './events.ts';
+import type { EventLog } from './log.ts';
+import { condRange, formatStateKey, parsePattern } from './statekey.ts';
+import type { StatePattern } from './statekey.ts';
+import type { Vocab } from './vocab.ts';
+import type { World } from './world.ts';
+
+export const CAUSAL_SRC = 'causal';
+export const DELAY_SCHEDULED = 'delay_scheduled';
+export const DELAY_FIRED = 'delay_fired';
+export const DELAY_CANCELLED = 'delay_cancelled';
+
+/** 한 번의 진행에서 같은 시각에 이어질 수 있는 발화의 상한. 넘으면 끝나지 않는 사슬이다. */
+const MAX_FIRES_PER_ADVANCE = 10_000;
+
+export class CausalError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CausalError';
+  }
+}
+
+interface Rule {
+  readonly owner: string; // 정의 번호
+  readonly key: string; // 규칙 키
+  readonly on: readonly StatePattern[];
+  readonly emits: readonly StatePattern[];
+  readonly delayMin: number;
+}
+
+interface Reservation {
+  readonly rule: Rule;
+  readonly at: string; // 주인 인스턴스
+  readonly due: number;
+  readonly seq: string; // 예약 사건
+}
+
+function compileRules(db: Db): Rule[] {
+  const rules: Rule[] = [];
+  for (const owner of Object.keys(db.defs).sort()) {
+    const defRules = db.defs[owner]?.rules ?? {};
+    for (const key of Object.keys(defRules).sort()) {
+      const r = defRules[key] as RuleDef;
+      const parse = (text: string): StatePattern => {
+        const p = parsePattern(text);
+        if (p === null) throw new CausalError(`${owner}.rules.${key}: 패턴 형식이 아니다 (${text}) — 관문을 지난 저장소만 쓴다`);
+        return p;
+      };
+      rules.push({ owner, key, on: r.on.map(parse), emits: r.emits.map(parse), delayMin: (r.delay_s ?? 0) / 60 });
+    }
+  }
+  return rules;
+}
+
+export class Causal {
+  readonly #vocab: Vocab;
+  readonly #log: EventLog;
+  readonly #rules: readonly Rule[];
+  readonly #reservations = new Map<string, Reservation>(); // `${owner}/${key}@${instance}` → 예약
+  #now: number;
+
+  /** @param start 인과가 시작되는 시각(분). 이 시각부터 규칙을 본다. */
+  constructor(db: Db, vocab: Vocab, log: EventLog, start: number) {
+    if (!Number.isInteger(start) || start < 0) throw new CausalError(`시작 시각은 0 이상의 정수(분)여야 한다: ${start}`);
+    this.#vocab = vocab;
+    this.#log = log;
+    this.#rules = compileRules(db);
+    this.#now = start;
+  }
+
+  get now(): number {
+    return this.#now;
+  }
+
+  /** 지금 걸려 있는 예약 (발화 시각, 규칙, 인스턴스). 화면의 예고와 시험에 쓴다. */
+  pending(): { readonly due: number; readonly rule: string; readonly at: string }[] {
+    return [...this.#reservations.values()]
+      .map((r) => ({ due: r.due, rule: `${r.rule.owner}/${r.rule.key}`, at: r.at }))
+      .sort((a, b) => a.due - b.due || a.rule.localeCompare(b.rule) || a.at.localeCompare(b.at));
+  }
+
+  /** 세계를 시각 to까지 진행한다. 그 사이의 발화는 각자의 시각으로 기록된다. */
+  advance(world: World, to: number): void {
+    if (!Number.isInteger(to) || to < this.#now) throw new CausalError(`시간은 거꾸로 가지 않는다 (${this.#now} → ${to})`);
+    let fires = 0;
+    this.#schedule(world, this.#now);
+    for (;;) {
+      const due = this.#nextDue(to);
+      if (due === null) break;
+      this.#now = due;
+      const batch = [...this.#reservations.entries()].filter(([, r]) => r.due === due).sort(([a], [b]) => a.localeCompare(b));
+      // 동시 갱신: 모든 조건을 먼저 판정하고(직전 값), 그다음 한꺼번에 쓴다
+      const decided = batch.map(([id, r]) => ({ id, r, holds: this.#holds(world, r.rule, r.at) }));
+      for (const { id, r, holds } of decided) {
+        this.#reservations.delete(id);
+        const data = { rule: `${r.rule.owner}/${r.rule.key}`, at: r.at };
+        if (!holds) {
+          this.#log.append({ t: due, type: DELAY_CANCELLED, src: CAUSAL_SRC, cause: r.seq, data });
+          continue;
+        }
+        const fired = this.#log.append({ t: due, type: DELAY_FIRED, src: CAUSAL_SRC, cause: r.seq, data });
+        this.#emit(world, r.rule, r.at, fired);
+        if (++fires > MAX_FIRES_PER_ADVANCE) throw new CausalError(`한 번에 ${MAX_FIRES_PER_ADVANCE}번 넘게 발화했다 — 끝나지 않는 규칙 사슬이 있다`);
+      }
+      this.#schedule(world, due);
+    }
+    this.#now = to;
+  }
+
+  // ---- 내부 ----
+
+  #nextDue(to: number): number | null {
+    let min: number | null = null;
+    for (const r of this.#reservations.values()) if (r.due <= to && (min === null || r.due < min)) min = r.due;
+    return min;
+  }
+
+  /** 조건이 맞고 결과가 아직 이루어지지 않은 원인마다 예약을 하나 건다. */
+  #schedule(world: World, t: number): void {
+    for (const rule of this.#rules) {
+      for (const at of this.#instancesOf(world, rule.owner)) {
+        const id = `${rule.owner}/${rule.key}@${at}`;
+        if (this.#reservations.has(id)) continue;
+        if (!this.#holds(world, rule, at) || this.#done(world, rule, at)) continue;
+        const due = t + rule.delayMin;
+        const e = this.#log.append({ t, type: DELAY_SCHEDULED, src: CAUSAL_SRC, data: { rule: `${rule.owner}/${rule.key}`, at, due } });
+        this.#reservations.set(id, { rule, at, due, seq: e.seq });
+      }
+    }
+  }
+
+  #instancesOf(world: World, def: string): string[] {
+    return world.instances().filter((id) => world.defOfInstance(id) === def);
+  }
+
+  /** 패턴이 걸리는 인스턴스들: 주인 정의면 그 인스턴스 하나, 아니면 그 정의의 모든 인스턴스. */
+  #targets(world: World, p: StatePattern, owner: string, at: string): string[] {
+    return p.def === owner ? [at] : this.#instancesOf(world, p.def);
+  }
+
+  #matches(world: World, p: StatePattern, instance: string): boolean {
+    const key = formatStateKey({ subject: instance, slot: p.slot, feature: p.feature });
+    const level = world.level(key);
+    if (p.cond === null) return true;
+    if (this.#vocab.has('terminal', p.cond.level)) return p.cond.op === '=' && level === p.cond.level;
+    const idx = world.levelIndex(key);
+    if (idx === null) return false; // 종결 단계는 사다리 조건에 맞지 않는다
+    const r = condRange(p.cond, this.#vocab.levelOrder(p.feature));
+    return r !== null && idx >= r.min && idx <= r.max;
+  }
+
+  /** on이 모두 맞는가 (다른 정의의 패턴은 그 정의의 인스턴스 중 하나라도). */
+  #holds(world: World, rule: Rule, at: string): boolean {
+    return rule.on.every((p) => this.#targets(world, p, rule.owner, at).some((i) => this.#matches(world, p, i)));
+  }
+
+  /** emits가 이미 모두 이루어져 있는가. */
+  #done(world: World, rule: Rule, at: string): boolean {
+    return rule.emits.every((p) => this.#targets(world, p, rule.owner, at).every((i) => this.#matches(world, p, i)));
+  }
+
+  /** 결과를 세계 상태(주인)에 요청한다. =는 그 단계로, >=는 아래면 올리고, <=는 위면 내린다. */
+  #emit(world: World, rule: Rule, at: string, cause: GameEvent): void {
+    for (const p of rule.emits) {
+      const cond = p.cond;
+      if (cond === null || !['=', '>=', '<='].includes(cond.op)) {
+        throw new CausalError(`${rule.owner}.rules.${rule.key}: 결과에는 =, >=, <= 조건이 필요하다 — 관문을 지난 저장소만 쓴다`);
+      }
+      for (const i of this.#targets(world, p, rule.owner, at)) {
+        if (this.#matches(world, p, i)) continue;
+        const key = formatStateKey({ subject: i, slot: p.slot, feature: p.feature });
+        if (cond.op !== '=' && world.levelIndex(key) === null) continue; // 종결 단계는 =로만 바뀐다
+        world.set(key, cond.level, { t: cause.t, cause: cause.seq });
+      }
+    }
+  }
+}

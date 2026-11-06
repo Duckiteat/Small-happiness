@@ -74,5 +74,21 @@
   "terminal-op.json": {
     "stage": "gate",
     "match": "= 조건으로만"
+  },
+  "emits-no-level.json": {
+    "stage": "gate",
+    "match": "결과\\(emits\\)에는 =, >=, <= 조건이 필요하다"
+  },
+  "emits-greater.json": {
+    "stage": "gate",
+    "match": "결과\\(emits\\)에는 =, >=, <= 조건이 필요하다"
+  },
+  "delay-not-minutes.json": {
+    "stage": "gate",
+    "match": "delay_s는 0 이상이고 60의 배수"
+  },
+  "delay-no-tuned.json": {
+    "stage": "gate",
+    "match": "tuned\\(조정 완료 여부\\)를 true/false로"
   }
 }

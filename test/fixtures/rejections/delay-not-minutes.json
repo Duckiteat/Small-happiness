@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 지연이 분 단위(60초의 배수)가 아니다",
+  "defs": [ { "id": "OBJ000001", "rules": { "bad": { "on": ["OBJ000001|body:rot@=fresh"], "emits": ["OBJ000001|body:rot@=wilted"], "delay_s": 90, "tuned": false } } } ] }
