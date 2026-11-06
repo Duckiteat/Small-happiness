@@ -5,6 +5,7 @@
 
 | 날짜 · 주제 | Scope | Why | Impact | Verification |
 |---|---|---|---|---|
+| 2026-11-06 · 세계 상태 (9번) | `src/core/world.ts`(신설), `test/world.test.ts`(신설), `data/vocab/10-events.json`(`instance_created`), `docs/자동생성-부록.md`, `test/fixtures/FLOOR.json`(tests 144→184), `docs/결정-기록.md`·`구현-계획.md`, `README.md` | 한 사슬이 끌고 가는 엔진의 첫 층. 상태 변경을 사건으로만 하고 기록에서 같은 상태를 다시 만든다 | 10번 규칙 실행기가 `World.set`으로 쓰고 `level()`로 읽는다. 양 저장은 아직 없음 | typecheck 0 · 시험 184/184 · appendix:check · verify · web:check · guard |
 | 2026-11-05 · 논의 메모와 미정 목록 정리 | `docs/논의-메모.md`(신설), `docs/결정-기록.md` 미정 절(11행), `docs/보고서-목록.md` | 대화로만 있던 논의(방향 문서 초안, 거리 구간, 구역과 유효 재질, 겹침, 자동 연결, 일정)와 대기 질문을 잃지 않게 기록 | 결정 변경 없음. 미정 절이 단일 대기 목록이 됨 | 시험 163 · guard |
 | 2026-11-05 · 감정 모델 초안 (보고서) | `docs/감정-모델-초안.md`(신설), `docs/보고서-목록.md` | 감정 논의(쾌·불쾌·안정, 익숙해짐, 활동 쌓기, 재평가 루프)를 잃지 않게 기록 | 코드·결정 변경 없음(제안). 새 축·층·결합 종류 없이 기존 구조에 들어간다는 매핑을 남김 | 시험 163 · guard |
 | 2026-11-05 · 격자 경계 상태 정의 (보고서 + 파이썬 검증 코드) | `docs/격자-경계-상태-정의.md`(신설), `examples/grid-boundary/grid_boundary.py`(신설), `docs/보고서-목록.md` | 작가가 제안한 감정·재질 격자와 경계 추출 개념을 이 프로젝트에 맞게 정리하고 검증 | 코어 코드 변경 없음, 결정 없음(제안). 4칸 사다리에서는 내부가 거의 안 생긴다는 점을 발견 | `python3 grid_boundary.py` 자체 검증 4항목 통과 · 시험 163 · guard |
