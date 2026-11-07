@@ -30,14 +30,16 @@ test('원본 예시는 패치가 되고, 기존 파서와 관문을 오류 없�
   assert.equal(gate.pass, true, gate.reason);
 });
 
-test('is_a 는 기본 항목을 펼치고, 개별 항목의 이름이 이긴다', () => {
+test('is_a 는 기본 항목의 구조를 펼치고 종류를 남긴다. 규칙은 복사하지 않고 실행 중에 물려받는다 (2026-11-06)', () => {
   const r = compileSources(EXAMPLE.map(readJson));
   const defs = (r.patch?.['defs'] as Record<string, unknown>[]) ?? [];
   const apple = defs.find((d) => d['id'] === 'OBJ+2');
   assert.ok(apple);
   assert.deepEqual(apple['names'], { ko: '사과', en: 'apple' });
   assert.deepEqual(apple['slots'], { body: { features: ['rot', 'smell'] } });
-  assert.equal('is_a' in apple, false);
+  // 규칙을 복사하면 기본 항목(OBJ+1)을 가리킨 채 남아 사과가 아니라 음식에 걸린다 → 복사하지 않는다
+  assert.equal(apple['is_a'], 'OBJ+1');
+  assert.equal('rules' in apple, false);
   assert.equal('override' in apple, false);
 });
 
@@ -51,8 +53,9 @@ test('머리가 틀리면 거부한다: 버전, why, 종류, 알 수 없는 최�
 test('명세 단계 필드는 조용히 버리지 않고 거부한다', () => {
   const material = compileSource(base({ defs: [{ id: 'OBJ+1', names: { ko: '음식' }, material: '합판' }] }));
   assert.match(JSON.stringify(material.issues), /아직 받지 않는 필드/);
-  const delay = compileSource(base({ defs: [{ id: 'OBJ+1', names: { ko: '음식' }, rules: { r: { on: [], emits: [], delay_s: 60 } } }] }));
-  assert.match(JSON.stringify(delay.issues), /delay_s/);
+  // delay_s 는 2026-11-06에 구현되어 받는다. 아직 명세 단계인 warn_before_s 로 같은 성질을 본다.
+  const warn = compileSource(base({ defs: [{ id: 'OBJ+1', names: { ko: '음식' }, rules: { r: { on: [], emits: [], warn_before_s: 60 } } }] }));
+  assert.match(JSON.stringify(warn.issues), /warn_before_s.*아직 받지 않는 필드/);
 });
 
 test('번호는 종류와 맞아야 하고, 같은 파일 안에서 겹치면 안 된다', () => {

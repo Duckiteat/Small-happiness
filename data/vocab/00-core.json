@@ -53,6 +53,7 @@
         ],
         "desc": "표면이 더러워진 정도",
         "attrs": {
+          "sense": "sight",
           "levels": [
             {
               "key": "clean",
@@ -85,11 +86,9 @@
         "key": "rot",
         "ko": "상함",
         "en": "rot",
-        "aliases": [
-          "부패"
-        ],
         "desc": "음식 등이 상한 정도",
         "attrs": {
+          "sense": "sight",
           "levels": [
             {
               "key": "fresh",
@@ -124,6 +123,7 @@
         "en": "smell",
         "desc": "장소나 물건에서 나는 냄새의 세기",
         "attrs": {
+          "sense": "smell",
           "levels": [
             {
               "key": "none",
@@ -158,6 +158,7 @@
         "en": "bug",
         "desc": "벌레가 보이는 정도",
         "attrs": {
+          "sense": "sight",
           "levels": [
             {
               "key": "none",
@@ -195,6 +196,7 @@
         ],
         "desc": "물기가 있는 정도",
         "attrs": {
+          "sense": "touch",
           "levels": [
             {
               "key": "dry",
@@ -232,6 +234,7 @@
         ],
         "desc": "물건이 흐트러진 정도",
         "attrs": {
+          "sense": "sight",
           "levels": [
             {
               "key": "tidy",
@@ -256,6 +259,321 @@
             {
               "key": "chaos",
               "ko": "난장판"
+            }
+          ]
+        }
+      },
+      {
+        "key": "decay",
+        "ko": "부패",
+        "en": "decay",
+        "desc": "미생물로 상해 가는 정도. 쉼은 산화·발효로 시어지는 단계이고 그 뒤 부패로 이어진다 (음식-변화-모델 3장)",
+        "attrs": {
+          "sense": "smell",
+          "levels": [
+            {
+              "key": "fresh",
+              "ko": "신선"
+            },
+            {
+              "key": "turned",
+              "ko": "쉼"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "spoiled",
+              "ko": "상함"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "rotten",
+              "ko": "썩음"
+            }
+          ]
+        }
+      },
+      {
+        "key": "sour",
+        "ko": "시어짐",
+        "en": "sour",
+        "desc": "유제품이 시어지는 정도. 덩어리짐은 액체 속에 균 덩어리가 떠다니는 형태",
+        "attrs": {
+          "sense": "smell",
+          "levels": [
+            {
+              "key": "fresh",
+              "ko": "신선"
+            },
+            {
+              "key": "tangy",
+              "ko": "새큼"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "sour",
+              "ko": "시큼"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "lumpy",
+              "ko": "덩어리짐"
+            }
+          ]
+        }
+      },
+      {
+        "key": "ripen",
+        "ko": "익음",
+        "en": "ripen",
+        "desc": "발효 음식(김치)이 익는 정도. 상하지 않고 익는다",
+        "attrs": {
+          "sense": "smell",
+          "levels": [
+            {
+              "key": "unripe",
+              "ko": "덜 익음"
+            },
+            {
+              "key": "ripe",
+              "ko": "알맞게 익음"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "soured",
+              "ko": "시어짐"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "mushy",
+              "ko": "물러짐"
+            }
+          ]
+        }
+      },
+      {
+        "key": "wilt",
+        "ko": "시듦",
+        "en": "wilt",
+        "desc": "채소·과일 조직의 물이 빠져 처지는 정도",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "crisp",
+              "ko": "싱싱"
+            },
+            {
+              "key": "wilted",
+              "ko": "시듦"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "shriveled",
+              "ko": "쭈글·짓무름"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "mold",
+        "ko": "곰팡이",
+        "en": "mold",
+        "desc": "곰팡이·효모막(골마지 포함)이 핀 정도",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "spot",
+              "ko": "점"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "spread",
+              "ko": "번짐"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "seal",
+        "ko": "보관",
+        "en": "storage",
+        "desc": "용기·포장의 닫힘 정도. 멸균·살균은 살 때의 상태이고 뜯으면 오픈이 된다",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "open",
+              "ko": "오픈"
+            },
+            {
+              "key": "half",
+              "ko": "반밀봉"
+            },
+            {
+              "key": "sealed",
+              "ko": "밀폐"
+            },
+            {
+              "key": "pasteurized",
+              "ko": "살균"
+            },
+            {
+              "key": "sterilized",
+              "ko": "멸균"
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "moisture",
+        "ko": "수분 상태",
+        "en": "moisture",
+        "desc": "용기 안쪽과 음식 표면의 물기",
+        "attrs": {
+          "sense": "touch",
+          "levels": [
+            {
+              "key": "dry",
+              "ko": "마름"
+            },
+            {
+              "key": "thick",
+              "ko": "꾸덕"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "moist",
+              "ko": "촉촉"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "liquid",
+              "ko": "액체"
+            }
+          ]
+        }
+      },
+      {
+        "key": "cut",
+        "ko": "가공",
+        "en": "cut",
+        "desc": "지금 음식의 모양. 조리된 것은 가공이 아니라 새 음식이다",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "whole",
+              "ko": "통째"
+            },
+            {
+              "key": "chunk",
+              "ko": "토막"
+            },
+            {
+              "key": "sliced",
+              "ko": "채·큐브"
+            },
+            {
+              "key": "minced",
+              "ko": "다짐"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "temp",
+        "ko": "온도",
+        "en": "temperature",
+        "desc": "놓인 곳의 온도 구간 (5℃ 구간). 실온은 계절에 따라: 겨울 5~10℃, 봄·가을 15~20℃, 여름 25℃ 이상",
+        "attrs": {
+          "sense": "touch",
+          "levels": [
+            {
+              "key": "frozen",
+              "ko": "냉동 (0℃ 미만)"
+            },
+            {
+              "key": "fridge",
+              "ko": "냉장 (0~5℃)"
+            },
+            {
+              "key": "winter_room",
+              "ko": "실온·겨울 (5~10℃)"
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "mild_room",
+              "ko": "실온·봄가을 (15~20℃)"
+            },
+            {
+              "key": "summer_room",
+              "ko": "실온·여름 (25℃ 이상)"
             }
           ]
         }
@@ -503,6 +821,57 @@
         "key": "move",
         "ko": "옮기기",
         "en": "move"
+      },
+      {
+        "key": "inspect",
+        "ko": "살피기",
+        "en": "inspect",
+        "aliases": [
+          "둘러보기",
+          "조사"
+        ],
+        "desc": "가까이 보고 냄새를 맡아 정체와 위치를 알아낸다. 세계를 바꾸지 않고 앎을 바꾼다"
+      },
+      {
+        "key": "discard",
+        "ko": "버리기",
+        "en": "discard",
+        "aliases": [
+          "내다 버리기"
+        ],
+        "desc": "물건을 쓰레기로 보낸다. 물건은 지워지지 않고 그 상태가 소멸(gone)로 바뀐다 (보관 장소는 위치 구현 뒤)"
+      }
+    ]
+  },
+  {
+    "category": "awareness",
+    "entries": [
+      {
+        "key": "unknown",
+        "ko": "모름",
+        "en": "unknown",
+        "desc": "아직 아무것도 느끼지 못했다",
+        "attrs": {
+          "rank": 0
+        }
+      },
+      {
+        "key": "noticed",
+        "ko": "알아챔",
+        "en": "noticed",
+        "desc": "뭔가 있다는 것은 안다. 정체나 위치는 모른다",
+        "attrs": {
+          "rank": 1
+        }
+      },
+      {
+        "key": "understood",
+        "ko": "이해함",
+        "en": "understood",
+        "desc": "무엇이 어디에 어떤 상태로 있는지 안다",
+        "attrs": {
+          "rank": 2
+        }
       }
     ]
   },

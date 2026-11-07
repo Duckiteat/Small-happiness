@@ -1,0 +1,146 @@
+// 지각 (5층) — 세계(라인 A)와 사람(라인 B)이 처음 만나는 곳 (docs/품질판-명세.md · 상호작용-명세 2A)
+//
+// 하루씨가 집에 깨어 있을 때만 느낀다 (presence = home). 외출·잠 중에는 아무것도 지각하지 않는다.
+//   - 저절로 (수동): 장소에 퍼진 것(장소의 상태: 냄새, 벌레)은 감각 임계를 넘으면 느낀다 → 알아챔.
+//   - 살펴서 (능동): 살피기(reveals)가 끝난 장소에서는 물건의 상태까지 본다 → 이해함 (정체와 위치를 안다).
+//     직전 단계의 행동을 읽는다 (되먹임 길 F6: 행동 → 지각).
+// 감각 임계는 인물 정의(CHR)의 senses에서, 특징을 느끼는 감각은 사전 feature의 sense에서 온다. 코드에 수치가 없다.
+//
+// 앎 = 인지 단계(알아챔·이해함) + **본 단계**(그때 본 상태) + 본 시각. 인물은 세계가 아니라 이 앎으로 판단한다.
+//   - 인지 단계는 오르기만 한다 (awareness_up). 본 단계는 다시 볼 때마다 바뀐다 (awareness_changed).
+//   - 집에서 느끼던 장소의 냄새·벌레가 임계 아래로 내려가면 "없어졌다"고 안다 (사다리 0칸으로). 다시 나면 다시 알아챈다.
+//   - 살핀 물건의 앎은 다시 살필 때까지 그대로다 — 앎은 낡는다 (그 사이 세계가 바뀌어도 모른다).
+//
+// 단순화 (기본안, 위치·번짐 11번 전까지): 물건의 위치가 없어서, 장소를 살피면 집 안의 모든 물건을 본다.
+
+import type { BoardValue } from './board.ts';
+import type { Db } from './db.ts';
+import { defOf } from './ids.ts';
+import type { EventLog } from './log.ts';
+import { OBSERVED } from './schedule.ts';
+import { parseStateKey } from './statekey.ts';
+import type { Vocab } from './vocab.ts';
+import type { World } from './world.ts';
+import { parseRecent } from './agency.ts';
+
+export const PERCEPTION_SRC = 'perception';
+export const AWARENESS_UP = 'awareness_up';
+export const AWARENESS_CHANGED = 'awareness_changed';
+export const UNKNOWN = 'unknown';
+export const NOTICED = 'noticed';
+export const UNDERSTOOD = 'understood';
+
+export interface Percept {
+  readonly who: string;
+  readonly key: string;
+  readonly level: string;
+}
+
+/** 하나의 앎: 인지 단계 키(사전 awareness), 그때 본 단계 키, 본 시각. */
+export interface Knowing {
+  readonly aw: string;
+  readonly level: string;
+  readonly t: number;
+}
+
+/** 인물 인스턴스 → 상태 키 → 앎. */
+export type AwareMap = { readonly [who: string]: { readonly [key: string]: Knowing } };
+
+export function awarenessRank(vocab: Vocab, key: string): number {
+  const r = vocab.entry('awareness', key)?.attrs['rank'];
+  return typeof r === 'number' ? r : 0;
+}
+
+/** 판의 aware 값을 읽는다 (5층이 쓴 모양). */
+export function parseAware(value: BoardValue | undefined): AwareMap {
+  if (value === undefined || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out: Record<string, Record<string, Knowing>> = {};
+  for (const [who, m] of Object.entries(value)) {
+    if (typeof m !== 'object' || Array.isArray(m)) continue;
+    const inner: Record<string, Knowing> = {};
+    for (const [key, k] of Object.entries(m)) {
+      if (typeof k !== 'object' || Array.isArray(k)) continue;
+      const o = k as { readonly [f: string]: BoardValue };
+      if (typeof o['aw'] === 'string' && typeof o['level'] === 'string' && typeof o['t'] === 'number') inner[key] = { aw: o['aw'], level: o['level'], t: o['t'] };
+    }
+    out[who] = inner;
+  }
+  return out;
+}
+
+export class Perception {
+  readonly #db: Db;
+  readonly #vocab: Vocab;
+  readonly #log: EventLog;
+  readonly #aware = new Map<string, Map<string, Knowing>>();
+  readonly #reveals: { readonly place: string; readonly ends: number }[] = [];
+
+  constructor(db: Db, vocab: Vocab, log: EventLog) {
+    this.#db = db;
+    this.#vocab = vocab;
+    this.#log = log;
+  }
+
+  /** 한 단계의 지각. prevRecent는 직전 단계의 행동(F6). */
+  step(world: World, t: number, presence: string, prevRecent: BoardValue | undefined): { perceived: Percept[]; aware: AwareMap } {
+    for (const r of parseRecent(prevRecent)) if (r.reveals !== undefined) this.#reveals.push({ place: r.reveals, ends: r.ends });
+    const perceived: Percept[] = [];
+    if (presence === OBSERVED) {
+      const revealed = this.#reveals.filter((r) => r.ends <= t);
+      this.#reveals.splice(0, this.#reveals.length, ...this.#reveals.filter((r) => r.ends > t));
+      const instances = world.instances();
+      const places = instances.filter((i) => i.startsWith('PLC'));
+      const objects = revealed.length > 0 ? instances.filter((i) => i.startsWith('OBJ')) : [];
+      for (const who of instances.filter((i) => i.startsWith('CHR'))) {
+        const senses = this.#db.defs[defOf(who) ?? '']?.senses ?? {};
+        const felt = (key: string): boolean => {
+          const k = parseStateKey(key);
+          const sense = k === null ? undefined : this.#vocab.entry('feature', k.feature)?.attrs['sense'];
+          const notice = typeof sense === 'string' ? senses[sense]?.notice : undefined;
+          const idx = world.levelIndex(key);
+          return notice !== undefined && idx !== null && idx >= notice;
+        };
+        // 저절로: 장소에 퍼진 것. 느끼면 알아챔, 알던 것이 임계 아래로 내려가면 없어졌다고 안다
+        for (const key of places.flatMap((p) => world.keysOf(p))) {
+          if (felt(key)) {
+            perceived.push({ who, key, level: world.level(key) });
+            this.#observe(who, key, NOTICED, world.level(key), t);
+            continue;
+          }
+          const known = this.#aware.get(who)?.get(key);
+          const k = parseStateKey(key);
+          const zero = k === null ? undefined : this.#vocab.levelOrder(k.feature)?.at(0);
+          if (known !== undefined && zero !== undefined && known.level !== zero) this.#observe(who, key, known.aw, zero, t);
+        }
+        // 살펴서: 가까이 본 물건은 임계와 상관없이 모든 상태를 안다 (냄새가 없어도 곰팡이·보관 상태가 보인다)
+        for (const key of objects.flatMap((o) => world.keysOf(o))) {
+          if (felt(key)) perceived.push({ who, key, level: world.level(key) });
+          this.#observe(who, key, UNDERSTOOD, world.level(key), t);
+        }
+      }
+    }
+    return { perceived, aware: this.snapshot() };
+  }
+
+  snapshot(): AwareMap {
+    const out: Record<string, Record<string, Knowing>> = {};
+    for (const who of [...this.#aware.keys()].sort()) {
+      const m = this.#aware.get(who) as Map<string, Knowing>;
+      out[who] = Object.fromEntries([...m.keys()].sort().map((k) => [k, { ...(m.get(k) as Knowing) }]));
+    }
+    return out;
+  }
+
+  /** 본 것을 앎에 남긴다. 인지 단계는 오르기만 하고, 본 단계가 바뀌면 앎이 바뀐다. 바뀐 것이 있을 때만 사건을 남긴다. */
+  #observe(who: string, key: string, aw: string, level: string, t: number): void {
+    const m = this.#aware.get(who) ?? new Map<string, Knowing>();
+    this.#aware.set(who, m);
+    const prev = m.get(key);
+    const prevAw = prev?.aw ?? UNKNOWN;
+    const rose = awarenessRank(this.#vocab, aw) > awarenessRank(this.#vocab, prevAw);
+    const to = rose ? aw : prevAw;
+    if (!rose && prev !== undefined && prev.level === level) return;
+    m.set(key, { aw: to, level, t });
+    this.#log.append({ t, type: rose ? AWARENESS_UP : AWARENESS_CHANGED, src: PERCEPTION_SRC, data: { who, key, to, level } });
+  }
+}

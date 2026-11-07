@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 지연 값이 조정된 값인지 임시값인지 밝히지 않았다",
+  "defs": [ { "id": "OBJ000001", "rules": { "bad": { "on": ["OBJ000001|body:rot@=fresh"], "emits": ["OBJ000001|body:rot@=wilted"], "delay_s": 600 } } } ] }

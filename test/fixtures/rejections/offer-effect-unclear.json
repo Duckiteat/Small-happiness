@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 행동의 결과가 어느 단계로 만드는지 분명하지 않다",
+  "defs": [ { "id": "OBJ000001", "offers": { "bad": { "verb": "discard", "needs": [], "effect": ["OBJ000001|body:rot"], "minutes": 5, "tuned": false } } } ] }

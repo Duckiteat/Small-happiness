@@ -1,0 +1,44 @@
+{
+  "why": "뼈대 시험용 이틀 (시각·일정·임계는 시험용 가정, 게임 값 아님): 예시 패치 세 개로 냉장고 사슬에 시간을 붙이고 고리를 닫는다. 신선한 음식에서 시작해 세계가 스스로 변하고, 하루씨가 집에 있을 때 알아채면 살피고 버리는지 본다. 하루씨는 07:00에 일어나 08:30에 나가 19:30에 돌아오고 23:00에 잔다.",
+  "patches": [
+    "examples/patches/fridge-chain.json",
+    "examples/patches/fridge-time.json",
+    "examples/patches/fridge-loop.json"
+  ],
+  "seed": 1,
+  "spawn": [
+    "CHR000001",
+    "OBJ000001",
+    "OBJ000002",
+    "OBJ000003",
+    "PLC000001",
+    "PLC000002"
+  ],
+  "set": [],
+  "start": 420,
+  "end": 3300,
+  "routine": {
+    "blocks": [
+      {
+        "kind": "out",
+        "from": 510,
+        "to": 1170
+      },
+      {
+        "kind": "asleep",
+        "from": 1380,
+        "to": 1860
+      },
+      {
+        "kind": "out",
+        "from": 1950,
+        "to": 2610
+      },
+      {
+        "kind": "asleep",
+        "from": 2820,
+        "to": 3300
+      }
+    ]
+  }
+}

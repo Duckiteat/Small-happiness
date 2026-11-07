@@ -10,7 +10,7 @@
       "mobility": "가변",
       "slots": { "body": { "features": ["상함", "냄새"] } },
       "meanings": [
-        { "label": "먹을 수 있음", "when": ["body:부패@<=wilted"], "means": "edible" },
+        { "label": "먹을 수 있음", "when": ["body:상함@<=wilted"], "means": "edible" },
         { "label": "먹을 수 없음", "when": [], "means": "inedible" }
       ],
       "rules": {

@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 사전에 없는 감각의 임계",
+  "defs": [ { "id": "CHR+1", "names": { "ko": "시험 인물" }, "senses": { "sixth": { "notice": 1, "tuned": false } } } ] }

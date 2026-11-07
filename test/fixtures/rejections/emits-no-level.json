@@ -1,0 +1,2 @@
+{ "format": "small-happiness-patch", "version": 1, "why": "거부 시험: 결과(emits)에 어떤 단계로 만드는지가 없다",
+  "defs": [ { "id": "PLC000001", "rules": { "bad": { "on": ["PLC000001|space:smell@>=faint"], "emits": ["PLC000001|space:bug"] } } } ] }

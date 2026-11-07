@@ -12,6 +12,9 @@
     "web": "node src/node/cli.ts web --write",
     "web:check": "node src/node/cli.ts web --check",
     "verify": "node src/node/cli.ts verify",
+    "day": "node src/node/cli.ts day",
+    "golden": "node src/node/cli.ts golden --write",
+    "golden:check": "node src/node/cli.ts golden --check",
     "guard": "node src/node/cli.ts guard"
   },
   "engines": {

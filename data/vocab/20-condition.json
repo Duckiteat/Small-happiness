@@ -1,5 +1,13 @@
 [
   {
+    "category": "presence",
+    "entries": [
+      { "key": "home", "ko": "집에 있음", "en": "home", "desc": "하루씨가 집에 깨어 있다. 플레이어가 함께 본다. 단계는 행동·장면이 끝날 때마다 돈다" },
+      { "key": "out", "ko": "외출", "en": "out", "aliases": ["출근", "부재"], "desc": "하루씨가 집에 없다. 플레이어도 보지 않는다. 일정한 간격으로 변화를 계산한다" },
+      { "key": "asleep", "ko": "잠", "en": "asleep", "aliases": ["수면"], "desc": "하루씨가 자고 있다. 플레이어가 보지 않는 시간으로 친다 (외출과 같은 간격)" }
+    ]
+  },
+  {
     "category": "condition",
     "entries": [
       { "key": "reserve", "ko": "여유", "en": "reserve", "aliases": ["만족도"], "desc": "부정 방향 사건을 버티는 정도. 0이 평범한 하루. 숫자로 보이지 않는다" },

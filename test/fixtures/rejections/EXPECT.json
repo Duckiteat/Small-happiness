@@ -74,5 +74,53 @@
   "terminal-op.json": {
     "stage": "gate",
     "match": "= 조건으로만"
+  },
+  "emits-no-level.json": {
+    "stage": "gate",
+    "match": "결과\\(emits\\)에는 =, >=, <= 조건이 필요하다"
+  },
+  "emits-greater.json": {
+    "stage": "gate",
+    "match": "결과\\(emits\\)에는 =, >=, <= 조건이 필요하다"
+  },
+  "delay-not-minutes.json": {
+    "stage": "gate",
+    "match": "delay_s는 0 이상이고 60의 배수"
+  },
+  "delay-no-tuned.json": {
+    "stage": "gate",
+    "match": "tuned\\(조정 완료 여부\\)를 true/false로"
+  },
+  "offer-unknown-verb.json": {
+    "stage": "gate",
+    "match": "사전에 없는 행동: juggle"
+  },
+  "offer-needs-level.json": {
+    "stage": "gate",
+    "match": "필요한 앎에는 단계 조건을 쓰지 않는다"
+  },
+  "offer-effect-unclear.json": {
+    "stage": "gate",
+    "match": "결과에는 =, >=, <= 조건이 필요하다"
+  },
+  "sense-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 감각: sixth"
+  },
+  "kind-missing.json": {
+    "stage": "gate",
+    "match": "없는 정의를 가리킨다: OBJ000099"
+  },
+  "kind-missing-feature.json": {
+    "stage": "gate",
+    "match": "부위 body에 특징 smell가 있어야 한다"
+  },
+  "progress-missing-coef.json": {
+    "stage": "gate",
+    "match": "단계 sterilized의 계수가 없다"
+  },
+  "progress-not-own.json": {
+    "stage": "gate",
+    "match": "진행 법칙이 완성되지 않았다"
   }
 }

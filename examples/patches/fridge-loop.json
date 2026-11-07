@@ -1,0 +1,43 @@
+{
+  "format": "small-happiness-patch",
+  "version": 1,
+  "why": "시험 케이스: 고리를 닫는다. 하루씨(감각 임계)가 주방 냄새를 알아채면 주방을 살피고, 상한 음식을 이해하면 버린다. 감각 임계와 걸리는 시간은 모두 임시값(tuned:false)이며 게임 수치가 아니다.",
+  "defs": [
+    {
+      "id": "CHR+1",
+      "names": { "ko": "하루씨", "en": "Haru" },
+      "senses": {
+        "smell": { "notice": 1, "tuned": false },
+        "sight": { "notice": 1, "tuned": false }
+      },
+      "desc": ["혼자 사는 직장인. 감각 임계는 시험용 임시값이다."]
+    },
+    {
+      "id": "PLC000001",
+      "offers": {
+        "inspect": {
+          "label": "냄새가 어디서 나는지 주방을 살핀다",
+          "verb": "inspect",
+          "needs": [{ "aware": "PLC000001|space:smell", "at_least": "noticed" }],
+          "effect": [],
+          "reveals": true,
+          "minutes": 5,
+          "tuned": false
+        }
+      }
+    },
+    {
+      "id": "OBJ000001",
+      "offers": {
+        "discard": {
+          "label": "상한 음식을 버린다",
+          "verb": "discard",
+          "needs": [{ "aware": "OBJ000001|body:rot", "at_least": "understood" }],
+          "effect": ["OBJ000001|body:rot@=gone", "OBJ000001|body:smell@=gone"],
+          "minutes": 5,
+          "tuned": false
+        }
+      }
+    }
+  ]
+}

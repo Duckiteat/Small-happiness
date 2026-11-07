@@ -34,8 +34,9 @@ export const PREFIX_KIND: Readonly<Record<DefPrefix, string>> = {
 
 const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
-  OBJ: [...COMMON_FIELDS, 'mobility', 'slots', 'meanings', 'rules'],
-  PLC: [...COMMON_FIELDS, 'slots', 'meanings', 'rules'],
+  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
+  PLC: [...COMMON_FIELDS, 'slots', 'meanings', 'rules', 'offers'],
+  CHR: [...COMMON_FIELDS, 'senses'],
 };
 
 /** 이 종류의 정의가 가질 수 있는 최상위 필드. 아직 설계되지 않은 종류는 공통 필드만 쓴다. */
@@ -61,23 +62,83 @@ export interface MeaningDef {
   readonly means: string;
 }
 
-/** 변화 규칙: `on` 패턴이 만족되면 `emits` 패턴의 상태가 생긴다. 사슬은 이 패턴에서 자동으로 이어진다. */
+/**
+ * 변화 규칙: `on` 패턴이 만족되면 `emits` 패턴의 상태가 생긴다. 사슬은 이 패턴에서 자동으로 이어진다.
+ * `delay_s`가 있으면 조건이 성립한 뒤 그만큼 지나 발화하고, 발화 시점에 조건을 다시 본다 (축-상호작용-설계 9장).
+ * 지연 값은 임시값일 수 있으므로 `tuned`(조정 완료 여부)를 반드시 함께 적는다.
+ */
 export interface RuleDef {
   readonly label?: string;
+  /** 다른 정의를 가리키는 패턴은 그 정의(와 그 종류)의 인스턴스 중 **하나라도** 맞으면 된다. */
   readonly on: readonly string[];
+  /** 다른 정의를 가리키는 패턴이 그 정의(와 그 종류)의 **모든** 인스턴스에서 맞아야 한다 (없으면 참). */
+  readonly on_all?: readonly string[];
   readonly emits: readonly string[];
   readonly note?: string;
+  /** 지연(초). 게임 시간은 분이므로 60의 배수. 없으면 0 (즉시). */
+  readonly delay_s?: number;
+  readonly tuned?: boolean;
+}
+
+/**
+ * 제공 행동 (상호작용-명세 3장): 물건·장소가 자기가 줄 수 있는 행동을 선언한다. 인물은 앎(needs)이 갖춰진 것만 고른다.
+ * `effect`는 효과 요청(세계 상태의 주인이 행동이 끝날 때 기록), `reveals`는 살피기(다음 단계 지각에서 그 장소의 물건까지 본다).
+ */
+export interface OfferDef {
+  readonly label?: string;
+  readonly verb: string; // 사전 action
+  readonly needs: readonly { readonly aware: string; readonly at_least: string }[]; // 패턴(조건 없음) + 사전 awareness
+  /** 행동할 수 있는 상태 (규칙의 on과 같은 패턴). 예: 상했을 때만 버린다. 없으면 언제나. */
+  readonly when?: readonly string[];
+  /** 그 물건의 상태 의미(meanings)가 이것일 때만 (예: inedible). 물건마다 다른 축을 한 줄로 묻는다. */
+  readonly when_meaning?: string;
+  readonly effect: readonly string[]; // 결과 패턴 (=, >=, <=)
+  readonly reveals?: boolean;
+  readonly minutes: number;
+  readonly tuned: boolean;
+}
+
+/**
+ * 진행 법칙 (음식-변화-모델 4장 · 데이터-형식 5-2): 축의 양(0~1000)이 조건에 따라 쌓이고, 경계를 넘으면 단계가 오른다.
+ * 속도 = (1000 / base_s) × 입력마다 계수/100. 계수 0이면 멈춘다 (냉동의 부패). 종류에 표를 두고 물건은 base_s만 덮어쓸 수 있다.
+ * 키는 축(특징), slot은 그 특징이 있는 부위. 일부만 적은 항목은 종류의 항목과 합쳐 완성된다.
+ */
+export interface ProgressDef {
+  readonly slot?: string;
+  readonly base_s?: number;
+  /** 입력 특징 → (단계 키 → 계수 ×100). 입력은 같은 물건의 다른 부위·특징(보관·수분·가공·온도). */
+  readonly inputs?: { readonly [feature: string]: { readonly [level: string]: number } };
+  /** 사다리 칸마다 경계 양(0~1000). 잠긴 칸은 null. 0칸은 0. */
+  readonly edges?: readonly (number | null)[];
+  readonly tuned?: boolean;
+  readonly source?: string;
+}
+
+/** 감각 프로파일 (인물-명세): 감각마다 알아채는 사다리 칸(0~5). 낮을수록 예민하다. */
+export interface SenseDef {
+  readonly notice: number;
+  readonly tuned: boolean;
 }
 
 export interface Definition {
   readonly id: string;
   readonly names: Names;
+  /**
+   * 종류 (한 단계): 이 정의는 그 정의의 한 종류다. 그 정의의 규칙과 제공 행동을 물려받고,
+   * 같은 키의 규칙·행동을 자기가 가지면 그것이 이긴다 (덮어쓰기). 부위는 물려받지 않으므로 직접 갖는다.
+   */
+  readonly is_a?: string;
   readonly aliases: readonly string[];
   readonly desc: readonly string[];
   readonly mobility?: string;
   readonly slots?: { readonly [key: string]: SlotDef };
   readonly meanings?: readonly MeaningDef[];
   readonly rules?: { readonly [key: string]: RuleDef };
+  readonly offers?: { readonly [key: string]: OfferDef };
+  readonly senses?: { readonly [sense: string]: SenseDef };
+  readonly progress?: { readonly [feature: string]: ProgressDef };
+  /** 들여놓을 때(살 때)의 상태: `부위:특징` → 단계 키 (음식-변화-모델 8장: 처음 조건은 구매와 붙어 있다). */
+  readonly initial?: { readonly [slotFeature: string]: string };
 }
 
 export interface Db {
@@ -208,9 +269,10 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ok = false;
       continue;
     }
-    onlyKeys(rule, ['label', 'on', 'emits', 'note'], at, push);
-    if (!isStrArr(rule['on']) || rule['on'].length === 0 || !isStrArr(rule['emits']) || rule['emits'].length === 0) {
-      push(at, 'on과 emits(패턴 문자열 목록, 1개 이상)가 필요하다');
+    onlyKeys(rule, ['label', 'on', 'on_all', 'emits', 'note', 'delay_s', 'tuned'], at, push);
+    const onAll = rule['on_all'] ?? [];
+    if (!isStrArr(rule['on']) || !isStrArr(onAll) || rule['on'].length + onAll.length === 0 || !isStrArr(rule['emits']) || rule['emits'].length === 0) {
+      push(at, 'on(또는 on_all)과 emits(패턴 문자열 목록, 1개 이상)가 필요하다');
       ok = false;
       continue;
     }
@@ -224,19 +286,153 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ok = false;
       continue;
     }
+    const delay = rule['delay_s'];
+    if (delay !== undefined && (typeof delay !== 'number' || !Number.isInteger(delay) || delay < 0 || delay % 60 !== 0)) {
+      push(at, 'delay_s는 0 이상이고 60의 배수인 정수(초)여야 한다 (게임 시간은 분 단위)');
+      ok = false;
+      continue;
+    }
+    if (rule['tuned'] !== undefined && typeof rule['tuned'] !== 'boolean') {
+      push(at, 'tuned는 true/false여야 한다');
+      ok = false;
+      continue;
+    }
+    if (delay !== undefined && rule['tuned'] === undefined) {
+      push(at, 'delay_s를 쓰면 tuned(조정 완료 여부)를 true/false로 적어야 한다 (임시값을 숨기지 않는다)');
+      ok = false;
+      continue;
+    }
     const r: RuleDef = {
       ...(typeof rule['label'] === 'string' ? { label: rule['label'] } : {}),
       on: rule['on'].map((s) => s.trim()),
+      ...(onAll.length > 0 ? { on_all: onAll.map((s) => s.trim()) } : {}),
       emits: rule['emits'].map((s) => s.trim()),
       ...(typeof rule['note'] === 'string' ? { note: rule['note'] } : {}),
+      ...(typeof delay === 'number' ? { delay_s: delay } : {}),
+      ...(typeof rule['tuned'] === 'boolean' ? { tuned: rule['tuned'] } : {}),
     };
     out[key] = r;
   }
   return ok ? out : undefined;
 }
 
+function fieldOffers(v: unknown, where: string, push: Push): Record<string, OfferDef> | undefined {
+  if (!isObj(v)) return void push(where, 'offers는 객체여야 한다');
+  const out: Record<string, OfferDef> = {};
+  let ok = true;
+  const bad = (at: string, msg: string): void => {
+    push(at, msg);
+    ok = false;
+  };
+  for (const key of Object.keys(v).sort()) {
+    const o = v[key];
+    const at = `${where}.${key}`;
+    if (!TOKEN_RE.test(key)) {
+      bad(at, '행동 키는 영소문자로 시작하는 영소문자·숫자·밑줄이어야 한다');
+      continue;
+    }
+    if (!isObj(o)) {
+      bad(at, '제공 행동은 객체여야 한다');
+      continue;
+    }
+    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'minutes', 'tuned'], at, push);
+    const needs = o['needs'];
+    const needsOk = Array.isArray(needs) && needs.every((n) => isObj(n) && typeof n['aware'] === 'string' && typeof n['at_least'] === 'string' && Object.keys(n).length === 2);
+    if (typeof o['verb'] !== 'string') bad(at, 'verb(사전 action 키)가 필요하다');
+    else if (!needsOk) bad(at, 'needs는 { aware, at_least } 목록이어야 한다 (앎이 필요 없으면 빈 목록)');
+    else if (!isStrArr(o['effect'])) bad(at, 'effect는 결과 패턴 목록이어야 한다 (세계를 바꾸지 않으면 빈 목록)');
+    else if (o['when'] !== undefined && !isStrArr(o['when'])) bad(at, 'when은 상태 패턴 목록이어야 한다');
+    else if (o['when_meaning'] !== undefined && (typeof o['when_meaning'] !== 'string' || !TOKEN_RE.test(o['when_meaning']))) bad(at, 'when_meaning은 상태 의미(means) 토큰이어야 한다');
+    else if (o['reveals'] !== undefined && typeof o['reveals'] !== 'boolean') bad(at, 'reveals는 true/false여야 한다');
+    else if (typeof o['minutes'] !== 'number' || !Number.isInteger(o['minutes']) || o['minutes'] <= 0) bad(at, 'minutes(걸리는 시간, 분)는 양의 정수여야 한다');
+    else if (typeof o['tuned'] !== 'boolean') bad(at, 'tuned(걸리는 시간이 조정된 값인지)를 true/false로 적어야 한다');
+    else if (o['label'] !== undefined && typeof o['label'] !== 'string') bad(at, 'label은 문자열이어야 한다');
+    else {
+      out[key] = {
+        ...(typeof o['label'] === 'string' ? { label: o['label'] } : {}),
+        verb: o['verb'],
+        needs: (needs as { aware: string; at_least: string }[]).map((n) => ({ aware: n.aware.trim(), at_least: n.at_least })),
+        ...(isStrArr(o['when']) && o['when'].length > 0 ? { when: o['when'].map((s) => s.trim()) } : {}),
+        ...(typeof o['when_meaning'] === 'string' ? { when_meaning: o['when_meaning'] } : {}),
+        effect: (o['effect'] as string[]).map((s) => s.trim()),
+        ...(o['reveals'] === true ? { reveals: true } : {}),
+        minutes: o['minutes'],
+        tuned: o['tuned'],
+      };
+    }
+  }
+  return ok ? out : undefined;
+}
+
+function fieldSenses(v: unknown, where: string, push: Push): Record<string, SenseDef> | undefined {
+  if (!isObj(v)) return void push(where, 'senses는 객체여야 한다');
+  const out: Record<string, SenseDef> = {};
+  let ok = true;
+  for (const key of Object.keys(v).sort()) {
+    const s = v[key];
+    const at = `${where}.${key}`;
+    if (!isObj(s) || typeof s['notice'] !== 'number' || !Number.isInteger(s['notice']) || s['notice'] < 1 || s['notice'] > 5 || typeof s['tuned'] !== 'boolean') {
+      push(at, '감각은 { notice: 1~5 정수(알아채는 사다리 칸), tuned: true/false }여야 한다');
+      ok = false;
+      continue;
+    }
+    onlyKeys(s, ['notice', 'tuned'], at, push);
+    out[key] = { notice: s['notice'], tuned: s['tuned'] };
+  }
+  return ok ? out : undefined;
+}
+
+function fieldProgress(v: unknown, where: string, push: Push): Record<string, ProgressDef> | undefined {
+  if (!isObj(v)) return void push(where, 'progress는 객체여야 한다');
+  const out: Record<string, ProgressDef> = {};
+  let ok = true;
+  for (const key of Object.keys(v).sort()) {
+    const p = v[key];
+    const at = `${where}.${key}`;
+    const bad = (msg: string): void => {
+      push(at, msg);
+      ok = false;
+    };
+    if (!TOKEN_RE.test(key) || !isObj(p)) {
+      bad('진행 법칙은 특징 키 → 객체여야 한다');
+      continue;
+    }
+    onlyKeys(p, ['slot', 'base_s', 'inputs', 'edges', 'tuned', 'source'], at, push);
+    const base = p['base_s'];
+    const inputs = p['inputs'];
+    const edges = p['edges'];
+    if (p['slot'] !== undefined && (typeof p['slot'] !== 'string' || !TOKEN_RE.test(p['slot']))) bad('slot은 부위 키여야 한다');
+    else if (base !== undefined && (typeof base !== 'number' || !Number.isInteger(base) || base <= 0 || base % 60 !== 0)) bad('base_s는 60의 배수인 양의 정수(초)여야 한다');
+    else if (inputs !== undefined && !(isObj(inputs) && Object.values(inputs).every((t) => isObj(t) && Object.values(t).every((c) => typeof c === 'number' && Number.isInteger(c) && c >= 0)))) {
+      bad('inputs는 { 특징: { 단계 키: 계수(×100, 0 이상 정수) } }여야 한다');
+    } else if (edges !== undefined && !(Array.isArray(edges) && edges.every((e) => e === null || (typeof e === 'number' && Number.isInteger(e) && e >= 0 && e <= 1000)))) {
+      bad('edges는 칸마다 0~1000 정수 또는 null(잠긴 칸)이어야 한다');
+    } else if (p['tuned'] !== undefined && typeof p['tuned'] !== 'boolean') bad('tuned는 true/false여야 한다');
+    else if (p['source'] !== undefined && typeof p['source'] !== 'string') bad('source는 문자열이어야 한다');
+    else {
+      out[key] = {
+        ...(typeof p['slot'] === 'string' ? { slot: p['slot'] } : {}),
+        ...(typeof base === 'number' ? { base_s: base } : {}),
+        ...(isObj(inputs) ? { inputs: inputs as ProgressDef['inputs'] } : {}),
+        ...(Array.isArray(edges) ? { edges: edges as (number | null)[] } : {}),
+        ...(typeof p['tuned'] === 'boolean' ? { tuned: p['tuned'] } : {}),
+        ...(typeof p['source'] === 'string' ? { source: p['source'] } : {}),
+      };
+    }
+  }
+  return ok ? out : undefined;
+}
+
+function fieldInitial(v: unknown, where: string, push: Push): Record<string, string> | undefined {
+  if (!isObj(v) || !Object.entries(v).every(([k, l]) => /^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$/.test(k) && typeof l === 'string')) {
+    return void push(where, 'initial은 { "부위:특징": 단계 키 }여야 한다');
+  }
+  return Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k] as string]));
+}
+
 export type Fields = Partial<{
   id: string;
+  is_a: string;
   names: Names;
   aliases: string[];
   desc: string[];
@@ -244,6 +440,10 @@ export type Fields = Partial<{
   slots: Record<string, SlotDef>;
   meanings: MeaningDef[];
   rules: Record<string, RuleDef>;
+  offers: Record<string, OfferDef>;
+  senses: Record<string, SenseDef>;
+  progress: Record<string, ProgressDef>;
+  initial: Record<string, string>;
 }>;
 
 /**
@@ -279,6 +479,10 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.desc = v;
         break;
       }
+      case 'is_a':
+        if (typeof value !== 'string' || value.trim() === '') push(at, 'is_a는 정의 번호 문자열이어야 한다');
+        else out.is_a = value.trim();
+        break;
       case 'mobility':
         if (typeof value !== 'string' || value.trim() === '') push(at, 'mobility는 문자열이어야 한다');
         else out.mobility = value.trim();
@@ -298,6 +502,26 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.rules = v;
         break;
       }
+      case 'offers': {
+        const v = fieldOffers(value, at, push);
+        if (v !== undefined) out.offers = v;
+        break;
+      }
+      case 'senses': {
+        const v = fieldSenses(value, at, push);
+        if (v !== undefined) out.senses = v;
+        break;
+      }
+      case 'progress': {
+        const v = fieldProgress(value, at, push);
+        if (v !== undefined) out.progress = v;
+        break;
+      }
+      case 'initial': {
+        const v = fieldInitial(value, at, push);
+        if (v !== undefined) out.initial = v;
+        break;
+      }
       default:
         break;
     }
@@ -311,11 +535,16 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
   return {
     id,
     names: f.names,
+    ...(f.is_a !== undefined ? { is_a: f.is_a } : {}),
     aliases: f.aliases ?? [],
     ...(f.mobility !== undefined ? { mobility: f.mobility } : {}),
     ...(f.slots !== undefined ? { slots: f.slots } : {}),
     ...(f.meanings !== undefined ? { meanings: f.meanings } : {}),
     ...(f.rules !== undefined ? { rules: f.rules } : {}),
+    ...(f.offers !== undefined ? { offers: f.offers } : {}),
+    ...(f.senses !== undefined ? { senses: f.senses } : {}),
+    ...(f.progress !== undefined ? { progress: f.progress } : {}),
+    ...(f.initial !== undefined ? { initial: f.initial } : {}),
     desc: f.desc ?? [],
   };
 }

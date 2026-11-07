@@ -9,6 +9,7 @@ import type { Db, Definition, Issue } from './db.ts';
 import { collectRules, selfLoops } from './chains.ts';
 import { condRange, parseLocalCondition, parsePattern } from './statekey.ts';
 import type { Cond } from './statekey.ts';
+import { effectiveInitial, effectiveProgress } from './kinds.ts';
 import { normalizeWord } from './vocab.ts';
 import type { Vocab } from './vocab.ts';
 
@@ -114,16 +115,131 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
   // 규칙 패턴: 형식, 대상 정의 존재, 부위·특징·단계 범위
   for (const [id, def] of Object.entries(db.defs)) {
     for (const [ruleKey, rule] of Object.entries(def.rules ?? {})) {
-      for (const side of ['on', 'emits'] as const) {
-        rule[side].forEach((text, i) => {
+      for (const side of ['on', 'on_all', 'emits'] as const) {
+        (rule[side] ?? []).forEach((text, i) => {
           const at = `${id}.rules.${ruleKey}.${side}[${i}]`;
           const p = parsePattern(text);
           if (p === null) return void error(at, `패턴 형식이 아니다: ${text}`);
           const target = db.defs[p.def];
           if (target === undefined) return void error(at, `없는 정의를 가리킨다: ${p.def}`);
+          // 결과는 "어떤 단계로 만드는가"가 분명해야 한다: = (그 단계로), >= (적어도 그 단계까지 올림), <= (그 단계까지 내림)
+          if (side === 'emits' && (p.cond === null || !['=', '>=', '<='].includes(p.cond.op))) {
+            error(at, `결과(emits)에는 =, >=, <= 조건이 필요하다 (어떤 단계로 만드는지 정한다): ${text}`);
+          }
           slotCheck(target, p.slot, p.feature, p.cond, vocab, at, error);
         });
       }
+    }
+  }
+
+  // 종류(is_a): 같은 종류의 정의를 한 단계만 가리키고, 물려받는 규칙·행동이 쓰는 부위·특징을 모두 갖는다
+  for (const [id, def] of Object.entries(db.defs)) {
+    if (def.is_a === undefined) continue;
+    const at = `${id}.is_a`;
+    const base = db.defs[def.is_a];
+    if (base === undefined) {
+      error(at, `없는 정의를 가리킨다: ${def.is_a}`);
+      continue;
+    }
+    if (def.is_a === id) error(at, '자기 자신의 종류일 수 없다');
+    else if (def.is_a.slice(0, 3) !== id.slice(0, 3)) error(at, `같은 종류의 정의만 가리킨다 (${id.slice(0, 3)} ≠ ${def.is_a.slice(0, 3)})`);
+    else if (base.is_a !== undefined) error(at, `종류는 한 단계만 가능하다 (${def.is_a}도 is_a가 있다)`);
+    const inherited = [
+      ...Object.values(base.rules ?? {}).flatMap((r) => [...r.on, ...(r.on_all ?? []), ...r.emits]),
+      ...Object.values(base.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect]),
+    ];
+    const need = new Set<string>();
+    for (const text of inherited) {
+      const p = parsePattern(text);
+      if (p !== null && p.def === def.is_a) need.add(`${p.slot}:${p.feature}`);
+    }
+    for (const sf of [...need].sort()) {
+      const [slot, feature] = sf.split(':') as [string, string];
+      if (!(def.slots?.[slot]?.features ?? []).includes(feature)) {
+        error(at, `${def.is_a}의 규칙·행동을 물려받으려면 부위 ${slot}에 특징 ${feature}가 있어야 한다`);
+      }
+    }
+  }
+
+  // 진행 법칙: 물건마다 완성되어야 하고(종류 + 덮어쓰기), 입력은 그 물건의 특징이며 잠기지 않은 모든 단계에 계수가 있다
+  for (const id of Object.keys(db.defs)) {
+    const { full, incomplete } = effectiveProgress(db, id);
+    for (const f of incomplete) error(`${id}.progress.${f}`, `진행 법칙이 완성되지 않았다 (slot·base_s·inputs·edges·tuned, 그리고 부위에 특징 ${f})`);
+    const features = new Set(Object.values(db.defs[id]?.slots ?? {}).flatMap((s) => s.features));
+    for (const p of full) {
+      const at = `${id}.progress.${p.feature}`;
+      const order = vocab.levelOrder(p.feature);
+      if (order === undefined) {
+        error(at, `특징 "${p.feature}"에 단계 목록이 없다`);
+        continue;
+      }
+      if (p.edges.length !== order.length) error(at, `edges는 사다리 칸 수(${order.length})만큼이어야 한다`);
+      let last = -1;
+      p.edges.forEach((e, i) => {
+        const key = order.at(i) ?? '';
+        const locked = vocab.isLocked(p.feature, key);
+        if (locked && e !== null) error(at, `잠긴 칸(${key})의 경계는 null이어야 한다`);
+        if (!locked && e === null) error(at, `칸 ${key}의 경계가 없다`);
+        if (i === 0 && e !== 0) error(at, '0칸의 경계는 0이어야 한다');
+        if (e !== null) {
+          if (e <= last) error(at, `경계는 칸마다 커져야 한다 (${key}: ${e})`);
+          last = e;
+        }
+      });
+      for (const [input, table] of Object.entries(p.inputs)) {
+        if (!features.has(input)) error(`${at}.inputs.${input}`, `${id}에 입력 특징 "${input}"이 없다 (부위에 둔다)`);
+        const levels = vocab.levelOrder(input) ?? [];
+        for (const lv of levels) {
+          if (!vocab.isLocked(input, lv) && table[lv] === undefined) error(`${at}.inputs.${input}`, `단계 ${lv}의 계수가 없다`);
+        }
+        for (const lv of Object.keys(table)) if (!levels.includes(lv)) error(`${at}.inputs.${input}`, `"${input}"에 없는 단계: ${lv}`);
+      }
+    }
+    for (const [sf, level] of Object.entries(effectiveInitial(db, id))) {
+      const [slot, feature] = sf.split(':') as [string, string];
+      if (!(db.defs[id]?.slots?.[slot]?.features ?? []).includes(feature)) {
+        if (db.defs[id]?.initial?.[sf] !== undefined) error(`${id}.initial.${sf}`, `${id}에 부위 ${slot}의 특징 ${feature}가 없다`);
+        continue;
+      }
+      if (!(vocab.levelOrder(feature) ?? []).includes(level) || vocab.isLocked(feature, level)) error(`${id}.initial.${sf}`, `"${feature}"의 쓸 수 있는 단계가 아니다: ${level}`);
+    }
+  }
+
+  // 제공 행동: 동사는 사전에, 필요한 앎은 패턴(조건 없음)과 인지 단계, 결과는 =·>=·<= 패턴
+  for (const [id, def] of Object.entries(db.defs)) {
+    for (const [key, offer] of Object.entries(def.offers ?? {})) {
+      const at = `${id}.offers.${key}`;
+      if (!vocab.has('action', offer.verb)) error(`${at}.verb`, `사전에 없는 행동: ${offer.verb}`);
+      offer.needs.forEach((n, i) => {
+        const w = `${at}.needs[${i}]`;
+        const p = parsePattern(n.aware);
+        if (p === null) return void error(w, `패턴 형식이 아니다 (번호로 쓴다): ${n.aware}`);
+        if (p.cond !== null) error(w, `필요한 앎에는 단계 조건을 쓰지 않는다 (at_least로 인지 단계를 정한다): ${n.aware}`);
+        if (!vocab.has('awareness', n.at_least)) error(w, `사전에 없는 인지 단계: ${n.at_least}`);
+        const target = db.defs[p.def];
+        if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
+        slotCheck(target, p.slot, p.feature, null, vocab, w, error);
+      });
+      (offer.when ?? []).forEach((text, i) => {
+        const w = `${at}.when[${i}]`;
+        const p = parsePattern(text);
+        if (p === null) return void error(w, `패턴 형식이 아니다 (번호로 쓴다): ${text}`);
+        const target = db.defs[p.def];
+        if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
+        slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
+      });
+      offer.effect.forEach((text, i) => {
+        const w = `${at}.effect[${i}]`;
+        const p = parsePattern(text);
+        if (p === null) return void error(w, `패턴 형식이 아니다 (번호로 쓴다): ${text}`);
+        if (p.cond === null || !['=', '>=', '<='].includes(p.cond.op)) error(w, `결과에는 =, >=, <= 조건이 필요하다: ${text}`);
+        const target = db.defs[p.def];
+        if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
+        slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
+      });
+    }
+    for (const sense of Object.keys(def.senses ?? {})) {
+      if (!vocab.has('sense', sense)) error(`${id}.senses.${sense}`, `사전에 없는 감각: ${sense}`);
     }
   }
 
