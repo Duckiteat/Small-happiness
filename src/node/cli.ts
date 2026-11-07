@@ -9,6 +9,7 @@
 //   node src/node/cli.ts day [시나리오]                      하루(들)를 돌려 단계마다 한 줄씩 보인다 (기본: 뼈대 시나리오)
 //   node src/node/cli.ts golden [--write | --check]          뼈대 하루의 골든 트레이스
 //   node src/node/cli.ts receipt [시나리오] [--write | --check] 하루 영수증 (보기 · receipts/에 쓰기 · 쓴 것을 검증하고 다시 돌려 맞춰 보기)
+//   node src/node/cli.ts gaps [--write | --check]            영수증의 원인 빈칸 → docs/원인-빈칸.md, docs/한계-등록부.md
 //   옵션: --root <폴더>  (기본: 현재 폴더)
 
 import { readFileSync } from 'node:fs';
@@ -17,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { buildEdges, chainRoots, chainsFrom, collectRules } from '../core/chains.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
-import { appendix, commitPatch, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
+import { appendix, commitPatch, gaps, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
 import { verifyReceipts } from '../core/receipt.ts';
 import { receiptText } from '../core/receipt-text.ts';
 import { changesSince, guardCheck } from './guard.ts';
@@ -129,6 +130,14 @@ function main(): void {
       for (const r of receipts) console.log(receiptText(r, names));
       return;
     }
+    case 'gaps': {
+      const mode = flags.has('--write') ? 'write' : 'check';
+      const r = gaps(root, vocab, mode);
+      if (r.unregistered > 0) die(`등록 안 된 원인 빈칸 ${r.unregistered}건 — data/limitations.json에 항목을 더한다 (docs/원인-빈칸.md "등록 안 됨")`);
+      if (r.stale.length > 0) die(`낡은 문서: ${r.stale.join(', ')} — node src/node/cli.ts gaps --write`);
+      console.log(mode === 'write' ? '저장: docs/원인-빈칸.md, docs/한계-등록부.md' : '원인 빈칸·한계 등록부가 최신이다');
+      return;
+    }
     case 'golden': {
       const mode = flags.has('--write') ? 'write' : 'check';
       const r = golden(root, vocab, mode);
@@ -179,7 +188,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | day [시나리오] | golden [--write|--check] | receipt [시나리오] [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | day [시나리오] | golden [--write|--check] | receipt [시나리오] [--write|--check] | gaps [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 

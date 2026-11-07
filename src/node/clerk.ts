@@ -3,6 +3,7 @@
 //   data/db.json, data/patches/  ← 관문을 통과한 패치만. 거부되면 아무것도 쓰지 않는다.
 //   docs/자동생성-부록.md          ← 계산된 파생 문서만.
 //   test/fixtures/golden/          ← 골든 트레이스 (`golden --write`로만. 바뀌면 결정 기록에 이유를 남긴다)
+//   docs/원인-빈칸.md, docs/한계-등록부.md ← 영수증과 data/limitations.json에서 생성 (`gaps --write`)
 //   receipts/                      ← 하루 영수증 (`receipt --write`로만. 실행 결과라 git에 넣지 않는다)
 //
 // 순수 코어(src/core)는 병합·검사·보고를 계산하고, 파일 쓰기는 여기서만 한다. 현재 시각은 인자로 받는다.
@@ -28,6 +29,7 @@ import { parseEvent } from '../core/events.ts';
 import { ReceiptError, parseReceipt, printReceipts, verifyReceipts } from '../core/receipt.ts';
 import type { Hasher, Receipt, ReceiptRun } from '../core/receipt.ts';
 import { ReceiptNames, receiptText } from '../core/receipt-text.ts';
+import { findGaps, gapsMarkdown, GAPS_PATH, limitationsMarkdown, LIMITATIONS_DATA, LIMITATIONS_PATH, parseRegistry } from '../core/gaps.ts';
 
 export const DB_PATH = 'data/db.json';
 export const PATCH_DIR = 'data/patches';
@@ -346,4 +348,28 @@ export function readReceipts(root: string, scenarioFile: string): Receipt[] {
 export function receiptNames(root: string, scenarioFile: string, vocab: Vocab): ReceiptNames {
   const scenario = parseScenario(JSON.parse(readFileSync(join(root, scenarioFile), 'utf8')));
   return new ReceiptNames(scenarioDb(root, vocab, scenario), vocab);
+}
+
+// ── 원인 빈칸과 한계 등록부 (docs/영수증-명세.md 6장) ──────────────────────
+
+/** 원인 빈칸을 거를 시나리오. 시나리오를 더하면 여기에 올린다. */
+export const GAP_SCENARIOS = ['content/scenarios/first-week.json', SKELETON_SCENARIO];
+
+/** 영수증을 찍어 원인 빈칸을 거르고, 두 문서를 쓰거나(--write) 최신인지 본다(--check). */
+export function gaps(root: string, vocab: Vocab, mode: 'write' | 'check'): { ok: boolean; unregistered: number; stale: string[] } {
+  const registry = parseRegistry(JSON.parse(readFileSync(join(root, LIMITATIONS_DATA), 'utf8')));
+  const runs = GAP_SCENARIOS.map((f) => receiptsFor(root, vocab, f));
+  const report = findGaps(runs, registry);
+  const names = new Map(GAP_SCENARIOS.map((f) => [f, receiptNames(root, f, vocab)] as const));
+  const files: [string, string][] = [
+    [GAPS_PATH, gapsMarkdown(report, registry, names)],
+    [LIMITATIONS_PATH, limitationsMarkdown(report, registry)],
+  ];
+  const stale: string[] = [];
+  for (const [rel, content] of files) {
+    const file = join(root, rel);
+    if (mode === 'write') atomicWrite(file, content);
+    else if (!existsSync(file) || readFileSync(file, 'utf8') !== content) stale.push(rel);
+  }
+  return { ok: stale.length === 0 && report.unregistered.length === 0, unregistered: report.unregistered.length, stale };
 }
