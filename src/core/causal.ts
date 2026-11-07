@@ -8,6 +8,8 @@
 //     간격을 바꿔도 결과(사건의 시각과 순서)가 같다. 시험이 확인한다.
 //   - 난수를 받지 않는다. 같은 입력이면 같은 결과다.
 //
+// 번짐: 장소 그래프의 통로에서 만든 규칙(spread.ts)도 같은 규칙으로 돈다.
+//
 // 인스턴스 묶기 (기본안, 위치·번짐(11번) 전까지): 규칙은 그 규칙이 걸리는 인스턴스마다 따로 본다 (종류에서 물려받은 규칙 포함, kinds.ts).
 //   규칙을 선언한 정의를 가리키는 패턴은 그 인스턴스 자신에, 다른 정의를 가리키는 패턴은 그 정의의 종류 전부에 건다:
 //   `on`은 "하나라도", `on_all`은 "모두(없으면 참)", `emits`는 "모두".
@@ -17,6 +19,7 @@
 import type { Db } from './db.ts';
 import { effectiveRules, instancesOfKind } from './kinds.ts';
 import { Progress } from './progress.ts';
+import { spreadRules } from './spread.ts';
 import type { GameEvent } from './events.ts';
 import type { EventLog } from './log.ts';
 import { condRange, formatStateKey, parsePattern } from './statekey.ts';
@@ -115,7 +118,7 @@ export class Causal {
     this.#db = db;
     this.#vocab = vocab;
     this.#log = log;
-    this.#rules = compileRules(db);
+    this.#rules = [...compileRules(db), ...spreadRules(db, vocab)]; // 손으로 쓴 규칙 + 장소 그래프에서 만든 번짐 규칙
     this.#progress = new Progress(db, vocab, log);
     this.#now = start;
   }

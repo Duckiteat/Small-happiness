@@ -12,7 +12,7 @@
       "HAB": 1,
       "ITM": 1,
       "OBJ": 12,
-      "PLC": 4,
+      "PLC": 7,
       "RUL": 1
     }
   },
@@ -1210,6 +1210,23 @@
           ]
         }
       },
+      "environment": {
+        "humidity": "low",
+        "temp_swing": "mid",
+        "ventilation": "low",
+        "weather_effect": "mid"
+      },
+      "passages": [
+        {
+          "to": "PLC000002",
+          "kind": "open",
+          "medium_pass": {
+            "air": 1000,
+            "self_move": 1000
+          },
+          "tuned": false
+        }
+      ],
       "desc": [
         "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)"
       ]
@@ -1277,17 +1294,6 @@
           ],
           "delay_s": 10800,
           "tuned": false
-        },
-        "spread": {
-          "label": "벌레가 거실로 번진다",
-          "on": [
-            "PLC000002|space:bug@>=few"
-          ],
-          "emits": [
-            "PLC000003|space:bug@=few"
-          ],
-          "delay_s": 21600,
-          "tuned": false
         }
       },
       "offers": {
@@ -1306,6 +1312,32 @@
           "tuned": false
         }
       },
+      "environment": {
+        "humidity": "mid",
+        "temp_swing": "low",
+        "ventilation": "low",
+        "weather_effect": "low"
+      },
+      "passages": [
+        {
+          "to": "PLC000003",
+          "kind": "door",
+          "medium_pass": {
+            "air": 100,
+            "self_move": 0
+          },
+          "tuned": false
+        },
+        {
+          "to": "PLC000004",
+          "kind": "door",
+          "medium_pass": {
+            "air": 100,
+            "self_move": 0
+          },
+          "tuned": false
+        }
+      ],
       "desc": [
         "현관을 열면 바로 있다. 냄새가 고인다. 냉장고의 자리 (세계-설정 2·3장)"
       ]
@@ -1325,8 +1357,111 @@
           ]
         }
       },
+      "environment": {
+        "humidity": "mid",
+        "temp_swing": "mid",
+        "ventilation": "low",
+        "weather_effect": "high"
+      },
+      "passages": [
+        {
+          "to": "PLC000005",
+          "kind": "door",
+          "medium_pass": {
+            "air": 100,
+            "self_move": 0
+          },
+          "tuned": false
+        },
+        {
+          "to": "PLC000006",
+          "kind": "door",
+          "medium_pass": {
+            "air": 100,
+            "self_move": 0
+          },
+          "tuned": false
+        }
+      ],
       "desc": [
         "가장 큰 공간. 중문 너머 (세계-설정 2장)"
+      ]
+    },
+    "PLC000004": {
+      "id": "PLC000004",
+      "names": {
+        "ko": "욕실",
+        "en": "bathroom"
+      },
+      "aliases": [
+        "화장실"
+      ],
+      "slots": {
+        "space": {
+          "features": [
+            "smell",
+            "bug"
+          ]
+        }
+      },
+      "environment": {
+        "humidity": "high",
+        "temp_swing": "low",
+        "ventilation": "very_low",
+        "weather_effect": "low"
+      },
+      "desc": [
+        "화장실 겸용, 약 1.5평, 부엌 옆. 문은 주방에서 (작가 2026-11-07). 환풍기가 작다 (세계-설정 2장)"
+      ]
+    },
+    "PLC000005": {
+      "id": "PLC000005",
+      "names": {
+        "ko": "베란다",
+        "en": "veranda"
+      },
+      "aliases": [],
+      "slots": {
+        "space": {
+          "features": [
+            "smell",
+            "bug"
+          ]
+        }
+      },
+      "environment": {
+        "humidity": "high",
+        "temp_swing": "high",
+        "ventilation": "mid",
+        "weather_effect": "high"
+      },
+      "desc": [
+        "거실에 붙어 있다. 외벽이라 온도 변화가 크다 (세계-설정 2·3장)"
+      ]
+    },
+    "PLC000006": {
+      "id": "PLC000006",
+      "names": {
+        "ko": "작은 방",
+        "en": "small room"
+      },
+      "aliases": [],
+      "slots": {
+        "space": {
+          "features": [
+            "smell",
+            "bug"
+          ]
+        }
+      },
+      "environment": {
+        "humidity": "low",
+        "temp_swing": "low",
+        "ventilation": "low",
+        "weather_effect": "low"
+      },
+      "desc": [
+        "거실에 달린 방. 문을 닫으면 고립된다 (세계-설정 2·3장)"
       ]
     }
   }

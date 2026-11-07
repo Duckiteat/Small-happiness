@@ -1,0 +1,1 @@
+{"format": "small-happiness-patch", "version": 1, "why": "거부 시험: 통로로 이어지지 않은 장소", "defs": [{"id": "PLC000002", "passages": [{"to": "PLC000001", "kind": "door", "medium_pass": {"air": 100}, "tuned": false}]}, {"id": "PLC+1", "names": {"ko": "외딴 방"}, "slots": {"space": {"features": ["smell"]}}}]}

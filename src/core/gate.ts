@@ -10,6 +10,7 @@ import { collectRules, selfLoops } from './chains.ts';
 import { condRange, parseLocalCondition, parsePattern } from './statekey.ts';
 import type { Cond } from './statekey.ts';
 import { effectiveInitial, effectiveProgress } from './kinds.ts';
+import { placeGraph, spreadIssues } from './spread.ts';
 import { normalizeWord } from './vocab.ts';
 import type { Vocab } from './vocab.ts';
 
@@ -204,6 +205,44 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
       if (!(vocab.levelOrder(feature) ?? []).includes(level) || vocab.isLocked(feature, level)) error(`${id}.initial.${sf}`, `"${feature}"의 쓸 수 있는 단계가 아니다: ${level}`);
     }
   }
+
+  // 공간 (1층): 환경 등급은 사전에, 통로는 있는 장소를 가리키고 종류·매질이 사전에 있으며, 한 쌍은 한 번만 적는다
+  const pairs = new Set<string>();
+  for (const [id, def] of Object.entries(db.defs)) {
+    for (const [trait, level] of Object.entries(def.environment ?? {})) {
+      if (!vocab.has('env_trait', trait)) error(`${id}.environment.${trait}`, `사전에 없는 환경 특성: ${trait}`);
+      if (!vocab.has('env_level', level)) error(`${id}.environment.${trait}`, `사전에 없는 환경 등급: ${level}`);
+    }
+    (def.passages ?? []).forEach((p, i) => {
+      const at = `${id}.passages[${i}]`;
+      if (!id.startsWith('PLC')) error(at, '통로는 장소에만 있다');
+      if (db.defs[p.to] === undefined) error(at, `없는 정의를 가리킨다: ${p.to}`);
+      else if (!p.to.startsWith('PLC')) error(at, `통로는 장소끼리 잇는다 (${p.to}는 장소가 아니다)`);
+      if (p.to === id) error(at, '통로가 자기 자신으로 간다');
+      if (!vocab.has('edge_kind', p.kind)) error(at, `사전에 없는 통로 종류: ${p.kind}`);
+      for (const m of Object.keys(p.medium_pass)) if (!vocab.has('medium', m)) error(`${at}.medium_pass.${m}`, `사전에 없는 매질: ${m}`);
+      const pair = [id, p.to].sort().join('~');
+      if (pairs.has(pair)) error(at, `${id}와 ${p.to} 사이의 통로가 두 번 적혀 있다 (한 쌍은 한쪽에만 한 번)`);
+      pairs.add(pair);
+    });
+  }
+  // 통로가 있으면 모든 장소가 이어져 있어야 한다 (고립된 장소 없음)
+  if (pairs.size > 0) {
+    const g = placeGraph(db);
+    const start = [...g.keys()][0];
+    const seen = new Set<string>(start === undefined ? [] : [start]);
+    const queue = start === undefined ? [] : [start];
+    while (queue.length > 0) {
+      for (const e of g.get(queue.shift() ?? '') ?? []) {
+        if (seen.has(e.to)) continue;
+        seen.add(e.to);
+        queue.push(e.to);
+      }
+    }
+    const lonely = [...g.keys()].filter((p) => !seen.has(p));
+    if (lonely.length > 0) error('places', `통로로 이어지지 않은 장소: ${lonely.join(', ')} (장소 그래프가 끊겨 있다)`);
+  }
+  for (const msg of spreadIssues(db, vocab)) error('spread', msg);
 
   // 제공 행동: 동사는 사전에, 필요한 앎은 패턴(조건 없음)과 인지 단계, 결과는 =·>=·<= 패턴
   for (const [id, def] of Object.entries(db.defs)) {

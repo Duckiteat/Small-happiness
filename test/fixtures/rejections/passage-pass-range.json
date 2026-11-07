@@ -1,0 +1,1 @@
+{"format": "small-happiness-patch", "version": 1, "why": "거부 시험: 투과율이 0~1000 밖", "defs": [{"id": "PLC000002", "passages": [{"to": "PLC000001", "kind": "door", "medium_pass": {"air": 2000}, "tuned": false}]}]}

@@ -127,6 +127,22 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
     case 'spreader': {
       if (typeof attrs['medium'] !== 'string') push(`${path}.attrs.medium`, '매질 키가 필요하다');
       if (typeof attrs['stimulus'] !== 'string') push(`${path}.attrs.stimulus`, '감각 키가 필요하다');
+      // 번짐 계산 (spread.ts): 번지는 장소 특징, 칸마다 약해지는 단계 수, 칸마다 걸리는 시간(초, 60의 배수). 셋이 함께 있고 임시값 표시가 필요하다
+      const calc = ['feature', 'attenuation', 'hop_s'].filter((k) => attrs[k] !== undefined);
+      if (calc.length > 0) {
+        if (calc.length !== 3) push(`${path}.attrs`, '번짐 계산에는 feature·attenuation·hop_s가 함께 필요하다');
+        if (typeof attrs['feature'] !== 'string') push(`${path}.attrs.feature`, '번지는 특징 키가 필요하다');
+        const a = attrs['attenuation'];
+        if (!isInt(a) || a < 0 || a > 5) push(`${path}.attrs.attenuation`, '감쇠는 칸마다 줄어드는 단계 수(0~5 정수)여야 한다');
+        const h = attrs['hop_s'];
+        if (!isInt(h) || h < 0 || h % 60 !== 0) push(`${path}.attrs.hop_s`, '칸마다 걸리는 시간은 0 이상, 60의 배수 정수(초)여야 한다');
+        if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, 'tuned(조정 완료 여부)를 true/false로 적어야 한다');
+      }
+      break;
+    }
+    case 'env_level': {
+      const r = attrs['rank'];
+      if (!isInt(r) || r < 0) push(`${path}.attrs.rank`, '환경 등급의 순서(rank)는 0 이상의 정수여야 한다');
       break;
     }
     default:
@@ -138,6 +154,7 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
 const REFS: readonly (readonly [string, string, string])[] = [
   ['spreader', 'medium', 'medium'],
   ['spreader', 'stimulus', 'sense'],
+  ['spreader', 'feature', 'feature'], // 번짐이 바꾸는 장소의 특징
   ['feature', 'sense', 'sense'], // 이 특징을 어느 감각으로 느끼는가 (5층 지각)
 ];
 

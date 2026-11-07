@@ -1,0 +1,68 @@
+[
+  {
+    "category": "env_trait",
+    "entries": [
+      {
+        "key": "weather_effect",
+        "ko": "날씨 영향",
+        "en": "weather effect",
+        "desc": "날씨(햇빛·비·바람·소리)가 장소에 닿는 정도 (세계-설정 3장)"
+      },
+      {
+        "key": "temp_swing",
+        "ko": "온도 변화",
+        "en": "temperature swing",
+        "desc": "하루·계절에 따라 온도가 오르내리는 정도"
+      },
+      {
+        "key": "ventilation",
+        "ko": "환기",
+        "en": "ventilation",
+        "desc": "공기가 바뀌는 정도. 낮을수록 냄새가 오래 남는다"
+      },
+      {
+        "key": "humidity",
+        "ko": "습기",
+        "en": "humidity",
+        "desc": "물기가 남는 정도. 높을수록 곰팡이가 잘 핀다"
+      }
+    ]
+  },
+  {
+    "category": "env_level",
+    "entries": [
+      {
+        "key": "very_low",
+        "ko": "매우 낮음",
+        "en": "very low",
+        "attrs": {
+          "rank": 0
+        }
+      },
+      {
+        "key": "low",
+        "ko": "낮음",
+        "en": "low",
+        "attrs": {
+          "rank": 1
+        }
+      },
+      {
+        "key": "mid",
+        "ko": "보통",
+        "en": "mid",
+        "attrs": {
+          "rank": 2
+        }
+      },
+      {
+        "key": "high",
+        "ko": "높음",
+        "en": "high",
+        "attrs": {
+          "rank": 3
+        }
+      }
+    ]
+  }
+]

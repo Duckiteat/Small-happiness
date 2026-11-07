@@ -122,5 +122,45 @@
   "progress-not-own.json": {
     "stage": "gate",
     "match": "진행 법칙이 완성되지 않았다"
+  },
+  "passage-missing-place.json": {
+    "stage": "gate",
+    "match": "passages\\[0\\]: 없는 정의를 가리킨다: PLC000099"
+  },
+  "passage-not-place.json": {
+    "stage": "gate",
+    "match": "통로는 장소끼리 잇는다"
+  },
+  "passage-self.json": {
+    "stage": "gate",
+    "match": "통로가 자기 자신으로 간다"
+  },
+  "passage-unknown-kind.json": {
+    "stage": "gate",
+    "match": "사전에 없는 통로 종류: tunnel"
+  },
+  "passage-unknown-medium.json": {
+    "stage": "gate",
+    "match": "사전에 없는 매질: smoke"
+  },
+  "passage-pass-range.json": {
+    "stage": "gate",
+    "match": "투과율은 0~1000 정수"
+  },
+  "passage-twice.json": {
+    "stage": "gate",
+    "match": "통로가 두 번 적혀 있다"
+  },
+  "place-isolated.json": {
+    "stage": "gate",
+    "match": "통로로 이어지지 않은 장소: PLC000003"
+  },
+  "spread-two-sources.json": {
+    "stage": "gate",
+    "match": "원천 장소가 둘 이상이다"
+  },
+  "env-unknown-level.json": {
+    "stage": "gate",
+    "match": "사전에 없는 환경 등급: soggy"
   }
 }

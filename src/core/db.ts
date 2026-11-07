@@ -35,7 +35,7 @@ export const PREFIX_KIND: Readonly<Record<DefPrefix, string>> = {
 const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
   OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
-  PLC: [...COMMON_FIELDS, 'slots', 'meanings', 'rules', 'offers'],
+  PLC: [...COMMON_FIELDS, 'environment', 'passages', 'slots', 'meanings', 'rules', 'offers'],
   CHR: [...COMMON_FIELDS, 'senses'],
 };
 
@@ -115,6 +115,15 @@ export interface ProgressDef {
 }
 
 /** 감각 프로파일 (인물-명세): 감각마다 알아채는 사다리 칸(0~5). 낮을수록 예민하다. */
+/** 장소 사이의 통로 (docs/번짐-명세.md 2장 · 데이터-형식 3-2). 한 쌍은 한쪽에만 적는다 (방향 없음). */
+export interface PassageDef {
+  readonly to: string; // 장소 번호
+  readonly kind: string; // 사전 edge_kind
+  /** 매질(사전 medium) → 투과율 0~1000 (천분율). 적지 않은 매질은 0 (지나가지 못함) */
+  readonly medium_pass: { readonly [medium: string]: number };
+  readonly tuned: boolean;
+}
+
 export interface SenseDef {
   readonly notice: number;
   readonly tuned: boolean;
@@ -136,6 +145,9 @@ export interface Definition {
   readonly rules?: { readonly [key: string]: RuleDef };
   readonly offers?: { readonly [key: string]: OfferDef };
   readonly senses?: { readonly [sense: string]: SenseDef };
+  /** 장소의 환경 특성: 사전 env_trait → 사전 env_level */
+  readonly environment?: { readonly [trait: string]: string };
+  readonly passages?: readonly PassageDef[];
   readonly progress?: { readonly [feature: string]: ProgressDef };
   /** 들여놓을 때(살 때)의 상태: `부위:특징` → 단계 키 (음식-변화-모델 8장: 처음 조건은 구매와 붙어 있다). */
   readonly initial?: { readonly [slotFeature: string]: string };
@@ -382,6 +394,48 @@ function fieldSenses(v: unknown, where: string, push: Push): Record<string, Sens
   return ok ? out : undefined;
 }
 
+function fieldEnvironment(v: unknown, where: string, push: Push): Record<string, string> | undefined {
+  if (!isObj(v)) return void push(where, 'environment는 객체여야 한다 (환경 특성 → 등급)');
+  const out: Record<string, string> = {};
+  for (const k of Object.keys(v).sort()) {
+    const x = v[k];
+    if (typeof x !== 'string' || x.trim() === '') push(`${where}.${k}`, '환경 등급은 사전 키 문자열이어야 한다');
+    else out[k] = x.trim();
+  }
+  return out;
+}
+
+function fieldPassages(v: unknown, where: string, push: Push): PassageDef[] | undefined {
+  if (!Array.isArray(v)) return void push(where, 'passages는 목록이어야 한다');
+  const out: PassageDef[] = [];
+  let ok = true;
+  v.forEach((p: unknown, i) => {
+    const at = `${where}[${i}]`;
+    if (!isObj(p)) {
+      push(at, '통로는 { to, kind, medium_pass, tuned }여야 한다');
+      ok = false;
+      return;
+    }
+    onlyKeys(p, ['to', 'kind', 'medium_pass', 'tuned'], at, push);
+    const { to, kind, medium_pass: mp, tuned } = p;
+    if (typeof to !== 'string' || typeof kind !== 'string' || !isObj(mp) || typeof tuned !== 'boolean') {
+      push(at, '통로는 { to: 장소 번호, kind: 통로 종류, medium_pass: { 매질: 0~1000 }, tuned: true/false }여야 한다');
+      ok = false;
+      return;
+    }
+    const pass: Record<string, number> = {};
+    for (const m of Object.keys(mp).sort()) {
+      const x = mp[m];
+      if (typeof x !== 'number' || !Number.isInteger(x) || x < 0 || x > 1000) {
+        push(`${at}.medium_pass.${m}`, '투과율은 0~1000 정수(천분율)여야 한다');
+        ok = false;
+      } else pass[m] = x;
+    }
+    out.push({ to: to.trim(), kind: kind.trim(), medium_pass: pass, tuned });
+  });
+  return ok ? out : undefined;
+}
+
 function fieldProgress(v: unknown, where: string, push: Push): Record<string, ProgressDef> | undefined {
   if (!isObj(v)) return void push(where, 'progress는 객체여야 한다');
   const out: Record<string, ProgressDef> = {};
@@ -442,6 +496,8 @@ export type Fields = Partial<{
   rules: Record<string, RuleDef>;
   offers: Record<string, OfferDef>;
   senses: Record<string, SenseDef>;
+  environment: Record<string, string>;
+  passages: PassageDef[];
   progress: Record<string, ProgressDef>;
   initial: Record<string, string>;
 }>;
@@ -512,6 +568,16 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.senses = v;
         break;
       }
+      case 'environment': {
+        const v = fieldEnvironment(value, at, push);
+        if (v !== undefined) out.environment = v;
+        break;
+      }
+      case 'passages': {
+        const v = fieldPassages(value, at, push);
+        if (v !== undefined) out.passages = v;
+        break;
+      }
       case 'progress': {
         const v = fieldProgress(value, at, push);
         if (v !== undefined) out.progress = v;
@@ -543,6 +609,8 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
     ...(f.rules !== undefined ? { rules: f.rules } : {}),
     ...(f.offers !== undefined ? { offers: f.offers } : {}),
     ...(f.senses !== undefined ? { senses: f.senses } : {}),
+    ...(f.environment !== undefined ? { environment: f.environment } : {}),
+    ...(f.passages !== undefined ? { passages: f.passages } : {}),
     ...(f.progress !== undefined ? { progress: f.progress } : {}),
     ...(f.initial !== undefined ? { initial: f.initial } : {}),
     desc: f.desc ?? [],

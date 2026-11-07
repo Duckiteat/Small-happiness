@@ -628,20 +628,28 @@
         "key": "odor",
         "ko": "냄새",
         "en": "odor",
-        "desc": "공기로 퍼지는 냄새 개체",
+        "desc": "공기로 퍼지는 냄새 개체. 장소의 냄새 단계가 통로를 따라 이웃 장소로 번진다 (공기 투과율의 곱, 칸마다 attenuation 칸씩 약해짐, 곧바로)",
         "attrs": {
           "medium": "air",
-          "stimulus": "smell"
+          "stimulus": "smell",
+          "feature": "smell",
+          "attenuation": 1,
+          "hop_s": 0,
+          "tuned": false
         }
       },
       {
         "key": "insect",
         "ko": "벌레",
         "en": "insect",
-        "desc": "먹이를 향해 스스로 이동하는 벌레 개체",
+        "desc": "먹이를 향해 스스로 이동하는 벌레 개체. 장소의 벌레 단계가 자력 이동 투과율이 있는 통로로 칸마다 hop_s 뒤에 번진다",
         "attrs": {
           "medium": "self_move",
-          "stimulus": "sight"
+          "stimulus": "sight",
+          "feature": "bug",
+          "attenuation": 0,
+          "hop_s": 21600,
+          "tuned": false
         }
       },
       {
@@ -651,7 +659,7 @@
         "aliases": [
           "발바닥 먼지"
         ],
-        "desc": "접촉과 이동으로 옮겨지는 먼지·오염 개체",
+        "desc": "접촉과 이동으로 옮겨지는 먼지·오염 개체. 운반 매질은 접촉 사건이 필요해 아직 계산하지 않는다 (feature 없음, 한계-등록부)",
         "attrs": {
           "medium": "carry",
           "stimulus": "sight"
