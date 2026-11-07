@@ -62,7 +62,16 @@ test('버린 결과는 행동에서 이어진다: 상태 변화 ← 행동 끝 �
   const log = EventLog.fromJSON(trace.log as unknown[], { isKnownType });
   const gone = log.list({ type: 'state_changed', where: (e) => e.data['to'] === 'gone' }).at(0);
   assert.ok(gone);
-  assert.deepEqual(log.chain(gone.seq).map((e) => e.type), ['state_changed', 'action_done', 'action_chosen']);
+  // 원인만 따라가면 이야기가 처음부터 끝까지 읽힌다: 음식이 생김 → 시듦 → 상함 → 냄새 → 주방에 퍼짐 → 알아챔 → 살핌 → 이해함 → 버림 → 소멸
+  assert.deepEqual(log.chain(gone.seq).map((e) => e.type), [
+    'state_changed', 'action_done', 'action_chosen', // 버려서 사라짐
+    'awareness_up', 'action_done', 'action_chosen', // 살펴서 이해함
+    'awareness_up', 'state_changed', 'delay_fired', 'delay_scheduled', // 주방 냄새를 알아챔 ← 냄새가 퍼짐
+    'state_changed', 'delay_fired', 'delay_scheduled', // 음식 냄새가 남
+    'state_changed', 'delay_fired', 'delay_scheduled', // 상함
+    'state_changed', 'delay_fired', 'delay_scheduled', // 시듦
+    'instance_created',
+  ]);
 });
 
 test('사람이 다르면 하루가 다르다: 냄새에 둔한 사람은 저녁에야 알아채고, 그 사이 꼬인 벌레는 버린 뒤에도 거실로 번진다', () => {

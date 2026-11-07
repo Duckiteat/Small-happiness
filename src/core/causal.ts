@@ -21,6 +21,7 @@ import { effectiveRules, instancesOfKind } from './kinds.ts';
 import { Progress } from './progress.ts';
 import { spreadRules } from './spread.ts';
 import { formatVia } from './via.ts';
+import { latestSeq } from './events.ts';
 import type { GameEvent } from './events.ts';
 import type { EventLog } from './log.ts';
 import { condRange, formatStateKey, parsePattern } from './statekey.ts';
@@ -208,10 +209,22 @@ export class Causal {
         if (this.#reservations.has(id)) continue;
         if (!this.#holds(world, rule, at) || this.#done(world, rule, at)) continue;
         const due = t + rule.delayMin;
-        const e = this.#log.append({ t, type: DELAY_SCHEDULED, src: CAUSAL_SRC, data: { via: formatVia(rule.owner, 'rule', rule.key), at, due } });
+        const e = this.#log.append({ t, type: DELAY_SCHEDULED, src: CAUSAL_SRC, cause: this.#why(world, rule, at), data: { via: formatVia(rule.owner, 'rule', rule.key), at, due } });
         this.#reservations.set(id, { rule, at, due, seq: e.seq });
       }
     }
+  }
+
+  /**
+   * 예약의 원인: 조건을 채운 상태 키들(on은 맞는 것, on_all은 걸리는 것 전부) 중 가장 최근에 바뀐 사건.
+   * 조건이 처음부터 맞아서 한 번도 바뀐 적이 없으면 null (원인 사건이 없는 것이 맞다).
+   */
+  #why(world: World, rule: Rule, at: string): string | null {
+    const keys = (p: StatePattern): string[] => this.#targets(world, p, rule.owner, at).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
+    return latestSeq([
+      ...rule.on.flatMap((p) => this.#targets(world, p, rule.owner, at).filter((i) => this.#matches(world, p, i)).map((i) => world.lastChange(formatStateKey({ subject: i, slot: p.slot, feature: p.feature })))),
+      ...rule.onAll.flatMap((p) => keys(p).map((k) => world.lastChange(k))),
+    ]);
   }
 
   /** 패턴이 걸리는 인스턴스들: 규칙을 선언한 정의면 그 인스턴스 하나, 아니면 그 정의의 종류 전부. */

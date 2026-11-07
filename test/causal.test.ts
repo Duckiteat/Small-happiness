@@ -72,7 +72,8 @@ test('발화는 예약을 원인으로, 상태 변화는 발화를 원인으로 
   const log = EventLog.fromJSON(trace.log as unknown[], { isKnownType });
   const changed = log.list({ type: 'state_changed' }).at(0);
   assert.ok(changed);
-  assert.deepEqual(log.chain(changed.seq).map((e) => e.type), ['state_changed', 'delay_fired', 'delay_scheduled']);
+  // 사슬은 그 개체가 생긴 사건까지 이어진다 (신선하다는 조건은 만들어질 때부터 맞았다)
+  assert.deepEqual(log.chain(changed.seq).map((e) => e.type), ['state_changed', 'delay_fired', 'delay_scheduled', 'instance_created']);
 });
 
 test('거부: 시간이 거꾸로 간다', () => {

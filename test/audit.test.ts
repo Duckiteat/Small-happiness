@@ -20,12 +20,12 @@ const SKELETON = 'examples/scenarios/skeleton-day.json';
 const scenarioOf = (file: string) => parseScenario(JSON.parse(readFileSync(join(ROOT, file), 'utf8')));
 const eventsOf = (file: string): GameEvent[] => scenarioRun(ROOT, vocab, file).log.map(parseEvent);
 
-test('감사: 엔진이 낸 진짜 기록은 위반이 없고, 검사 여섯 가지가 모두 실제로 돌았다', () => {
+test('감사: 엔진이 낸 진짜 기록은 위반이 없고, 검사 종류가 모두 실제로 돌았다', () => {
   for (const file of [WEEK, SKELETON]) {
     const sc = scenarioOf(file);
     const r = auditLog(eventsOf(file), scenarioDb(ROOT, vocab, sc), vocab, { externalUntil: sc.start });
     assert.deepEqual(r.findings, [], file);
-    for (const check of ['timing', 'effects', 'state', 'awareness', 'action']) assert.ok((r.checked[check] ?? 0) > 0, `${file}: ${check} 검사가 한 번도 돌지 않았다`);
+    for (const check of ['timing', 'cause', 'effects', 'state', 'awareness', 'action']) assert.ok((r.checked[check] ?? 0) > 0, `${file}: ${check} 검사가 한 번도 돌지 않았다`);
   }
   const week = auditLog(eventsOf(WEEK), loadDb(ROOT), vocab);
   assert.ok((week.checked['progress'] ?? 0) > 0, '진행 검사가 돌았다 (첫 주에는 진행이 있다)');
@@ -78,6 +78,14 @@ test('감사: 사건을 하나씩 망가뜨리면 해당 검사가 잡는다 (�
       mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'awareness_up' && String(e.data['via']).includes('/sense/')), (e) => data(e, { level: e.data['level'] === 'foul' ? 'faint' : 'foul' })) },
     { name: '살피지 않았는데 이해했다고 적는다', check: 'awareness', message: /행동이 끝난 기록이 없는데/,
       mutate: (ev) => ev.filter((e) => e.type !== 'action_done') },
+    { name: '예약의 원인을 지운다', check: 'cause', message: /조건을 마지막으로 채운 사건/,
+      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'delay_scheduled' && e.cause !== null), { cause: null }) },
+    { name: '저절로 느낀 것의 원인을 엉뚱한 사건으로 바꾼다', check: 'cause', message: /조건을 마지막으로 채운 사건/,
+      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'awareness_up' && String(e.data['via']).includes('/sense/')), { cause: (ev[0] as GameEvent).seq }) },
+    { name: '살펴서 안 것의 원인을 지운다', check: 'cause', message: /살피기의 끝/,
+      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'awareness_up' && String(e.data['via']).includes('/offer/')), { cause: null }) },
+    { name: '행동의 원인(앎)을 지운다', check: 'cause', message: /앎\(awareness 사건\)이 아니다/,
+      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'action_chosen'), { cause: null }) },
     { name: '원인 없는 상태 변화를 처음 설정 뒤에 끼운다', check: 'state', message: /원인 없는 상태 변화/,
       mutate: (ev) => { const last = ev.at(-1) as GameEvent; return [...ev, { seq: 'L999999', t: last.t, type: 'state_changed', src: 'world', cause: null, data: { key: 'OBJ000002#1|cond:temp', from: 'fridge', to: 'frozen' } }]; } },
     { name: '앎이 일으킨 상태 변화(원인이 엉뚱한 사건)', check: 'state', message: /상태 변화의 원인이 awareness_up/,

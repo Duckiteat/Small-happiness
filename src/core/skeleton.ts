@@ -125,6 +125,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
         for (const a of due) {
           causal.advance(world, a.ends);
           const done = log.append({ t: a.ends, type: 'action_done', src: 'world', cause: a.event, data: { who: a.who, verb: a.verb, via: a.via, at: a.at } });
+          perception.recordDone(a.event, done.seq);
           for (const e of a.effects) {
             const k = parseStateKey(e.key);
             if (k !== null && (e.op === '=' || e.op === '>=' || e.op === '<=')) {

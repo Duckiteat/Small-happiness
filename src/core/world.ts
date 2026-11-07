@@ -50,6 +50,8 @@ export class World {
   readonly #ids = new IdAllocator();
   readonly #instances = new Map<string, string>(); // 인스턴스 → 정의
   readonly #states = new Map<string, string>(); // 상태 키 → 단계 키
+  readonly #last = new Map<string, string>(); // 상태 키 → 마지막으로 바꾼 사건 (기록에서 복원된다)
+  readonly #born = new Map<string, string>(); // 인스턴스 → 생긴 사건
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -107,6 +109,15 @@ export class World {
     return at < 0 ? null : at;
   }
 
+  /**
+   * 그 상태가 지금 값으로 정해진 마지막 사건 번호: 마지막으로 바꾼 state_changed, 한 번도 바뀌지 않았으면 그 개체가 생긴 사건.
+   * 원인을 적을 때 쓴다 ("조건을 마지막으로 채운 사건", 영수증-명세 9장). 없는 키면 null.
+   */
+  lastChange(key: string): string | null {
+    const k = parseStateKey(key);
+    return this.#last.get(key) ?? (k === null ? null : this.#born.get(k.subject) ?? null);
+  }
+
   defOfInstance(id: string): string | undefined {
     return this.#instances.get(id);
   }
@@ -162,6 +173,7 @@ export class World {
       if (id !== expected) throw new WorldError(`${at}: 인스턴스 번호 순서가 어긋난다 (기대 ${expected}, 실제 ${id})`);
       this.#ids.nextInstance(def);
       this.#instances.set(id, def);
+      this.#born.set(id, e.seq);
       return;
     }
     if (e.type === STATE_CHANGED) {
@@ -175,6 +187,7 @@ export class World {
       if (from !== now) throw new WorldError(`${at}: ${key}의 지금 단계는 ${now}인데 사건은 ${from}에서 바꾼다`);
       if (from === to) throw new WorldError(`${at}: ${key}의 from과 to가 같다`);
       this.#states.set(key, to);
+      this.#last.set(key, e.seq);
       return;
     }
     throw new WorldError(`${at}: 세계 상태가 다루지 않는 사건이다`);

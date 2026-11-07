@@ -584,6 +584,7 @@
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
+              "seq": "L000020",
               "t": 1860
             }
           }
@@ -695,26 +696,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
+              "seq": "L000020",
               "t": 1860
             }
           }
@@ -816,26 +822,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
+              "seq": "L000020",
               "t": 1860
             }
           }
@@ -904,26 +915,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
+              "seq": "L000020",
               "t": 1860
             }
           }
@@ -989,26 +1005,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
+              "seq": "L000020",
               "t": 1860
             }
           }
@@ -1074,26 +1095,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
+              "seq": "L000020",
               "t": 1860
             }
           }
@@ -1159,26 +1185,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
+              "seq": "L000020",
               "t": 1860
             }
           }
@@ -1244,26 +1275,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
+              "seq": "L000035",
               "t": 2610
             }
           }
@@ -1329,26 +1365,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
+              "seq": "L000035",
               "t": 2610
             }
           }
@@ -1414,26 +1455,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
+              "seq": "L000035",
               "t": 2610
             }
           }
@@ -1499,26 +1545,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
+              "seq": "L000035",
               "t": 2610
             }
           }
@@ -1584,26 +1635,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
+              "seq": "L000023",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
+              "seq": "L000026",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
+              "seq": "L000035",
               "t": 2610
             }
           }
@@ -1689,7 +1745,7 @@
       "t": 0,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": null,
+      "cause": "L000002",
       "data": {
         "via": "OBJ000001/rule/wilt",
         "at": "OBJ000001#1",
@@ -1724,7 +1780,7 @@
       "t": 720,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": null,
+      "cause": "L000009",
       "data": {
         "via": "OBJ000001/rule/go_bad",
         "at": "OBJ000001#1",
@@ -1759,7 +1815,7 @@
       "t": 1440,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": null,
+      "cause": "L000012",
       "data": {
         "via": "OBJ000001/rule/spoil",
         "at": "OBJ000001#1",
@@ -1794,7 +1850,7 @@
       "t": 1800,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": null,
+      "cause": "L000015",
       "data": {
         "via": "PLC000001/rule/odor_reach",
         "at": "PLC000001#1",
@@ -1829,7 +1885,7 @@
       "t": 1800,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": null,
+      "cause": "L000018",
       "data": {
         "via": "PLC000001/rule/odor_thicken",
         "at": "PLC000001#1",
@@ -1841,7 +1897,7 @@
       "t": 1860,
       "type": "awareness_up",
       "src": "perception",
-      "cause": null,
+      "cause": "L000018",
       "data": {
         "who": "CHR000001#1",
         "key": "PLC000001#1|space:smell",
@@ -1855,7 +1911,7 @@
       "t": 1860,
       "type": "action_chosen",
       "src": "agency",
-      "cause": null,
+      "cause": "L000020",
       "data": {
         "who": "CHR000001#1",
         "verb": "inspect",
@@ -1882,7 +1938,7 @@
       "t": 1865,
       "type": "awareness_up",
       "src": "perception",
-      "cause": null,
+      "cause": "L000022",
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000001#1|body:rot",
@@ -1896,7 +1952,7 @@
       "t": 1865,
       "type": "awareness_up",
       "src": "perception",
-      "cause": null,
+      "cause": "L000022",
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000001#1|body:smell",
@@ -1910,7 +1966,7 @@
       "t": 1865,
       "type": "awareness_up",
       "src": "perception",
-      "cause": null,
+      "cause": "L000022",
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000002#1|sole:dirt",
@@ -1924,7 +1980,7 @@
       "t": 1865,
       "type": "awareness_up",
       "src": "perception",
-      "cause": null,
+      "cause": "L000022",
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000003#1|surface:dirt",
@@ -1938,7 +1994,7 @@
       "t": 1865,
       "type": "action_chosen",
       "src": "agency",
-      "cause": null,
+      "cause": "L000023",
       "data": {
         "who": "CHR000001#1",
         "verb": "discard",
@@ -1989,7 +2045,7 @@
       "t": 1870,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": null,
+      "cause": "L000030",
       "data": {
         "via": "PLC000001/rule/air_out",
         "at": "PLC000001#1",
@@ -2035,7 +2091,7 @@
       "t": 2610,
       "type": "awareness_changed",
       "src": "perception",
-      "cause": null,
+      "cause": "L000034",
       "data": {
         "who": "CHR000001#1",
         "key": "PLC000001#1|space:smell",

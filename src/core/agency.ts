@@ -15,6 +15,7 @@
 import { levelMatches, stateMatches } from './causal.ts';
 import type { BoardValue } from './board.ts';
 import { formatVia } from './via.ts';
+import { latestSeq } from './events.ts';
 import type { Db } from './db.ts';
 import { effectiveInitial, effectiveOffers, instancesOfKind } from './kinds.ts';
 import { meaningOf } from './meaning.ts';
@@ -149,7 +150,13 @@ export class Agency {
           this.#tried.add(signature);
           const ends = t + offer.minutes;
           this.#busyUntil = ends;
-          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends } });
+          // 원인: 이 행동의 조건을 채운 앎들 중 가장 최근에 생긴 것 (needs · when · 상태 의미를 만든 앎)
+          const why = latestSeq([
+            ...needs.flatMap((n) => n.keys.filter((k) => rank(effective(k)) >= n.min).map((k) => knows[k]?.seq)),
+            ...when.flatMap((p) => targets(p).filter((k) => levelMatches(this.#vocab, p.feature, believed(k), p.cond)).map((k) => knows[k]?.seq)),
+            ...(offer.when_meaning !== undefined ? world.keysOf(at).map((k) => knows[k]?.seq) : []),
+          ]);
+          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends } });
           return [
             {
               event: e.seq,

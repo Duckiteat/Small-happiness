@@ -9,6 +9,7 @@
 // 코어는 입출력이 없다. 시나리오를 읽는 일은 서기(clerk.ts)가 한다.
 
 import type { Db } from './db.ts';
+import { latestSeq } from './events.ts';
 import type { GameEvent, JsonValue } from './events.ts';
 import { allRules, levelMatches } from './causal.ts';
 import type { Rule } from './causal.ts';
@@ -19,7 +20,7 @@ import type { StatePattern } from './statekey.ts';
 import { parseVia } from './via.ts';
 import type { Vocab } from './vocab.ts';
 
-export type AuditCheck = 'rule' | 'timing' | 'holds' | 'effects' | 'state' | 'progress' | 'action' | 'awareness';
+export type AuditCheck = 'cause' | 'rule' | 'timing' | 'holds' | 'effects' | 'state' | 'progress' | 'action' | 'awareness';
 
 export interface AuditFinding {
   readonly seq: string;
@@ -121,6 +122,16 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     return out;
   };
 
+  const lastSeq = new Map<string, string>(); // 상태 키 → 마지막으로 바꾼 사건
+  const born = new Map<string, string>(); // 개체 → 생긴 사건
+  const doneBy = new Map<string, { who: string; via: string }>(); // action_done seq → 누가 무엇을
+  const awarenessBy = new Map<string, string>(); // awareness 사건 seq → 누가
+  /** 상태가 지금 값으로 정해진 마지막 사건: 마지막으로 바꾼 사건, 바뀐 적이 없으면 개체가 생긴 사건 (World.lastChange와 같은 약속). */
+  const lastChangeOf = (key: string): string | null => lastSeq.get(key) ?? born.get(parseStateKey(key)?.subject ?? '') ?? null;
+  const expectCause = (seq: string, check: 'cause', cause: string | null, expected: string | null, what: string): void => {
+    bump(check);
+    if (cause !== expected) bad(seq, check, `${what}의 원인이 ${cause ?? '없음'}인데 조건을 마지막으로 채운 사건은 ${expected ?? '없음'}이다`);
+  };
   const open = new Map<string, Reservation>(); // delay_scheduled seq → 예약
   const openIds = new Set<string>(); // 같은 규칙 × 인스턴스의 예약은 하나
   const chosen = new Map<string, Chosen>();
@@ -170,6 +181,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           break;
         }
         instances.set(id, def);
+        born.set(id, e.seq);
         const slots = db.defs[def]?.slots ?? {};
         const expect: Expected[] = [];
         for (const [sf, level] of Object.entries(effectiveInitial(db, def))) {
@@ -193,6 +205,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (from !== now) bad(e.seq, 'state', `${key}의 지금 단계는 ${now}인데 사건은 ${from}에서 바꾼다`);
         if (from === to) bad(e.seq, 'state', `${key}의 from과 to가 같다`);
         levels.set(key, to);
+        lastSeq.set(key, e.seq);
         // 이 변화는 무엇이 일으켰나: 처음 상태 · 규칙 발화 · 행동 끝 · 진행. 원인이 없으면 시나리오의 처음 설정뿐이다
         if (e.cause === null) {
           if (options.externalUntil !== undefined && e.t > options.externalUntil) bad(e.seq, 'state', `원인 없는 상태 변화가 처음 설정 시각(${options.externalUntil}분) 뒤에 있다: ${key}`);
@@ -220,6 +233,17 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (due !== e.t + rule.delayMin) bad(e.seq, 'timing', `발화 시각이 ${due}분인데 규칙의 지연으로는 ${e.t + rule.delayMin}분이다`);
         if (!holds(levels, rule, at)) bad(e.seq, 'holds', `예약할 때 ${via}의 조건이 맞지 않는다`);
         else if (done(levels, rule, at)) bad(e.seq, 'holds', `예약할 때 ${via}의 결과가 이미 이루어져 있다`);
+        // 원인: 조건을 채운 키들(on은 맞는 것, on_all은 걸리는 것 전부) 중 가장 최근에 정해진 사건
+        expectCause(
+          e.seq,
+          'cause',
+          e.cause,
+          latestSeq([
+            ...rule.on.flatMap((p) => targets(p, rule.owner, at).filter((i) => matches(levels, p, i)).map((i) => lastChangeOf(keyOf(p, i)))),
+            ...rule.onAll.flatMap((p) => targets(p, rule.owner, at).map((i) => lastChangeOf(keyOf(p, i)))),
+          ]),
+          via,
+        );
         break;
       }
       case 'delay_fired':
@@ -292,6 +316,9 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           return p === null ? [] : targets(p, pv.owner, at).map((i) => ({ key: keyOf(p, i), feature: p.feature, cond: p.cond }));
         });
         chosen.set(e.seq, { via, who, verb, at, ends, effects });
+        // 원인: 이 행동의 조건을 채운 하루씨의 앎(awareness 사건). 어느 앎인지까지는 행동을 고른 이유를 다시 계산해야 안다 (LIM014)
+        bump('cause');
+        if (e.cause === null || awarenessBy.get(e.cause) !== who) bad(e.seq, 'cause', `행동의 원인이 ${who}의 앎(awareness 사건)이 아니다: ${e.cause ?? '없음'}`);
         break;
       }
       case 'action_done': {
@@ -304,6 +331,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (c.via !== via || c.who !== str(e.data['who']) || c.verb !== str(e.data['verb']) || c.at !== str(e.data['at'])) bad(e.seq, 'action', '고른 행동과 다른 행동이 끝났다');
         if (e.t !== c.ends) bad(e.seq, 'action', `끝나는 시각 ${c.ends}분이 아닌 ${e.t}분에 기록됐다`);
         inspected.add(`${c.who}|${via}`);
+        doneBy.set(e.seq, { who: c.who, via });
         const expect = expectChanges(levels, c.effects);
         if (expect.length > 0) pending = { cause: e.seq, what: `${via} 끝`, expect };
         break;
@@ -317,12 +345,20 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           bad(e.seq, 'awareness', `앎의 주체나 대상이 없다: ${who} → ${key}`);
           break;
         }
+        awarenessBy.set(e.seq, who);
         const now = levelIn(levels, key);
         const prev = knows.get(`${who}|${key}`);
         const rose = prev === undefined || rank(aw) > rank(prev.aw);
         if (e.type === 'awareness_up' && !rose) bad(e.seq, 'awareness', `인지 단계가 오르지 않았는데 awareness_up이다 (${prev?.aw} → ${aw})`);
         if (e.type === 'awareness_changed' && (rose || prev === undefined || prev.aw !== aw || prev.level === level)) bad(e.seq, 'awareness', '이미 아는 단계에서 본 단계가 달라진 것이 아니다');
         if (pv === null) break;
+        // 원인: 저절로 느낀 것은 그 상태를 마지막으로 정한 사건, 살펴서 안 것은 그 살피기가 끝난 사건
+        if (pv.kind === 'sense') expectCause(e.seq, 'cause', e.cause, lastChangeOf(key), `${key} 느낌`);
+        else {
+          bump('cause');
+          const d = e.cause === null ? undefined : doneBy.get(e.cause);
+          if (d === undefined || d.who !== who || d.via !== via) bad(e.seq, 'cause', `살펴서 안 것의 원인이 그 살피기의 끝(action_done)이 아니다: ${e.cause ?? '없음'}`);
+        }
         if (pv.kind === 'sense') {
           const sense = vocab.entry('feature', k.feature)?.attrs['sense'];
           const notice = db.defs[defOf(who) ?? '']?.senses?.[pv.key]?.notice;

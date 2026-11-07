@@ -16,7 +16,7 @@
         "type": "action_chosen",
         "src": "agency"
       },
-      "finding": "하루씨는 앎이 행동의 조건(needs)을 채울 때 고른다. 그 앎은 awareness_up 사건으로 기록되지만, 판의 aware(Knowing = 인지 단계·본 단계·본 시각)에 옮길 때 사건 번호가 빠진다. 6층(agency.ts 150행)은 앎을 읽어 판단하지만 어느 사건의 앎인지 알 수 없어 cause 없이 적는다. 예: 첫 주 4일 07:00 L000061 주방 냄새 알아챔 → 같은 시각 L000062 주방 살피기 고름 (원인 빈칸)",
+      "finding": "하루씨는 앎이 행동의 조건(needs)을 채울 때 고른다. 그 앎은 awareness_up 사건으로 기록되지만, 판의 aware(Knowing = 인지 단계·본 단계·본 시각)에 옮길 때 사건 번호가 빠진다. 6층(agency.ts 150행)은 앎을 읽어 판단하지만 어느 사건의 앎인지 알 수 없어 cause 없이 적는다. 예: 첫 주 4일 07:00 L000061 주방 냄새 알아챔 → 같은 시각 L000062 주방 살피기 고름 (원인 빈칸) [2026-11-07 해결] 앎(Knowing)에 그 앎을 만든 awareness 사건 번호(seq)를 더했다. 행동은 조건(needs·when·상태 의미)을 채운 앎들 중 가장 최근 것을 cause로 적는다",
       "evidence": [
         "src/core/perception.ts Knowing",
         "src/core/agency.ts #log.append(ACTION_CHOSEN)",
@@ -36,7 +36,7 @@
           "to": "understood"
         }
       },
-      "finding": "살피기가 끝나면 5층이 그 장소의 물건을 모두 '이해함'으로 안다. 5층은 직전 행동(recent)을 받고, 거기에 행동 사건 번호(event = action_chosen의 seq)가 들어 있다. 그러나 #observe에 원인 인자가 없어 버려진다. 행동 끝(action_done)은 2층이 같은 단계에 기록하지만 5층에 전해지지 않는다. 예: 첫 주 4일 07:05 L000063 주방 살피기 끝 → L000064~ 우유·두부… 이해함 (원인 빈칸)",
+      "finding": "살피기가 끝나면 5층이 그 장소의 물건을 모두 '이해함'으로 안다. 5층은 직전 행동(recent)을 받고, 거기에 행동 사건 번호(event = action_chosen의 seq)가 들어 있다. 그러나 #observe에 원인 인자가 없어 버려진다. 행동 끝(action_done)은 2층이 같은 단계에 기록하지만 5층에 전해지지 않는다. 예: 첫 주 4일 07:05 L000063 주방 살피기 끝 → L000064~ 우유·두부… 이해함 (원인 빈칸) [2026-11-07 해결] 5층이 2층이 기록한 행동 끝(action_done)의 번호를 받아(`recordDone`) 살펴서 안 것의 cause로 적는다",
       "evidence": [
         "src/core/perception.ts step()의 reveals, #observe(who, key, aw, level, t)",
         "src/core/skeleton.ts 2층 action_done"
@@ -58,7 +58,7 @@
           "src": "perception"
         }
       ],
-      "finding": "5층은 세계 상태의 단계(world.level)만 읽는다. 세계 상태는 단계만 들고 '이 단계를 만든 사건'을 들고 있지 않아서, 냄새를 뚜렷하게 만든 state_changed를 원인으로 적을 수 없다. 사건 번호는 World.set이 돌려주지만 저장되지 않는다. 예: 첫 주 4일 02:39 L000059 주방 냄새 은은함 → 뚜렷함, 07:00 L000061 알아챔 (원인 빈칸)",
+      "finding": "5층은 세계 상태의 단계(world.level)만 읽는다. 세계 상태는 단계만 들고 '이 단계를 만든 사건'을 들고 있지 않아서, 냄새를 뚜렷하게 만든 state_changed를 원인으로 적을 수 없다. 사건 번호는 World.set이 돌려주지만 저장되지 않는다. 예: 첫 주 4일 02:39 L000059 주방 냄새 은은함 → 뚜렷함, 07:00 L000061 알아챔 (원인 빈칸) [2026-11-07 해결] 세계 상태가 키마다 상태가 정해진 마지막 사건(`lastChange`)을 들고 있고, 저절로 느낀 것·없어진 것은 그것을 cause로 적는다",
       "evidence": [
         "src/core/world.ts set()·level()",
         "src/core/perception.ts step()의 felt(key)"
@@ -74,7 +74,7 @@
         "type": "delay_scheduled",
         "src": "causal"
       },
-      "finding": "3층은 단계마다 규칙의 조건을 상태로 검사하고(#holds는 참/거짓만 돌려준다), 조건이 채워지면 예약한다. 어느 상태 변화가 조건을 채웠는지는 버려진다. 예: 첫 주 4일 02:39 L000059 주방 냄새 → 뚜렷함, 같은 시각 L000060 주방/bugs 예약 (원인 빈칸)",
+      "finding": "3층은 단계마다 규칙의 조건을 상태로 검사하고(#holds는 참/거짓만 돌려준다), 조건이 채워지면 예약한다. 어느 상태 변화가 조건을 채웠는지는 버려진다. 예: 첫 주 4일 02:39 L000059 주방 냄새 → 뚜렷함, 같은 시각 L000060 주방/bugs 예약 (원인 빈칸) [2026-11-07 해결] 예약의 cause는 조건을 채운 키들(on은 맞는 것, on_all은 걸리는 것 전부) 중 가장 최근에 정해진 사건이다. 한 번도 바뀌지 않은 키는 그 개체가 생긴 사건이 상태를 정한 마지막 사건이다",
       "evidence": [
         "src/core/causal.ts #schedule()·#holds()"
       ],
