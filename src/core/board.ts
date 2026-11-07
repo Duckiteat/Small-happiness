@@ -3,7 +3,7 @@
 // 한 단계(step)마다 판 하나를 새로 채운다. 층은 정해진 순서로 돌고, 판을 통해서만 주고받는다.
 //   - 쓰기: 이름 공간마다 주인 층이 하나다. 주인만 쓰고, 한 단계에 한 번만 쓴다 (2장, 4장).
 //   - 읽기: 층마다 읽을 수 있는 이름 공간이 정해져 있다 (3장). 같은 단계의 아래 층 결과만 읽는다.
-//   - 되먹임: 위에서 아래로 가는 길은 직전 단계의 판을 읽는 여섯 길뿐이다 (5장 F1~F4, 시간 모델의 F5, 살피기의 F6).
+//   - 되먹임: 위에서 아래로 가는 길은 직전 단계의 판을 읽는 일곱 길뿐이다 (5장 F1~F4, 시간 모델의 F5, 살피기의 F6, 다음 변화의 F7).
 //   - 값: 정수, 문자열(키), 참거짓, 그리고 그것들의 목록·객체만 담는다. 부동소수와 null은 넣지 않는다 (2장, 8장).
 // 어기면 BoardError를 던진다. 판은 계산하지 않고 약속만 지킨다.
 
@@ -51,7 +51,7 @@ export const READS: { readonly [L in LayerId]: readonly Namespace[] } = {
 
 /** 직전 단계의 판에서 읽을 수 있는 이름 공간: 되먹임 길 F1~F4 (5장). */
 export const PREV_READS: { readonly [L in LayerId]?: readonly Namespace[] } = {
-  '0': ['plan', 'recent'], // F5 일정·행동 끝 → 시계 (다음 단계 시각, schedule.ts)
+  '0': ['plan', 'recent', 'world.stimulus_source'], // F5 일정·행동 끝 → 시계, F7 세계의 다음 변화 → 시계 (schedule.ts)
   '2': ['recent'], // F1 행동 → 물체 (효과 요청)
   '4b': ['recent', 'perceived', 'memory', 'self'],
   '5': ['recent'], // F6 행동 → 지각 (살피기가 끝나면 그 장소의 물건까지 본다) // F2 행동 결과 · F3 알아챈 것 · F4 어제의 집 인상 · 자기 이월
@@ -125,7 +125,7 @@ export class Board {
   /** 직전 단계의 판 읽기 (되먹임 길). 첫 단계면 undefined. */
   static readPrev(prev: Board | null, layer: LayerId, ns: Namespace): BoardValue | undefined {
     if (!(PREV_READS[layer] ?? []).includes(ns)) {
-      throw new BoardError(`${layer}층은 직전 단계의 ${ns}를 읽을 수 없다 (되먹임 길은 F1~F6뿐: 품질판-명세 5장, 결정-기록 4장)`);
+      throw new BoardError(`${layer}층은 직전 단계의 ${ns}를 읽을 수 없다 (되먹임 길은 F1~F7뿐: 품질판-명세 5장, 결정-기록 4장)`);
     }
     return prev === null ? undefined : prev.#values.get(ns);
   }

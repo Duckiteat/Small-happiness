@@ -34,13 +34,18 @@ const MAX_FIRES_PER_ADVANCE = 10_000;
 
 /** 상태 key가 조건 cond에 맞는가. 종결 단계(소멸·고정)는 = 조건으로만 맞는다. 인과·행동이 같이 쓴다. */
 export function stateMatches(world: World, vocab: Vocab, key: string, feature: string, cond: Cond): boolean {
+  return levelMatches(vocab, feature, world.level(key), cond);
+}
+
+/** 단계 키 level이 조건 cond에 맞는가. 세계의 상태와 인물의 앎(본 단계)이 같은 규칙으로 판정된다. */
+export function levelMatches(vocab: Vocab, feature: string, level: string, cond: Cond): boolean {
   if (cond === null) return true;
-  const level = world.level(key);
   if (vocab.has('terminal', cond.level)) return cond.op === '=' && level === cond.level;
   if (level === 'gone') return cond.op === '<=' || cond.op === '<'; // 소멸 = 축에서 빠짐: "이하"에는 맞는다 (냄새 없음)
-  const idx = world.levelIndex(key);
-  if (idx === null) return false; // 종결 단계는 사다리 조건에 맞지 않는다
-  const r = condRange(cond, vocab.levelOrder(feature));
+  const order = vocab.levelOrder(feature);
+  const idx = order?.indexOf(level) ?? -1;
+  if (idx < 0) return false; // 종결 단계는 사다리 조건에 맞지 않는다
+  const r = condRange(cond, order);
   return r !== null && idx >= r.min && idx <= r.max;
 }
 
@@ -122,6 +127,18 @@ export class Causal {
   /** 진행 법칙의 지금 양 (0~1000). 진행하지 않는 상태면 null. 시험·화면용. */
   amount(key: string): number | null {
     return this.#progress.amount(key);
+  }
+
+  /**
+   * 세계가 다음에 스스로 바뀔 시각 (걸린 예약과 진행 법칙의 경계 중 가장 이른 것). 없으면 null.
+   * 하루씨가 집에 있을 때 시계가 이 시각에 한 단계를 깨운다 (되먹임 길 F7).
+   */
+  nextChange(world: World): number | null {
+    let min: number | null = null;
+    for (const r of this.#reservations.values()) if (min === null || r.due < min) min = r.due;
+    const p = this.#progress.next(world, Number.MAX_SAFE_INTEGER);
+    if (p !== null && (min === null || p < min)) min = p;
+    return min === null ? null : Math.max(min, this.#now);
   }
 
   /** 지금 걸려 있는 예약 (발화 시각, 규칙, 인스턴스). 화면의 예고와 시험에 쓴다. */

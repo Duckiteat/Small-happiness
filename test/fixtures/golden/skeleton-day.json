@@ -14,7 +14,9 @@
         },
         "world.state": {},
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 720
+        },
         "ext": {
           "cards": []
         },
@@ -51,7 +53,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 07:00] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 변화 없음"
+        "[1일 07:00] 집에 있음 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 변화 없음"
       ]
     },
     {
@@ -68,7 +70,9 @@
         },
         "world.state": {},
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 720
+        },
         "ext": {
           "cards": []
         },
@@ -105,7 +109,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 08:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 변화 없음"
+        "[1일 08:30] 외출 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 변화 없음"
       ]
     },
     {
@@ -122,7 +126,9 @@
         },
         "world.state": {},
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 720
+        },
         "ext": {
           "cards": []
         },
@@ -159,7 +165,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 11:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 변화 없음"
+        "[1일 11:30] 외출 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 변화 없음"
       ]
     },
     {
@@ -178,7 +184,9 @@
           "OBJ000001#1|body:rot": "wilted"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1440
+        },
         "ext": {
           "cards": []
         },
@@ -215,7 +223,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 14:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
+        "[1일 14:30] 외출 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
       ]
     },
     {
@@ -234,7 +242,9 @@
           "OBJ000001#1|body:rot": "wilted"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1440
+        },
         "ext": {
           "cards": []
         },
@@ -271,7 +281,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 17:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
+        "[1일 17:30] 외출 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
       ]
     },
     {
@@ -290,7 +300,9 @@
           "OBJ000001#1|body:rot": "wilted"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1440
+        },
         "ext": {
           "cards": []
         },
@@ -327,7 +339,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 19:30] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
+        "[1일 19:30] 집에 있음 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
       ]
     },
     {
@@ -346,7 +358,9 @@
           "OBJ000001#1|body:rot": "wilted"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1440
+        },
         "ext": {
           "cards": []
         },
@@ -383,7 +397,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 23:00] 잠 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
+        "[1일 23:00] 잠 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
       ]
     },
     {
@@ -402,7 +416,9 @@
           "OBJ000001#1|body:rot": "spoiled"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1800
+        },
         "ext": {
           "cards": []
         },
@@ -439,7 +455,7 @@
         "scene": {}
       },
       "lines": [
-        "[2일 02:00] 잠 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함"
+        "[2일 02:00] 잠 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함"
       ]
     },
     {
@@ -458,7 +474,9 @@
           "OBJ000001#1|body:rot": "spoiled"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1800
+        },
         "ext": {
           "cards": []
         },
@@ -495,7 +513,7 @@
         "scene": {}
       },
       "lines": [
-        "[2일 05:00] 잠 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함"
+        "[2일 05:00] 잠 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=상함"
       ]
     },
     {
@@ -516,7 +534,9 @@
           "PLC000001#1|space:smell": "faint"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1980
+        },
         "ext": {
           "cards": []
         },
@@ -561,7 +581,11 @@
         ],
         "aware": {
           "CHR000001#1": {
-            "PLC000001#1|space:smell": "noticed"
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "faint",
+              "t": 1860
+            }
           }
         },
         "memory": [],
@@ -580,7 +604,7 @@
         "scene": {}
       },
       "lines": [
-        "[2일 07:00] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 1 · 최근 행동 1 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 냄새=은은함 | 느낌: 주방 냄새=은은함(알아챔) | 행동: 주방 살피기"
+        "[2일 07:00] 집에 있음 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 1 · 최근 행동 1 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 냄새=은은함 | 느낌: 주방 냄새=은은함(알아챔) | 행동: 주방 살피기"
       ]
     },
     {
@@ -601,7 +625,9 @@
           "PLC000001#1|space:smell": "faint"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1980
+        },
         "ext": {
           "cards": []
         },
@@ -666,11 +692,31 @@
         ],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "faint",
+              "t": 1860
+            }
           }
         },
         "memory": [],
@@ -699,7 +745,7 @@
         "scene": {}
       },
       "lines": [
-        "[2일 07:05] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 3 · 최근 행동 1 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 냄새=은은함 | 느낌: 주방 냄새=은은함(알아챔), 음식 상함=상함(이해함), 음식 냄새=뚜렷함(이해함) | 행동: 음식 버리기"
+        "[2일 07:05] 집에 있음 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 3 · 최근 행동 1 · 장면 0 | 음식 상함=상함, 음식 냄새=뚜렷함, 주방 냄새=은은함 | 느낌: 주방 냄새=은은함(알아챔), 음식 상함=상함(이해함), 음식 냄새=뚜렷함(이해함) | 행동: 음식 버리기"
       ]
     },
     {
@@ -720,7 +766,9 @@
           "PLC000001#1|space:smell": "faint"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1980
+        },
         "ext": {
           "cards": []
         },
@@ -765,11 +813,31 @@
         ],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "faint",
+              "t": 1860
+            }
           }
         },
         "memory": [],
@@ -777,7 +845,7 @@
         "scene": {}
       },
       "lines": [
-        "[2일 07:10] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 1 · 최근 행동 0 · 장면 0 | 음식 상함=소멸, 음식 냄새=소멸, 주방 냄새=은은함 | 느낌: 주방 냄새=은은함(알아챔)"
+        "[2일 07:10] 집에 있음 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 1 · 최근 행동 0 · 장면 0 | 음식 상함=소멸, 음식 냄새=소멸, 주방 냄새=은은함 | 느낌: 주방 냄새=은은함(알아챔)"
       ]
     },
     {
@@ -798,7 +866,9 @@
           "PLC000001#1|space:smell": "faint"
         },
         "kit": {},
-        "world.stimulus_source": {},
+        "world.stimulus_source": {
+          "next_change": 1980
+        },
         "ext": {
           "cards": []
         },
@@ -831,11 +901,31 @@
         "visible_to_player": [],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "faint",
+              "t": 1860
+            }
           }
         },
         "memory": [],
@@ -843,7 +933,7 @@
         "scene": {}
       },
       "lines": [
-        "[2일 08:30] 외출 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=소멸, 음식 냄새=소멸, 주방 냄새=은은함"
+        "[2일 08:30] 외출 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=소멸, 음식 냄새=소멸, 주방 냄새=은은함"
       ]
     },
     {
@@ -896,11 +986,31 @@
         "visible_to_player": [],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "faint",
+              "t": 1860
+            }
           }
         },
         "memory": [],
@@ -961,11 +1071,31 @@
         "visible_to_player": [],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "faint",
+              "t": 1860
+            }
           }
         },
         "memory": [],
@@ -1026,11 +1156,31 @@
         "visible_to_player": [],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "faint",
+              "t": 1860
+            }
           }
         },
         "memory": [],
@@ -1091,11 +1241,31 @@
         "visible_to_player": [],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "none",
+              "t": 2610
+            }
           }
         },
         "memory": [],
@@ -1156,11 +1326,31 @@
         "visible_to_player": [],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "none",
+              "t": 2610
+            }
           }
         },
         "memory": [],
@@ -1221,11 +1411,31 @@
         "visible_to_player": [],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "none",
+              "t": 2610
+            }
           }
         },
         "memory": [],
@@ -1286,11 +1496,31 @@
         "visible_to_player": [],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "none",
+              "t": 2610
+            }
           }
         },
         "memory": [],
@@ -1351,11 +1581,31 @@
         "visible_to_player": [],
         "aware": {
           "CHR000001#1": {
-            "OBJ000001#1|body:rot": "understood",
-            "OBJ000001#1|body:smell": "understood",
-            "OBJ000002#1|sole:dirt": "understood",
-            "OBJ000003#1|surface:dirt": "understood",
-            "PLC000001#1|space:smell": "noticed"
+            "OBJ000001#1|body:rot": {
+              "aw": "understood",
+              "level": "spoiled",
+              "t": 1865
+            },
+            "OBJ000001#1|body:smell": {
+              "aw": "understood",
+              "level": "distinct",
+              "t": 1865
+            },
+            "OBJ000002#1|sole:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "OBJ000003#1|surface:dirt": {
+              "aw": "understood",
+              "level": "clean",
+              "t": 1865
+            },
+            "PLC000001#1|space:smell": {
+              "aw": "noticed",
+              "level": "none",
+              "t": 2610
+            }
           }
         },
         "memory": [],
@@ -1595,7 +1845,8 @@
       "data": {
         "who": "CHR000001#1",
         "key": "PLC000001#1|space:smell",
-        "to": "noticed"
+        "to": "noticed",
+        "level": "faint"
       }
     },
     {
@@ -1633,7 +1884,8 @@
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000001#1|body:rot",
-        "to": "understood"
+        "to": "understood",
+        "level": "spoiled"
       }
     },
     {
@@ -1645,7 +1897,8 @@
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000001#1|body:smell",
-        "to": "understood"
+        "to": "understood",
+        "level": "distinct"
       }
     },
     {
@@ -1657,7 +1910,8 @@
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000002#1|sole:dirt",
-        "to": "understood"
+        "to": "understood",
+        "level": "clean"
       }
     },
     {
@@ -1669,7 +1923,8 @@
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000003#1|surface:dirt",
-        "to": "understood"
+        "to": "understood",
+        "level": "clean"
       }
     },
     {
@@ -1766,6 +2021,19 @@
         "key": "PLC000001#1|space:smell",
         "from": "faint",
         "to": "none"
+      }
+    },
+    {
+      "seq": "L000035",
+      "t": 2610,
+      "type": "awareness_changed",
+      "src": "perception",
+      "cause": null,
+      "data": {
+        "who": "CHR000001#1",
+        "key": "PLC000001#1|space:smell",
+        "to": "noticed",
+        "level": "none"
       }
     }
   ]

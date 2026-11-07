@@ -102,6 +102,10 @@ export function runDay(layers: readonly Layer[], start: number, end: number, rng
     results.push(r);
     prev = r.board;
     const ends = parseRecent(Board.readPrev(prev, '0', 'recent')).map((a) => a.ends);
+    // F7: 집에 있을 때는 세계가 스스로 바뀌는 시각에도 깨어난다 (외출·잠 중이면 schedule이 거른다)
+    const source = Board.readPrev(prev, '0', 'world.stimulus_source');
+    const nextChange = typeof source === 'object' && !Array.isArray(source) ? (source as { readonly next_change?: BoardValue }).next_change : undefined;
+    if (typeof nextChange === 'number') ends.push(nextChange);
     t = nextStepTime(parsePlan(Board.readPrev(prev, '0', 'plan'), vocab), t, end, ends, stepMin);
   }
   return results;

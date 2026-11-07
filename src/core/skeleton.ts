@@ -67,7 +67,7 @@ function perceivedText(perceived: BoardValue, aware: BoardValue, db: Db, vocab: 
     const o = p as { who: string; key: string; level: string };
     const state = stateText({ [o.key]: o.level }, db, vocab);
     if (state === '') return []; // 살 때 그대로인 상태는 줄에서 뺀다
-    const a = knows[o.who]?.[o.key];
+    const a = knows[o.who]?.[o.key]?.aw;
     return [`${state}(${a === undefined ? '' : vocab.entry('awareness', a)?.ko ?? a})`];
   });
   return parts.length === 0 ? '' : ` | 느낌: ${parts.join(', ')}`;
@@ -131,7 +131,11 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
     },
     {
       id: '3',
-      run: (c) => c.write('world.stimulus_source', {}),
+      // 자극의 원천은 아직 계산하지 않는다. 세계가 다음에 스스로 바뀔 시각만 올린다 (집에 있을 때 시계가 깨어나는 시각, F7)
+      run: (c) => {
+        const next = causal.nextChange(world);
+        c.write('world.stimulus_source', next === null ? {} : { next_change: next });
+      },
     },
     {
       id: '4a',

@@ -25,6 +25,7 @@
       { "key": "choice_made", "ko": "선택" },
       { "key": "stimulus_perceived", "ko": "자극 지각" },
       { "key": "awareness_up", "ko": "인지 상승" },
+      { "key": "awareness_changed", "ko": "앎 바뀜", "desc": "다시 보니 본 단계가 달라짐 (짙어짐, 없어짐, 다시 남)" },
       { "key": "habit_formed", "ko": "습관 형성" },
       { "key": "contact", "ko": "접촉", "desc": "두 운반체가 닿음" },
       { "key": "retract", "ko": "철회", "desc": "사건을 지우지 않고 철회 표시" },
