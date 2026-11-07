@@ -162,5 +162,9 @@
   "env-unknown-level.json": {
     "stage": "gate",
     "match": "사전에 없는 환경 등급: soggy"
+  },
+  "self-loop-via-kind.json": {
+    "stage": "gate",
+    "match": "자기 순환"
   }
 }

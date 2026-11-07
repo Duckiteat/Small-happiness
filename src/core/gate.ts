@@ -282,7 +282,7 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
   }
 
-  for (const ref of selfLoops(collectRules(db), vocab)) {
+  for (const ref of selfLoops(collectRules(db), vocab, db)) { // 종류(is_a)를 거쳐 돌아오는 것도 (인과와 같은 판단)
     warn(ref, '자기가 만든 상태가 자기 조건을 다시 만족시킨다 (자기 순환)');
   }
 

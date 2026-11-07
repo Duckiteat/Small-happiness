@@ -5,7 +5,7 @@
 
 import type { JsonValue } from './events.ts';
 import type { Db } from './db.ts';
-import { defOf } from './ids.ts';
+import { instanceName } from './skeleton.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
 import { parseStateKey } from './statekey.ts';
 import type { Receipt, ReceiptItem } from './receipt.ts';
@@ -37,7 +37,7 @@ export class ReceiptNames {
 
   /** 인스턴스 번호(OBJ000010#1) 또는 정의 번호 → 이름. 모르면 번호 그대로. */
   thing(id: string): string {
-    return this.#db.defs[defOf(id) ?? id]?.names.ko ?? id;
+    return instanceName(this.#db, id);
   }
 
   feature(feature: string): string {

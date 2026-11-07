@@ -15,7 +15,8 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildEdges, chainRoots, chainsFrom, collectRules } from '../core/chains.ts';
+import { buildEdges, chainRoots, chainsFrom, collectRules, ruleNodes } from '../core/chains.ts';
+import { spreadRules } from '../core/spread.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
 import { appendix, commitPatch, gaps, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
@@ -79,8 +80,10 @@ function main(): void {
       return;
     }
     case 'chains': {
-      const rules = collectRules(loadDb(root));
-      const edges = buildEdges(rules, vocab);
+      const db = loadDb(root);
+      const rules = [...collectRules(db), ...ruleNodes(spreadRules(db, vocab))]; // 손 규칙 + 장소 그래프의 번짐 규칙
+      const edges = buildEdges(rules, vocab, db);
+      if (arg !== undefined && !rules.some((r) => r.ref === arg)) die(`없는 규칙: ${arg} (형식: 정의 번호/rule/키, 예: ${rules[0]?.ref ?? 'PLC000002/rule/bugs'})`);
       const starts = arg !== undefined ? [arg] : chainRoots(rules, edges);
       for (const s of starts) {
         console.log(s);
@@ -192,4 +195,11 @@ function main(): void {
   }
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  // 파일이 없거나 형식이 틀린 입력: 내부 덤프 대신 이유 한 줄 (자세한 위치는 DEBUG=1)
+  console.error(`오류: ${err instanceof Error ? err.message : String(err)}`);
+  if (process.env['DEBUG'] === '1' && err instanceof Error) console.error(err.stack);
+  process.exit(1);
+}

@@ -63,7 +63,7 @@
           "tuned": false
         },
         {
-          "to": "PLC+1",
+          "to": "PLC000004",
           "kind": "door",
           "medium_pass": {
             "air": 100,
@@ -162,7 +162,7 @@
       },
       "passages": [
         {
-          "to": "PLC+2",
+          "to": "PLC000005",
           "kind": "door",
           "medium_pass": {
             "air": 100,
@@ -171,7 +171,7 @@
           "tuned": false
         },
         {
-          "to": "PLC+3",
+          "to": "PLC000006",
           "kind": "door",
           "medium_pass": {
             "air": 100,
@@ -193,7 +193,7 @@
       ]
     },
     {
-      "id": "PLC+1",
+      "id": "PLC000004",
       "names": {
         "ko": "욕실",
         "en": "bathroom"
@@ -220,7 +220,7 @@
       ]
     },
     {
-      "id": "PLC+2",
+      "id": "PLC000005",
       "names": {
         "ko": "베란다",
         "en": "veranda"
@@ -244,7 +244,7 @@
       ]
     },
     {
-      "id": "PLC+3",
+      "id": "PLC000006",
       "names": {
         "ko": "작은 방",
         "en": "small room"

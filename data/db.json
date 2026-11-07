@@ -356,7 +356,7 @@
       ],
       "rules": {
         "smell_mold_spread": {
-          "label": "곰팡이이(가) spread 단계면 냄새가 난다",
+          "label": "곰팡이가 번짐 단계면 냄새가 난다",
           "on": [
             "OBJ000002|body:mold@>=spread"
           ],
@@ -365,7 +365,7 @@
           ]
         },
         "smell_sour_lumpy": {
-          "label": "시어짐이(가) lumpy 단계면 냄새가 난다",
+          "label": "시어짐이 덩어리짐 단계면 냄새가 난다",
           "on": [
             "OBJ000002|body:sour@>=lumpy"
           ],
@@ -374,7 +374,7 @@
           ]
         },
         "smell_sour_sour": {
-          "label": "시어짐이(가) sour 단계면 냄새가 난다",
+          "label": "시어짐이 시큼 단계면 냄새가 난다",
           "on": [
             "OBJ000002|body:sour@>=sour"
           ],
@@ -450,7 +450,7 @@
       ],
       "rules": {
         "smell_decay_rotten": {
-          "label": "부패이(가) rotten 단계면 냄새가 난다",
+          "label": "부패가 썩음 단계면 냄새가 난다",
           "on": [
             "OBJ000003|body:decay@>=rotten"
           ],
@@ -459,7 +459,7 @@
           ]
         },
         "smell_decay_spoiled": {
-          "label": "부패이(가) spoiled 단계면 냄새가 난다",
+          "label": "부패가 상함 단계면 냄새가 난다",
           "on": [
             "OBJ000003|body:decay@>=spoiled"
           ],
@@ -468,7 +468,7 @@
           ]
         },
         "smell_decay_turned": {
-          "label": "부패이(가) turned 단계면 냄새가 난다",
+          "label": "부패가 쉼 단계면 냄새가 난다",
           "on": [
             "OBJ000003|body:decay@>=turned"
           ],
@@ -477,7 +477,7 @@
           ]
         },
         "smell_mold_spread": {
-          "label": "곰팡이이(가) spread 단계면 냄새가 난다",
+          "label": "곰팡이가 번짐 단계면 냄새가 난다",
           "on": [
             "OBJ000003|body:mold@>=spread"
           ],
@@ -545,7 +545,7 @@
       ],
       "rules": {
         "smell_decay_rotten": {
-          "label": "부패이(가) rotten 단계면 냄새가 난다",
+          "label": "부패가 썩음 단계면 냄새가 난다",
           "on": [
             "OBJ000004|body:decay@>=rotten"
           ],
@@ -554,7 +554,7 @@
           ]
         },
         "smell_decay_spoiled": {
-          "label": "부패이(가) spoiled 단계면 냄새가 난다",
+          "label": "부패가 상함 단계면 냄새가 난다",
           "on": [
             "OBJ000004|body:decay@>=spoiled"
           ],
@@ -563,7 +563,7 @@
           ]
         },
         "smell_decay_turned": {
-          "label": "부패이(가) turned 단계면 냄새가 난다",
+          "label": "부패가 쉼 단계면 냄새가 난다",
           "on": [
             "OBJ000004|body:decay@>=turned"
           ],
@@ -643,7 +643,7 @@
       ],
       "rules": {
         "smell_mold_spread": {
-          "label": "곰팡이이(가) spread 단계면 냄새가 난다",
+          "label": "곰팡이가 번짐 단계면 냄새가 난다",
           "on": [
             "OBJ000005|body:mold@>=spread"
           ],
@@ -652,7 +652,7 @@
           ]
         },
         "smell_ripen_mushy": {
-          "label": "익음이(가) mushy 단계면 냄새가 난다",
+          "label": "익음이 물러짐 단계면 냄새가 난다",
           "on": [
             "OBJ000005|body:ripen@>=mushy"
           ],
@@ -661,7 +661,7 @@
           ]
         },
         "smell_ripen_soured": {
-          "label": "익음이(가) soured 단계면 냄새가 난다",
+          "label": "익음이 시어짐 단계면 냄새가 난다",
           "on": [
             "OBJ000005|body:ripen@>=soured"
           ],
@@ -730,7 +730,7 @@
       ],
       "rules": {
         "smell_mold_spread": {
-          "label": "곰팡이이(가) spread 단계면 냄새가 난다",
+          "label": "곰팡이가 번짐 단계면 냄새가 난다",
           "on": [
             "OBJ000006|body:mold@>=spread"
           ],
@@ -739,7 +739,7 @@
           ]
         },
         "smell_wilt_shriveled": {
-          "label": "시듦이(가) shriveled 단계면 냄새가 난다",
+          "label": "시듦이 쭈글·짓무름 단계면 냄새가 난다",
           "on": [
             "OBJ000006|body:wilt@>=shriveled"
           ],
@@ -807,7 +807,7 @@
       ],
       "rules": {
         "smell_wilt_shriveled": {
-          "label": "시듦이(가) shriveled 단계면 냄새가 난다",
+          "label": "시듦이 쭈글·짓무름 단계면 냄새가 난다",
           "on": [
             "OBJ000007|body:wilt@>=shriveled"
           ],
@@ -880,7 +880,7 @@
       ],
       "rules": {
         "smell_mold_spread": {
-          "label": "곰팡이이(가) spread 단계면 냄새가 난다",
+          "label": "곰팡이가 번짐 단계면 냄새가 난다",
           "on": [
             "OBJ000008|body:mold@>=spread"
           ],
@@ -889,7 +889,7 @@
           ]
         },
         "smell_sour_lumpy": {
-          "label": "시어짐이(가) lumpy 단계면 냄새가 난다",
+          "label": "시어짐이 덩어리짐 단계면 냄새가 난다",
           "on": [
             "OBJ000008|body:sour@>=lumpy"
           ],
@@ -898,7 +898,7 @@
           ]
         },
         "smell_sour_sour": {
-          "label": "시어짐이(가) sour 단계면 냄새가 난다",
+          "label": "시어짐이 시큼 단계면 냄새가 난다",
           "on": [
             "OBJ000008|body:sour@>=sour"
           ],
@@ -974,7 +974,7 @@
       ],
       "rules": {
         "smell_decay_rotten": {
-          "label": "부패이(가) rotten 단계면 냄새가 난다",
+          "label": "부패가 썩음 단계면 냄새가 난다",
           "on": [
             "OBJ000009|body:decay@>=rotten"
           ],
@@ -983,7 +983,7 @@
           ]
         },
         "smell_decay_spoiled": {
-          "label": "부패이(가) spoiled 단계면 냄새가 난다",
+          "label": "부패가 상함 단계면 냄새가 난다",
           "on": [
             "OBJ000009|body:decay@>=spoiled"
           ],
@@ -992,7 +992,7 @@
           ]
         },
         "smell_decay_turned": {
-          "label": "부패이(가) turned 단계면 냄새가 난다",
+          "label": "부패가 쉼 단계면 냄새가 난다",
           "on": [
             "OBJ000009|body:decay@>=turned"
           ],
@@ -1001,7 +1001,7 @@
           ]
         },
         "smell_mold_spread": {
-          "label": "곰팡이이(가) spread 단계면 냄새가 난다",
+          "label": "곰팡이가 번짐 단계면 냄새가 난다",
           "on": [
             "OBJ000009|body:mold@>=spread"
           ],
@@ -1077,7 +1077,7 @@
       ],
       "rules": {
         "smell_decay_rotten": {
-          "label": "부패이(가) rotten 단계면 냄새가 난다",
+          "label": "부패가 썩음 단계면 냄새가 난다",
           "on": [
             "OBJ000010|body:decay@>=rotten"
           ],
@@ -1086,7 +1086,7 @@
           ]
         },
         "smell_decay_spoiled": {
-          "label": "부패이(가) spoiled 단계면 냄새가 난다",
+          "label": "부패가 상함 단계면 냄새가 난다",
           "on": [
             "OBJ000010|body:decay@>=spoiled"
           ],
@@ -1095,7 +1095,7 @@
           ]
         },
         "smell_decay_turned": {
-          "label": "부패이(가) turned 단계면 냄새가 난다",
+          "label": "부패가 쉼 단계면 냄새가 난다",
           "on": [
             "OBJ000010|body:decay@>=turned"
           ],
@@ -1104,7 +1104,7 @@
           ]
         },
         "smell_mold_spread": {
-          "label": "곰팡이이(가) spread 단계면 냄새가 난다",
+          "label": "곰팡이가 번짐 단계면 냄새가 난다",
           "on": [
             "OBJ000010|body:mold@>=spread"
           ],
@@ -1172,7 +1172,7 @@
       ],
       "rules": {
         "smell_wilt_shriveled": {
-          "label": "시듦이(가) shriveled 단계면 냄새가 난다",
+          "label": "시듦이 쭈글·짓무름 단계면 냄새가 난다",
           "on": [
             "OBJ000011|body:wilt@>=shriveled"
           ],

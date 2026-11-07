@@ -1,0 +1,1625 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "규칙 이름 바로잡기 (전체 점검 2026-11-07): 음식의 냄새 규칙 28개 이름이 틀로 찍혀 '곰팡이이(가) spread 단계면'처럼 조사가 겹치고 단계가 키로 나왔다. 조사는 받침에 맞추고 단계는 사전의 한국어 이름으로. 이름(label)만 바뀌고 규칙의 조건·결과는 그대로다.",
+    "defs": [
+      {
+        "id": "OBJ000001",
+        "names": {
+          "ko": "음식",
+          "en": "food"
+        },
+        "aliases": [
+          "식재료",
+          "먹을거리"
+        ],
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "rules": {},
+        "offers": {
+          "discard": {
+            "label": "못 먹게 된 음식을 버린다",
+            "verb": "discard",
+            "needs": [
+              {
+                "aware": "OBJ000001|body:smell",
+                "at_least": "understood"
+              }
+            ],
+            "when_meaning": "inedible",
+            "effect": [
+              "OBJ000001|body:smell@=gone",
+              "OBJ000001|cond:seal@=gone"
+            ],
+            "minutes": 2,
+            "tuned": false
+          }
+        },
+        "progress": {
+          "decay": {
+            "slot": "body",
+            "base_s": 864000,
+            "edges": [
+              0,
+              350,
+              null,
+              700,
+              null,
+              1000
+            ],
+            "tuned": false,
+            "source": "추정 (음식-변화-모델 4장, 출처 확인 전)",
+            "inputs": {
+              "seal": {
+                "open": 130,
+                "half": 115,
+                "sealed": 100,
+                "pasteurized": 40,
+                "sterilized": 5
+              },
+              "moisture": {
+                "dry": 50,
+                "thick": 80,
+                "moist": 100,
+                "liquid": 120
+              },
+              "cut": {
+                "whole": 100,
+                "chunk": 130,
+                "sliced": 170,
+                "minced": 250
+              },
+              "temp": {
+                "frozen": 0,
+                "fridge": 100,
+                "winter_room": 300,
+                "mild_room": 600,
+                "summer_room": 1500
+              }
+            }
+          },
+          "sour": {
+            "slot": "body",
+            "base_s": 604800,
+            "edges": [
+              0,
+              300,
+              null,
+              600,
+              null,
+              1000
+            ],
+            "tuned": false,
+            "source": "추정 (음식-변화-모델 4장, 출처 확인 전)",
+            "inputs": {
+              "seal": {
+                "open": 130,
+                "half": 115,
+                "sealed": 100,
+                "pasteurized": 30,
+                "sterilized": 3
+              },
+              "moisture": {
+                "dry": 50,
+                "thick": 80,
+                "moist": 100,
+                "liquid": 120
+              },
+              "cut": {
+                "whole": 100,
+                "chunk": 130,
+                "sliced": 170,
+                "minced": 250
+              },
+              "temp": {
+                "frozen": 0,
+                "fridge": 100,
+                "winter_room": 300,
+                "mild_room": 600,
+                "summer_room": 1500
+              }
+            }
+          },
+          "ripen": {
+            "slot": "body",
+            "base_s": 5184000,
+            "edges": [
+              0,
+              120,
+              null,
+              400,
+              null,
+              1000
+            ],
+            "tuned": false,
+            "source": "추정 (음식-변화-모델 4장, 출처 확인 전)",
+            "inputs": {
+              "seal": {
+                "open": 110,
+                "half": 105,
+                "sealed": 100,
+                "pasteurized": 100,
+                "sterilized": 100
+              },
+              "moisture": {
+                "dry": 100,
+                "thick": 100,
+                "moist": 100,
+                "liquid": 100
+              },
+              "cut": {
+                "whole": 90,
+                "chunk": 100,
+                "sliced": 110,
+                "minced": 120
+              },
+              "temp": {
+                "frozen": 0,
+                "fridge": 100,
+                "winter_room": 250,
+                "mild_room": 500,
+                "summer_room": 1000
+              }
+            }
+          },
+          "wilt": {
+            "slot": "body",
+            "base_s": 864000,
+            "edges": [
+              0,
+              300,
+              null,
+              1000,
+              null,
+              null
+            ],
+            "tuned": false,
+            "source": "추정 (음식-변화-모델 4장, 출처 확인 전)",
+            "inputs": {
+              "seal": {
+                "open": 150,
+                "half": 100,
+                "sealed": 60,
+                "pasteurized": 50,
+                "sterilized": 50
+              },
+              "moisture": {
+                "dry": 150,
+                "thick": 120,
+                "moist": 100,
+                "liquid": 80
+              },
+              "cut": {
+                "whole": 100,
+                "chunk": 150,
+                "sliced": 200,
+                "minced": 300
+              },
+              "temp": {
+                "frozen": 30,
+                "fridge": 100,
+                "winter_room": 150,
+                "mild_room": 250,
+                "summer_room": 400
+              }
+            }
+          },
+          "mold": {
+            "slot": "body",
+            "base_s": 1728000,
+            "edges": [
+              0,
+              500,
+              null,
+              1000,
+              null,
+              null
+            ],
+            "tuned": false,
+            "source": "추정 (음식-변화-모델 4장, 출처 확인 전)",
+            "inputs": {
+              "seal": {
+                "open": 150,
+                "half": 120,
+                "sealed": 80,
+                "pasteurized": 10,
+                "sterilized": 0
+              },
+              "moisture": {
+                "dry": 20,
+                "thick": 70,
+                "moist": 100,
+                "liquid": 120
+              },
+              "cut": {
+                "whole": 100,
+                "chunk": 110,
+                "sliced": 120,
+                "minced": 130
+              },
+              "temp": {
+                "frozen": 0,
+                "fridge": 100,
+                "winter_room": 300,
+                "mild_room": 600,
+                "summer_room": 1200
+              }
+            }
+          }
+        },
+        "desc": [
+          "음식의 종류. 직접 두지 않고 개별 음식이 물려받는다. 과정(부패·시어짐·익음·시듦·곰팡이)의 속도 표를 갖고, 물건은 자기 부위에 둔 과정만 받는다 (음식-변화-모델)."
+        ],
+        "meanings": [
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ]
+      },
+      {
+        "id": "OBJ000002",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "sour",
+              "mold"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (시어짐)",
+            "when": [
+              "body:sour@>=sour"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "못 먹음 (곰팡이)",
+            "when": [
+              "body:mold@>=spot"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "우유",
+          "en": "milk"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "살균 흰우유. 뜯으면 오픈이 되어 빨리 시어진다"
+        ],
+        "rules": {
+          "smell_sour_sour": {
+            "label": "시어짐이 시큼 단계면 냄새가 난다",
+            "on": [
+              "OBJ000002|body:sour@>=sour"
+            ],
+            "emits": [
+              "OBJ000002|body:smell@>=faint"
+            ]
+          },
+          "smell_sour_lumpy": {
+            "label": "시어짐이 덩어리짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000002|body:sour@>=lumpy"
+            ],
+            "emits": [
+              "OBJ000002|body:smell@>=distinct"
+            ]
+          },
+          "smell_mold_spread": {
+            "label": "곰팡이가 번짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000002|body:mold@>=spread"
+            ],
+            "emits": [
+              "OBJ000002|body:smell@>=faint"
+            ]
+          }
+        },
+        "progress": {
+          "sour": {
+            "base_s": 561600
+          },
+          "mold": {
+            "base_s": 259200
+          }
+        },
+        "initial": {
+          "cond:seal": "pasteurized",
+          "cond:moisture": "liquid",
+          "cond:cut": "whole",
+          "cond:temp": "fridge"
+        }
+      },
+      {
+        "id": "OBJ000003",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "decay",
+              "mold"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (부패)",
+            "when": [
+              "body:decay@>=spoiled"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "못 먹음 (곰팡이)",
+            "when": [
+              "body:mold@>=spot"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "두부",
+          "en": "tofu"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "충전수에 담긴 포장 두부"
+        ],
+        "rules": {
+          "smell_decay_turned": {
+            "label": "부패가 쉼 단계면 냄새가 난다",
+            "on": [
+              "OBJ000003|body:decay@>=turned"
+            ],
+            "emits": [
+              "OBJ000003|body:smell@>=faint"
+            ]
+          },
+          "smell_decay_spoiled": {
+            "label": "부패가 상함 단계면 냄새가 난다",
+            "on": [
+              "OBJ000003|body:decay@>=spoiled"
+            ],
+            "emits": [
+              "OBJ000003|body:smell@>=distinct"
+            ]
+          },
+          "smell_decay_rotten": {
+            "label": "부패가 썩음 단계면 냄새가 난다",
+            "on": [
+              "OBJ000003|body:decay@>=rotten"
+            ],
+            "emits": [
+              "OBJ000003|body:smell@>=foul"
+            ]
+          },
+          "smell_mold_spread": {
+            "label": "곰팡이가 번짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000003|body:mold@>=spread"
+            ],
+            "emits": [
+              "OBJ000003|body:smell@>=faint"
+            ]
+          }
+        },
+        "progress": {
+          "decay": {
+            "base_s": 1468800
+          },
+          "mold": {
+            "base_s": 1641600
+          }
+        },
+        "initial": {
+          "cond:seal": "sealed",
+          "cond:moisture": "liquid",
+          "cond:cut": "whole",
+          "cond:temp": "fridge"
+        }
+      },
+      {
+        "id": "OBJ000004",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "decay"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (부패)",
+            "when": [
+              "body:decay@>=spoiled"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "계란",
+          "en": "egg"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "껍데기째 난좌에"
+        ],
+        "rules": {
+          "smell_decay_turned": {
+            "label": "부패가 쉼 단계면 냄새가 난다",
+            "on": [
+              "OBJ000004|body:decay@>=turned"
+            ],
+            "emits": [
+              "OBJ000004|body:smell@>=faint"
+            ]
+          },
+          "smell_decay_spoiled": {
+            "label": "부패가 상함 단계면 냄새가 난다",
+            "on": [
+              "OBJ000004|body:decay@>=spoiled"
+            ],
+            "emits": [
+              "OBJ000004|body:smell@>=distinct"
+            ]
+          },
+          "smell_decay_rotten": {
+            "label": "부패가 썩음 단계면 냄새가 난다",
+            "on": [
+              "OBJ000004|body:decay@>=rotten"
+            ],
+            "emits": [
+              "OBJ000004|body:smell@>=foul"
+            ]
+          }
+        },
+        "progress": {
+          "decay": {
+            "base_s": 2764800
+          }
+        },
+        "initial": {
+          "cond:seal": "open",
+          "cond:moisture": "dry",
+          "cond:cut": "whole",
+          "cond:temp": "fridge"
+        }
+      },
+      {
+        "id": "OBJ000005",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "ripen",
+              "mold"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (익음)",
+            "when": [
+              "body:ripen@>=mushy"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "못 먹음 (곰팡이)",
+            "when": [
+              "body:mold@>=spread"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "찌개용 (시어짐)",
+            "when": [
+              "body:ripen@>=soured"
+            ],
+            "means": "stew"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "김치",
+          "en": "kimchi"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "김치통. 상하지 않고 익는다. 시어지면 찌개용"
+        ],
+        "rules": {
+          "smell_ripen_soured": {
+            "label": "익음이 시어짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000005|body:ripen@>=soured"
+            ],
+            "emits": [
+              "OBJ000005|body:smell@>=faint"
+            ]
+          },
+          "smell_ripen_mushy": {
+            "label": "익음이 물러짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000005|body:ripen@>=mushy"
+            ],
+            "emits": [
+              "OBJ000005|body:smell@>=distinct"
+            ]
+          },
+          "smell_mold_spread": {
+            "label": "곰팡이가 번짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000005|body:mold@>=spread"
+            ],
+            "emits": [
+              "OBJ000005|body:smell@>=faint"
+            ]
+          }
+        },
+        "progress": {
+          "ripen": {
+            "base_s": 5184000
+          },
+          "mold": {
+            "base_s": 5011200
+          }
+        },
+        "initial": {
+          "cond:seal": "sealed",
+          "cond:moisture": "liquid",
+          "cond:cut": "chunk",
+          "cond:temp": "fridge"
+        }
+      },
+      {
+        "id": "OBJ000006",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "wilt",
+              "mold"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (곰팡이)",
+            "when": [
+              "body:mold@>=spot"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "사과",
+          "en": "apple"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "통째로 냉장. 쭈글해져도 먹을 수 있다"
+        ],
+        "rules": {
+          "smell_wilt_shriveled": {
+            "label": "시듦이 쭈글·짓무름 단계면 냄새가 난다",
+            "on": [
+              "OBJ000006|body:wilt@>=shriveled"
+            ],
+            "emits": [
+              "OBJ000006|body:smell@>=faint"
+            ]
+          },
+          "smell_mold_spread": {
+            "label": "곰팡이가 번짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000006|body:mold@>=spread"
+            ],
+            "emits": [
+              "OBJ000006|body:smell@>=faint"
+            ]
+          }
+        },
+        "progress": {
+          "wilt": {
+            "base_s": 13564800
+          },
+          "mold": {
+            "base_s": 1555200
+          }
+        },
+        "initial": {
+          "cond:seal": "open",
+          "cond:moisture": "dry",
+          "cond:cut": "whole",
+          "cond:temp": "fridge"
+        }
+      },
+      {
+        "id": "OBJ000007",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "wilt"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (시듦)",
+            "when": [
+              "body:wilt@>=shriveled"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "상추",
+          "en": "lettuce"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "봉지에 든 잎채소"
+        ],
+        "rules": {
+          "smell_wilt_shriveled": {
+            "label": "시듦이 쭈글·짓무름 단계면 냄새가 난다",
+            "on": [
+              "OBJ000007|body:wilt@>=shriveled"
+            ],
+            "emits": [
+              "OBJ000007|body:smell@>=faint"
+            ]
+          }
+        },
+        "progress": {
+          "wilt": {
+            "base_s": 864000
+          }
+        },
+        "initial": {
+          "cond:seal": "half",
+          "cond:moisture": "moist",
+          "cond:cut": "whole",
+          "cond:temp": "fridge"
+        }
+      },
+      {
+        "id": "OBJ000008",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "sour",
+              "mold"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (시어짐)",
+            "when": [
+              "body:sour@>=sour"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "못 먹음 (곰팡이)",
+            "when": [
+              "body:mold@>=spot"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "요거트",
+          "en": "yogurt"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "떠먹는 요거트"
+        ],
+        "rules": {
+          "smell_sour_sour": {
+            "label": "시어짐이 시큼 단계면 냄새가 난다",
+            "on": [
+              "OBJ000008|body:sour@>=sour"
+            ],
+            "emits": [
+              "OBJ000008|body:smell@>=faint"
+            ]
+          },
+          "smell_sour_lumpy": {
+            "label": "시어짐이 덩어리짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000008|body:sour@>=lumpy"
+            ],
+            "emits": [
+              "OBJ000008|body:smell@>=distinct"
+            ]
+          },
+          "smell_mold_spread": {
+            "label": "곰팡이가 번짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000008|body:mold@>=spread"
+            ],
+            "emits": [
+              "OBJ000008|body:smell@>=faint"
+            ]
+          }
+        },
+        "progress": {
+          "sour": {
+            "base_s": 622080
+          },
+          "mold": {
+            "base_s": 259200
+          }
+        },
+        "initial": {
+          "cond:seal": "pasteurized",
+          "cond:moisture": "thick",
+          "cond:cut": "whole",
+          "cond:temp": "fridge"
+        }
+      },
+      {
+        "id": "OBJ000009",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "decay",
+              "mold"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (부패)",
+            "when": [
+              "body:decay@>=spoiled"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "못 먹음 (곰팡이)",
+            "when": [
+              "body:mold@>=spot"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "햄",
+          "en": "ham"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "진공 포장 슬라이스 햄 (얇아서 채·큐브)"
+        ],
+        "rules": {
+          "smell_decay_turned": {
+            "label": "부패가 쉼 단계면 냄새가 난다",
+            "on": [
+              "OBJ000009|body:decay@>=turned"
+            ],
+            "emits": [
+              "OBJ000009|body:smell@>=faint"
+            ]
+          },
+          "smell_decay_spoiled": {
+            "label": "부패가 상함 단계면 냄새가 난다",
+            "on": [
+              "OBJ000009|body:decay@>=spoiled"
+            ],
+            "emits": [
+              "OBJ000009|body:smell@>=distinct"
+            ]
+          },
+          "smell_decay_rotten": {
+            "label": "부패가 썩음 단계면 냄새가 난다",
+            "on": [
+              "OBJ000009|body:decay@>=rotten"
+            ],
+            "emits": [
+              "OBJ000009|body:smell@>=foul"
+            ]
+          },
+          "smell_mold_spread": {
+            "label": "곰팡이가 번짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000009|body:mold@>=spread"
+            ],
+            "emits": [
+              "OBJ000009|body:smell@>=faint"
+            ]
+          }
+        },
+        "progress": {
+          "decay": {
+            "base_s": 6307200
+          },
+          "mold": {
+            "base_s": 3283200
+          }
+        },
+        "initial": {
+          "cond:seal": "sealed",
+          "cond:moisture": "moist",
+          "cond:cut": "sliced",
+          "cond:temp": "fridge"
+        }
+      },
+      {
+        "id": "OBJ000010",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "decay",
+              "mold"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (부패)",
+            "when": [
+              "body:decay@>=spoiled"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "못 먹음 (곰팡이)",
+            "when": [
+              "body:mold@>=spot"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "남은 치킨",
+          "en": "leftover chicken"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "배달 상자째. 조리된 음식"
+        ],
+        "rules": {
+          "smell_decay_turned": {
+            "label": "부패가 쉼 단계면 냄새가 난다",
+            "on": [
+              "OBJ000010|body:decay@>=turned"
+            ],
+            "emits": [
+              "OBJ000010|body:smell@>=faint"
+            ]
+          },
+          "smell_decay_spoiled": {
+            "label": "부패가 상함 단계면 냄새가 난다",
+            "on": [
+              "OBJ000010|body:decay@>=spoiled"
+            ],
+            "emits": [
+              "OBJ000010|body:smell@>=distinct"
+            ]
+          },
+          "smell_decay_rotten": {
+            "label": "부패가 썩음 단계면 냄새가 난다",
+            "on": [
+              "OBJ000010|body:decay@>=rotten"
+            ],
+            "emits": [
+              "OBJ000010|body:smell@>=foul"
+            ]
+          },
+          "smell_mold_spread": {
+            "label": "곰팡이가 번짐 단계면 냄새가 난다",
+            "on": [
+              "OBJ000010|body:mold@>=spread"
+            ],
+            "emits": [
+              "OBJ000010|body:smell@>=faint"
+            ]
+          }
+        },
+        "progress": {
+          "decay": {
+            "base_s": 440640
+          },
+          "mold": {
+            "base_s": 639360
+          }
+        },
+        "initial": {
+          "cond:seal": "half",
+          "cond:moisture": "thick",
+          "cond:cut": "chunk",
+          "cond:temp": "fridge"
+        }
+      },
+      {
+        "id": "OBJ000011",
+        "mobility": "가변",
+        "slots": {
+          "body": {
+            "features": [
+              "smell",
+              "wilt"
+            ]
+          },
+          "cond": {
+            "features": [
+              "seal",
+              "moisture",
+              "cut",
+              "temp"
+            ]
+          }
+        },
+        "meanings": [
+          {
+            "label": "못 먹음 (시듦)",
+            "when": [
+              "body:wilt@>=shriveled"
+            ],
+            "means": "inedible"
+          },
+          {
+            "label": "먹을 수 있음",
+            "when": [],
+            "means": "edible"
+          }
+        ],
+        "names": {
+          "ko": "대파",
+          "en": "green onion"
+        },
+        "is_a": "OBJ000001",
+        "desc": [
+          "다듬지 않은 대파"
+        ],
+        "rules": {
+          "smell_wilt_shriveled": {
+            "label": "시듦이 쭈글·짓무름 단계면 냄새가 난다",
+            "on": [
+              "OBJ000011|body:wilt@>=shriveled"
+            ],
+            "emits": [
+              "OBJ000011|body:smell@>=faint"
+            ]
+          }
+        },
+        "progress": {
+          "wilt": {
+            "base_s": 4492800
+          }
+        },
+        "initial": {
+          "cond:seal": "open",
+          "cond:moisture": "dry",
+          "cond:cut": "whole",
+          "cond:temp": "fridge"
+        }
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {},
+  "mapped": [
+    {
+      "where": "OBJ000001.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000002.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000003.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000004.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000005.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000006.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000007.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000008.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000009.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000010.mobility",
+      "from": "가변",
+      "to": "portable"
+    },
+    {
+      "where": "OBJ000011.mobility",
+      "from": "가변",
+      "to": "portable"
+    }
+  ],
+  "report": {
+    "why": "규칙 이름 바로잡기 (전체 점검 2026-11-07): 음식의 냄새 규칙 28개 이름이 틀로 찍혀 '곰팡이이(가) spread 단계면'처럼 조사가 겹치고 단계가 키로 나왔다. 조사는 받침에 맞추고 단계는 사전의 한국어 이름으로. 이름(label)만 바뀌고 규칙의 조건·결과는 그대로다.",
+    "scope": {
+      "added": {},
+      "updated": {
+        "object": [
+          {
+            "id": "OBJ000001",
+            "fields": [
+              "names",
+              "aliases",
+              "mobility",
+              "slots",
+              "rules",
+              "offers",
+              "progress",
+              "desc",
+              "meanings"
+            ]
+          },
+          {
+            "id": "OBJ000002",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          },
+          {
+            "id": "OBJ000003",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          },
+          {
+            "id": "OBJ000004",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          },
+          {
+            "id": "OBJ000005",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          },
+          {
+            "id": "OBJ000006",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          },
+          {
+            "id": "OBJ000007",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          },
+          {
+            "id": "OBJ000008",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          },
+          {
+            "id": "OBJ000009",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          },
+          {
+            "id": "OBJ000010",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          },
+          {
+            "id": "OBJ000011",
+            "fields": [
+              "mobility",
+              "slots",
+              "meanings",
+              "names",
+              "is_a",
+              "desc",
+              "rules",
+              "progress",
+              "initial"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 11
+    },
+    "impact": {
+      "referencedBy": {
+        "OBJ000001": [
+          "PLC000002"
+        ]
+      },
+      "chainEdges": [
+        {
+          "from": "OBJ000002/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000002/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000002/rule/smell_sour_lumpy",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000002/rule/smell_sour_lumpy",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000002/rule/smell_sour_sour",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000002/rule/smell_sour_sour",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000003/rule/smell_decay_rotten",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000003/rule/smell_decay_rotten",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000003/rule/smell_decay_spoiled",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000003/rule/smell_decay_spoiled",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000003/rule/smell_decay_turned",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000003/rule/smell_decay_turned",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000003/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000003/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000004/rule/smell_decay_rotten",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000004/rule/smell_decay_rotten",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000004/rule/smell_decay_spoiled",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000004/rule/smell_decay_spoiled",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000004/rule/smell_decay_turned",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000004/rule/smell_decay_turned",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000005/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000005/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000005/rule/smell_ripen_mushy",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000005/rule/smell_ripen_mushy",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000005/rule/smell_ripen_soured",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000005/rule/smell_ripen_soured",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000006/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000006/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000006/rule/smell_wilt_shriveled",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000006/rule/smell_wilt_shriveled",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000007/rule/smell_wilt_shriveled",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000007/rule/smell_wilt_shriveled",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000008/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000008/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000008/rule/smell_sour_lumpy",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000008/rule/smell_sour_lumpy",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000008/rule/smell_sour_sour",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000008/rule/smell_sour_sour",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000009/rule/smell_decay_rotten",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000009/rule/smell_decay_rotten",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000009/rule/smell_decay_spoiled",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000009/rule/smell_decay_spoiled",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000009/rule/smell_decay_turned",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000009/rule/smell_decay_turned",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000009/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000009/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000010/rule/smell_decay_rotten",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000010/rule/smell_decay_rotten",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000010/rule/smell_decay_spoiled",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000010/rule/smell_decay_spoiled",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000010/rule/smell_decay_turned",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000010/rule/smell_decay_turned",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000010/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000010/rule/smell_mold_spread",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000011/rule/smell_wilt_shriveled",
+          "to": "PLC000002/rule/odor_reach"
+        },
+        {
+          "from": "OBJ000011/rule/smell_wilt_shriveled",
+          "to": "PLC000002/rule/odor_thicken"
+        }
+      ],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

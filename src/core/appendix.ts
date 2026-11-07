@@ -38,7 +38,7 @@ export function appendixMarkdown(db: Db, vocab: Vocab): string {
 
   // 2. 규칙 사슬
   const rules = collectRules(db);
-  const edges = buildEdges(rules, vocab);
+  const edges = buildEdges(rules, vocab, db);
   out.push('## 2. 규칙 사슬', '');
   if (rules.length === 0) {
     out.push('(규칙 없음)', '');
