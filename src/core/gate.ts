@@ -9,7 +9,7 @@ import type { Db, Definition, Issue } from './db.ts';
 import { collectRules, selfLoops } from './chains.ts';
 import { condRange, parseLocalCondition, parsePattern } from './statekey.ts';
 import type { Cond } from './statekey.ts';
-import { effectiveInitial, effectiveProgress } from './kinds.ts';
+import { ancestors, effectiveInitial, effectiveProgress, hasKindCycle } from './kinds.ts';
 import { placeGraph, spreadIssues } from './spread.ts';
 import { normalizeWord } from './vocab.ts';
 import type { Vocab } from './vocab.ts';
@@ -133,7 +133,7 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
   }
 
-  // 종류(is_a): 같은 종류의 정의를 한 단계만 가리키고, 물려받는 규칙·행동이 쓰는 부위·특징을 모두 갖는다
+  // 종류(is_a): 같은 종류의 정의를 가리키고(여러 단계 가능, 돌아오면 안 된다), 모든 조상에게서 물려받는 규칙·행동이 쓰는 부위·특징을 갖는다
   for (const [id, def] of Object.entries(db.defs)) {
     if (def.is_a === undefined) continue;
     const at = `${id}.is_a`;
@@ -144,20 +144,28 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
     if (def.is_a === id) error(at, '자기 자신의 종류일 수 없다');
     else if (def.is_a.slice(0, 3) !== id.slice(0, 3)) error(at, `같은 종류의 정의만 가리킨다 (${id.slice(0, 3)} ≠ ${def.is_a.slice(0, 3)})`);
-    else if (base.is_a !== undefined) error(at, `종류는 한 단계만 가능하다 (${def.is_a}도 is_a가 있다)`);
-    const inherited = [
-      ...Object.values(base.rules ?? {}).flatMap((r) => [...r.on, ...(r.on_all ?? []), ...r.emits]),
-      ...Object.values(base.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect]),
-    ];
-    const need = new Set<string>();
-    for (const text of inherited) {
-      const p = parsePattern(text);
-      if (p !== null && p.def === def.is_a) need.add(`${p.slot}:${p.feature}`);
+    else if (hasKindCycle(db, id)) {
+      error(at, `종류가 돌아온다 (${[id, ...ancestors(db, id), id].join(' → ')})`);
+      continue;
     }
-    for (const sf of [...need].sort()) {
-      const [slot, feature] = sf.split(':') as [string, string];
-      if (!(def.slots?.[slot]?.features ?? []).includes(feature)) {
-        error(at, `${def.is_a}의 규칙·행동을 물려받으려면 부위 ${slot}에 특징 ${feature}가 있어야 한다`);
+    // 모든 조상의 규칙·행동 중 그 조상 자신을 가리키는 패턴은 이 정의에 걸린다 → 이 정의가 그 부위·특징을 가져야 한다
+    for (const anc of ancestors(db, id)) {
+      const a = db.defs[anc];
+      if (a === undefined) continue;
+      const inherited = [
+        ...Object.values(a.rules ?? {}).flatMap((r) => [...r.on, ...(r.on_all ?? []), ...r.emits]),
+        ...Object.values(a.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect]),
+      ];
+      const need = new Set<string>();
+      for (const text of inherited) {
+        const p = parsePattern(text);
+        if (p !== null && p.def === anc) need.add(`${p.slot}:${p.feature}`);
+      }
+      for (const sf of [...need].sort()) {
+        const [slot, feature] = sf.split(':') as [string, string];
+        if (!(def.slots?.[slot]?.features ?? []).includes(feature)) {
+          error(at, `${anc}의 규칙·행동을 물려받으려면 부위 ${slot}에 특징 ${feature}가 있어야 한다`);
+        }
       }
     }
   }
