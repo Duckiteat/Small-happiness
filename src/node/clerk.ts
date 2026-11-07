@@ -3,6 +3,7 @@
 //   data/db.json, data/patches/  ← 관문을 통과한 패치만. 거부되면 아무것도 쓰지 않는다.
 //   docs/자동생성-부록.md          ← 계산된 파생 문서만.
 //   test/fixtures/golden/          ← 골든 트레이스 (`golden --write`로만. 바뀌면 결정 기록에 이유를 남긴다)
+//   receipts/                      ← 하루 영수증 (`receipt --write`로만. 실행 결과라 git에 넣지 않는다)
 //
 // 순수 코어(src/core)는 병합·검사·보고를 계산하고, 파일 쓰기는 여기서만 한다. 현재 시각은 인자로 받는다.
 
@@ -21,8 +22,12 @@ import type { PatchReport } from '../core/report.ts';
 import type { Vocab } from '../core/vocab.ts';
 import { SaveError, parseSave, serializeSave } from '../core/save.ts';
 import { parseScenario, runScenario, serializeTrace } from '../core/skeleton.ts';
-import type { DayTrace } from '../core/skeleton.ts';
+import type { DayTrace, Scenario } from '../core/skeleton.ts';
 import type { ParsedSave, SaveFile } from '../core/save.ts';
+import { parseEvent } from '../core/events.ts';
+import { ReceiptError, parseReceipt, printReceipts, verifyReceipts } from '../core/receipt.ts';
+import type { Hasher, Receipt, ReceiptRun } from '../core/receipt.ts';
+import { ReceiptNames, receiptText } from '../core/receipt-text.ts';
 
 export const DB_PATH = 'data/db.json';
 export const PATCH_DIR = 'data/patches';
@@ -253,10 +258,9 @@ export function skeletonDay(root: string, vocab: Vocab, stepMin?: number): DayTr
   return scenarioRun(root, vocab, SKELETON_SCENARIO, stepMin);
 }
 
-/** 시나리오 파일을 돌린다. use_db면 실제 저장소(data/db.json)로, 아니면 시나리오의 패치를 빈 저장소에 병합해서. */
-export function scenarioRun(root: string, vocab: Vocab, file: string, stepMin?: number): DayTrace {
-  const scenario = parseScenario(JSON.parse(readFileSync(join(root, file), 'utf8')));
-  if (scenario.use_db) return runScenario(loadDb(root), vocab, scenario, stepMin);
+/** 시나리오가 쓰는 저장소: use_db면 실제 저장소(data/db.json), 아니면 시나리오의 패치를 빈 저장소에 병합한 것. */
+export function scenarioDb(root: string, vocab: Vocab, scenario: Scenario): Db {
+  if (scenario.use_db) return loadDb(root);
   let db = emptyDb();
   for (const file of scenario.patches) {
     const parsed = parsePatch(JSON.parse(readFileSync(join(root, file), 'utf8')));
@@ -266,7 +270,13 @@ export function scenarioRun(root: string, vocab: Vocab, file: string, stepMin?: 
     if (!gate.pass) throw new Error(`시나리오 패치가 관문을 통과하지 못했다 (${file}): ${gate.reason}`);
     db = merged.db;
   }
-  return runScenario(db, vocab, scenario, stepMin);
+  return db;
+}
+
+/** 시나리오 파일을 돌린다. use_db면 실제 저장소(data/db.json)로, 아니면 시나리오의 패치를 빈 저장소에 병합해서. */
+export function scenarioRun(root: string, vocab: Vocab, file: string, stepMin?: number): DayTrace {
+  const scenario = parseScenario(JSON.parse(readFileSync(join(root, file), 'utf8')));
+  return runScenario(scenarioDb(root, vocab, scenario), vocab, scenario, stepMin);
 }
 
 /** 골든 트레이스를 쓰거나(--write) 지금 결과와 바이트까지 같은지 본다(--check). */
@@ -279,4 +289,61 @@ export function golden(root: string, vocab: Vocab, mode: 'write' | 'check'): { o
   }
   const current = existsSync(file) ? readFileSync(file, 'utf8') : '';
   return { ok: current === content, content };
+}
+
+// ── 하루 영수증 (docs/영수증-명세.md) ───────────────────────────────────────
+
+export const RECEIPT_DIR = 'receipts';
+
+export const sha256: Hasher = (text) => createHash('sha256').update(text).digest('hex');
+
+function receiptFolder(root: string, scenarioFile: string): string {
+  return join(root, RECEIPT_DIR, scenarioFile.replace(/\.json$/, '').replace(/[\\/]/g, '__'));
+}
+
+const receiptName = (day: number): string => `day-${String(day).padStart(3, '0')}`;
+
+/** 시나리오를 돌려 하루 영수증을 찍는다 (쓰지 않는다). 실행 정보에 시나리오·콘텐츠 해시를 넣는다. */
+export function receiptsFor(root: string, vocab: Vocab, scenarioFile: string): Receipt[] {
+  const scenarioText = readFileSync(join(root, scenarioFile), 'utf8');
+  const scenario = parseScenario(JSON.parse(scenarioText));
+  const trace = scenarioRun(root, vocab, scenarioFile);
+  const run: ReceiptRun = {
+    scenario: scenarioFile,
+    scenario_sha256: sha256(scenarioText),
+    content_sha256: contentHash(root),
+    seed: scenario.seed,
+    start: scenario.start,
+    end: scenario.end,
+  };
+  return printReceipts(trace.log.map(parseEvent), run, sha256);
+}
+
+/** 영수증을 receipts/<시나리오>/day-NNN.json(검증되는 원본)과 .txt(읽는 글자판)로 쓴다. 쓰기 전에 검증한다. */
+export function writeReceipts(root: string, vocab: Vocab, scenarioFile: string, receipts: readonly Receipt[]): string {
+  const verdict = verifyReceipts(receipts, sha256);
+  if (!verdict.ok) throw new ReceiptError(`찍은 영수증이 검증을 통과하지 못했다:\n${verdict.errors.join('\n')}`);
+  const dir = receiptFolder(root, scenarioFile);
+  const names = receiptNames(root, scenarioFile, vocab);
+  for (const r of receipts) {
+    atomicWrite(join(dir, `${receiptName(r.day)}.json`), JSON.stringify(r, null, 2) + '\n');
+    atomicWrite(join(dir, `${receiptName(r.day)}.txt`), receiptText(r, names));
+  }
+  return dir;
+}
+
+/** 쓴 영수증을 읽는다 (날 순서). */
+export function readReceipts(root: string, scenarioFile: string): Receipt[] {
+  const dir = receiptFolder(root, scenarioFile);
+  if (!existsSync(dir)) throw new ReceiptError(`영수증이 없다: ${dir} (먼저 receipt ${scenarioFile} --write)`);
+  return readdirSync(dir)
+    .filter((f) => /^day-\d{3}\.json$/.test(f))
+    .sort()
+    .map((f) => parseReceipt(JSON.parse(readFileSync(join(dir, f), 'utf8'))));
+}
+
+/** 글자판의 이름표: 시나리오가 쓰는 저장소의 이름과 사전. */
+export function receiptNames(root: string, scenarioFile: string, vocab: Vocab): ReceiptNames {
+  const scenario = parseScenario(JSON.parse(readFileSync(join(root, scenarioFile), 'utf8')));
+  return new ReceiptNames(scenarioDb(root, vocab, scenario), vocab);
 }

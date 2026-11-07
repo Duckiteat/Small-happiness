@@ -8,6 +8,7 @@
 //   node src/node/cli.ts web [--write | --check]
 //   node src/node/cli.ts day [시나리오]                      하루(들)를 돌려 단계마다 한 줄씩 보인다 (기본: 뼈대 시나리오)
 //   node src/node/cli.ts golden [--write | --check]          뼈대 하루의 골든 트레이스
+//   node src/node/cli.ts receipt [시나리오] [--write | --check] 하루 영수증 (보기 · receipts/에 쓰기 · 쓴 것을 검증하고 다시 돌려 맞춰 보기)
 //   옵션: --root <폴더>  (기본: 현재 폴더)
 
 import { readFileSync } from 'node:fs';
@@ -16,7 +17,9 @@ import { fileURLToPath } from 'node:url';
 import { buildEdges, chainRoots, chainsFrom, collectRules } from '../core/chains.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
-import { appendix, commitPatch, golden, loadDb, readRecordReport, replay, scenarioRun, SKELETON_SCENARIO, syncWeb } from './clerk.ts';
+import { appendix, commitPatch, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
+import { verifyReceipts } from '../core/receipt.ts';
+import { receiptText } from '../core/receipt-text.ts';
 import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
 
@@ -103,6 +106,29 @@ function main(): void {
       for (const step of scenarioRun(root, vocab, arg ?? SKELETON_SCENARIO).steps) for (const line of step.lines) console.log(line);
       return;
     }
+    case 'receipt': {
+      const file = arg ?? SKELETON_SCENARIO;
+      if (flags.has('--check')) {
+        // 쓴 영수증을 영수증만으로 검증하고(사슬·집계·마감·봉인), 다시 돌려 찍은 것과 봉인이 같은지 본다 (결정론·손 편집)
+        const stored = readReceipts(root, file);
+        const v = verifyReceipts(stored, sha256);
+        if (!v.ok) die(`영수증 검증 실패 ${v.errors.length}건\n` + v.errors.map((e) => `  ✗ ${e}`).join('\n'));
+        const fresh = receiptsFor(root, vocab, file);
+        const diff = fresh.filter((r, i) => stored[i]?.seal !== r.seal).map((r) => r.day);
+        if (stored.length !== fresh.length || diff.length > 0) die(`다시 찍은 영수증과 다르다 (날 ${diff.join(', ') || '수'}) — 엔진·데이터·시나리오가 바뀌었으면 receipt ${file} --write`);
+        console.log(`영수증 ${v.days}장 · 사건 ${v.events}건 · 사슬 정상 · 다시 찍어도 같다 (마지막 봉인 ${String(v.head).slice(0, 12)})`);
+        return;
+      }
+      const receipts = receiptsFor(root, vocab, file);
+      if (flags.has('--write')) {
+        const dir = writeReceipts(root, vocab, file, receipts);
+        console.log(`저장: ${dir} (영수증 ${receipts.length}장)`);
+        return;
+      }
+      const names = receiptNames(root, file, vocab);
+      for (const r of receipts) console.log(receiptText(r, names));
+      return;
+    }
     case 'golden': {
       const mode = flags.has('--write') ? 'write' : 'check';
       const r = golden(root, vocab, mode);
@@ -153,7 +179,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | day [시나리오] | golden [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | day [시나리오] | golden [--write|--check] | receipt [시나리오] [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 
