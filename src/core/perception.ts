@@ -14,6 +14,7 @@
 // 단순화 (기본안, 위치·번짐 11번 전까지): 물건의 위치가 없어서, 장소를 살피면 집 안의 모든 물건을 본다.
 
 import type { BoardValue } from './board.ts';
+import { formatVia } from './via.ts';
 import type { Db } from './db.ts';
 import { defOf } from './ids.ts';
 import type { EventLog } from './log.ts';
@@ -73,7 +74,7 @@ export class Perception {
   readonly #vocab: Vocab;
   readonly #log: EventLog;
   readonly #aware = new Map<string, Map<string, Knowing>>();
-  readonly #reveals: { readonly place: string; readonly ends: number }[] = [];
+  readonly #reveals: { readonly place: string; readonly ends: number; readonly via: string }[] = [];
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -83,7 +84,7 @@ export class Perception {
 
   /** 한 단계의 지각. prevRecent는 직전 단계의 행동(F6). */
   step(world: World, t: number, presence: string, prevRecent: BoardValue | undefined): { perceived: Percept[]; aware: AwareMap } {
-    for (const r of parseRecent(prevRecent)) if (r.reveals !== undefined) this.#reveals.push({ place: r.reveals, ends: r.ends });
+    for (const r of parseRecent(prevRecent)) if (r.reveals !== undefined) this.#reveals.push({ place: r.reveals, ends: r.ends, via: r.via });
     const perceived: Percept[] = [];
     if (presence === OBSERVED) {
       const revealed = this.#reveals.filter((r) => r.ends <= t);
@@ -91,8 +92,15 @@ export class Perception {
       const instances = world.instances();
       const places = instances.filter((i) => i.startsWith('PLC'));
       const objects = revealed.length > 0 ? instances.filter((i) => i.startsWith('OBJ')) : [];
+      const inspectVia = revealed[0]?.via ?? ''; // 살펴서 안 것의 근거는 그 살피기 행동
       for (const who of instances.filter((i) => i.startsWith('CHR'))) {
         const senses = this.#db.defs[defOf(who) ?? '']?.senses ?? {};
+        // 저절로 느낀 것의 근거는 그 감각 (인물 정의의 senses)
+        const senseVia = (key: string): string => {
+          const k = parseStateKey(key);
+          const sense = k === null ? undefined : this.#vocab.entry('feature', k.feature)?.attrs['sense'];
+          return formatVia(defOf(who) ?? '', 'sense', typeof sense === 'string' ? sense : '');
+        };
         const felt = (key: string): boolean => {
           const k = parseStateKey(key);
           const sense = k === null ? undefined : this.#vocab.entry('feature', k.feature)?.attrs['sense'];
@@ -104,18 +112,18 @@ export class Perception {
         for (const key of places.flatMap((p) => world.keysOf(p))) {
           if (felt(key)) {
             perceived.push({ who, key, level: world.level(key) });
-            this.#observe(who, key, NOTICED, world.level(key), t);
+            this.#observe(who, key, NOTICED, world.level(key), t, senseVia(key));
             continue;
           }
           const known = this.#aware.get(who)?.get(key);
           const k = parseStateKey(key);
           const zero = k === null ? undefined : this.#vocab.levelOrder(k.feature)?.at(0);
-          if (known !== undefined && zero !== undefined && known.level !== zero) this.#observe(who, key, known.aw, zero, t);
+          if (known !== undefined && zero !== undefined && known.level !== zero) this.#observe(who, key, known.aw, zero, t, senseVia(key));
         }
         // 살펴서: 가까이 본 물건은 임계와 상관없이 모든 상태를 안다 (냄새가 없어도 곰팡이·보관 상태가 보인다)
         for (const key of objects.flatMap((o) => world.keysOf(o))) {
           if (felt(key)) perceived.push({ who, key, level: world.level(key) });
-          this.#observe(who, key, UNDERSTOOD, world.level(key), t);
+          this.#observe(who, key, UNDERSTOOD, world.level(key), t, inspectVia);
         }
       }
     }
@@ -132,7 +140,7 @@ export class Perception {
   }
 
   /** 본 것을 앎에 남긴다. 인지 단계는 오르기만 하고, 본 단계가 바뀌면 앎이 바뀐다. 바뀐 것이 있을 때만 사건을 남긴다. */
-  #observe(who: string, key: string, aw: string, level: string, t: number): void {
+  #observe(who: string, key: string, aw: string, level: string, t: number, via: string): void {
     const m = this.#aware.get(who) ?? new Map<string, Knowing>();
     this.#aware.set(who, m);
     const prev = m.get(key);
@@ -141,6 +149,6 @@ export class Perception {
     const to = rose ? aw : prevAw;
     if (!rose && prev !== undefined && prev.level === level) return;
     m.set(key, { aw: to, level, t });
-    this.#log.append({ t, type: rose ? AWARENESS_UP : AWARENESS_CHANGED, src: PERCEPTION_SRC, data: { who, key, to, level } });
+    this.#log.append({ t, type: rose ? AWARENESS_UP : AWARENESS_CHANGED, src: PERCEPTION_SRC, data: { who, key, to, level, via } });
   }
 }

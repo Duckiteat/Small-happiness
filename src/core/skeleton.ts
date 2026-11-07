@@ -15,6 +15,7 @@ import type { RecentAction } from './agency.ts';
 import { applyLevel, Causal } from './causal.ts';
 import { parseAware, Perception } from './perception.ts';
 import { defOf } from './ids.ts';
+import { viaCheck } from './via.ts';
 import { effectiveInitial } from './kinds.ts';
 import { parseStateKey } from './statekey.ts';
 import type { Db } from './db.ts';
@@ -123,7 +124,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
         pending.splice(0, pending.length, ...pending.filter((a) => a.ends > c.t));
         for (const a of due) {
           causal.advance(world, a.ends);
-          const done = log.append({ t: a.ends, type: 'action_done', src: 'world', cause: a.event, data: { who: a.who, verb: a.verb, at: a.at } });
+          const done = log.append({ t: a.ends, type: 'action_done', src: 'world', cause: a.event, data: { who: a.who, verb: a.verb, via: a.via, at: a.at } });
           for (const e of a.effects) {
             const k = parseStateKey(e.key);
             if (k !== null && (e.op === '=' || e.op === '>=' || e.op === '<=')) {
@@ -253,7 +254,7 @@ export interface DayTrace {
 
 /** 시나리오대로 세계를 세우고 뼈대 층으로 하루를 돌린다. 같은 입력이면 같은 기록이 나온다. */
 export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: number): DayTrace {
-  const log = new EventLog({ isKnownType: (type) => vocab.has('event_type', type) });
+  const log = new EventLog({ isKnownType: (type) => vocab.has('event_type', type), checkData: viaCheck(vocab) });
   const world = new World(db, vocab, log);
   for (const def of scenario.spawn) world.spawn(def, { t: 0 });
   for (const s of scenario.set) world.set(s.key, s.level, { t: s.t });

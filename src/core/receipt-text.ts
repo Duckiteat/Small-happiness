@@ -6,6 +6,7 @@
 import type { JsonValue } from './events.ts';
 import type { Db } from './db.ts';
 import { instanceName } from './skeleton.ts';
+import { parseVia } from './via.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
 import { parseStateKey } from './statekey.ts';
 import type { Receipt, ReceiptItem } from './receipt.ts';
@@ -65,10 +66,22 @@ export class ReceiptNames {
     return this.#vocab.entry(category, key)?.ko ?? key;
   }
 
-  /** 규칙 번호(OBJ000010/smell_decay_turned) → "남은 치킨/smell_decay_turned" */
-  rule(ref: string): string {
-    const [def, ...rest] = ref.split('/');
-    return rest.length === 0 ? ref : `${this.thing(def ?? '')}/${rest.join('/')}`;
+  /** 근거 참조(정의/종류/키) → 사람이 읽는 말. 규칙·행동은 정의의 label, 없으면 키. 모양이 아니면 그대로. */
+  via(ref: string): string {
+    const v = parseVia(ref);
+    if (v === null) return ref;
+    const def = this.#db.defs[v.owner];
+    const who = this.thing(v.owner);
+    switch (v.kind) {
+      case 'rule':
+        return def?.rules?.[v.key]?.label ?? `${who} 규칙 ${v.key}`;
+      case 'offer':
+        return def?.offers?.[v.key]?.label ?? `${who} 행동 ${v.key}`;
+      case 'progress':
+        return `${who} ${this.feature(v.key)} 진행`;
+      case 'sense':
+        return `${who}의 ${this.word('sense', v.key)}`;
+    }
   }
 }
 
@@ -88,10 +101,10 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
       return `${typeKo}: ${k.what} → ${n.level(k.feature, s(d['to']))}`;
     }
     case 'delay_scheduled':
-      return `${typeKo}: ${n.rule(s(d['rule']))} (${when(Number(d['due']), day)})`;
+      return `${typeKo} (${when(Number(d['due']), day)})`;
     case 'delay_fired':
     case 'delay_cancelled':
-      return `${typeKo}: ${n.rule(s(d['rule']))}`;
+      return typeKo;
     case 'awareness_up':
     case 'awareness_changed': {
       const k = n.key(s(d['key']));
@@ -113,7 +126,8 @@ export function receiptText(r: Receipt, n: ReceiptNames): string {
   if (r.items.length === 0) out.push('  (이 날 기록된 사건 없음)');
   for (const it of r.items) {
     const cause = it.cause === null ? '' : ` ← ${it.cause}${it.cause_day !== undefined ? ` (${it.cause_day}일)` : ''}`;
-    out.push(`  ${hhmm(it.t)}  ${itemText(it, n, r.day)}`, `         ${it.seq}${cause}`);
+    const via = typeof it.data['via'] === 'string' ? ` · ${n.via(it.data['via'])}` : '';
+    out.push(`  ${hhmm(it.t)}  ${itemText(it, n, r.day)}`, `         ${it.seq}${cause}${via}`);
   }
   out.push(RULE, `  사건 ${r.tally.n}건`);
   for (const [type, c] of Object.entries(r.tally.by_type)) out.push(`    ${n.word('event_type', type)} ${c}`);

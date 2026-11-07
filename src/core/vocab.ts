@@ -4,6 +4,7 @@
 // 같은 분류 안에서 정규화한 말이 두 항목을 가리키면 오류다 ("이름 하나 = 개념 하나").
 
 import type { JsonValue } from './events.ts';
+import { VIA_KINDS } from './via.ts';
 
 export interface VocabEntryRaw {
   readonly key: string;
@@ -137,6 +138,14 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
         const h = attrs['hop_s'];
         if (!isInt(h) || h < 0 || h % 60 !== 0) push(`${path}.attrs.hop_s`, '칸마다 걸리는 시간은 0 이상, 60의 배수 정수(초)여야 한다');
         if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, 'tuned(조정 완료 여부)를 true/false로 적어야 한다');
+      }
+      break;
+    }
+    case 'event_type': {
+      // via_kinds: 이 사건 유형이 근거 참조(data.via)로 가져야 하는 종류 (via.ts). 없으면 via를 갖지 않는다
+      const k = attrs['via_kinds'];
+      if (k !== undefined && (!Array.isArray(k) || k.length === 0 || !k.every((x) => typeof x === 'string' && (VIA_KINDS as readonly string[]).includes(x)))) {
+        push(`${path}.attrs.via_kinds`, `via_kinds는 ${VIA_KINDS.join(' / ')} 중에서 고른 비어 있지 않은 목록이어야 한다`);
       }
       break;
     }

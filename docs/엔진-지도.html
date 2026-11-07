@@ -318,7 +318,7 @@ td.where { color: var(--muted); font-size: 13px; }
           <tr><td>통로 · 번짐</td><td>장소 사이의 통로마다 매질(공기·벌레)별 투과율. 원천 장소의 단계가 통로를 따라 약해지며 번진다.</td><td class="where">1 공간 · spread.ts</td></tr>
           <tr><td>앎</td><td>하루씨가 아는 것: 인지 단계(모름·알아챔·이해함) + 본 단계 + 본 시각. 행동은 세계가 아니라 앎으로 판단한다.</td><td class="where">5 지각</td></tr>
           <tr><td>제공 행동</td><td>물건·장소가 내놓는 행동. 필요한 앎을 갖추면 고를 수 있고, 결과는 효과 요청으로만 낸다.</td><td class="where">6 행동</td></tr>
-          <tr><td>사건 · 원인</td><td>모든 변화는 사건으로 남고 <code>cause</code>가 원인 사건을 가리킨다. 기록만으로 세계를 다시 만들 수 있다.</td><td class="where">기록 · log.ts</td></tr>
+          <tr><td>사건 · 원인 · 근거</td><td>모든 변화는 사건으로 남는다. <code>cause</code>는 직전의 어떤 사건이 일으켰나, <code>data.via</code>는 어떤 규칙·행동·법칙·감각이 만들었나. 기록만으로 세계를 다시 만들 수 있다.</td><td class="where">기록 · log.ts · via.ts</td></tr>
           <tr><td>영수증</td><td>하루 한 장. 사건은 사건끼리, 하루는 하루끼리 해시로 이어지고, 마감이 다음 날로 넘어간다.</td><td class="where">receipt.ts</td></tr>
           <tr><td>한계</td><td>엔진이 아직 못 하는 것과 이유. 설계 오류 · 기능 부재 · 원천으로 나누고, 상태는 기록에서 계산된다.</td><td class="where">data/limitations.json</td></tr>
         </tbody>
@@ -329,8 +329,8 @@ td.where { color: var(--muted); font-size: 13px; }
   <section aria-labelledby="s-gaps">
     <h2 id="s-gaps">아직 비어 있는 곳</h2>
     <div class="gaps">
-      <div class="gap"><h3>원인이 끊긴 곳 <span class="n">· 설계 오류 5</span></h3><p>알아챔 → 고름 → 이해함 사이, 지연 예약 등에서 원인 사건 번호가 다음 층으로 넘어가지 않는다 (LIM001~004, 007).</p></div>
-      <div class="gap"><h3>아직 없는 기능 <span class="n">· 기능 부재 6</span></h3><p>문이 늘 닫힘, 먼지 운반, 원천이 여럿인 번짐, 양으로 계산하는 번짐, 바깥 경계, 진행의 원인 사건 (LIM005, 008~012).</p></div>
+      <div class="gap"><h3>원인이 끊긴 곳 <span class="n">· 설계 오류 4</span></h3><p>알아챔 → 고름 → 이해함 사이, 지연 예약 등에서 원인 사건 번호가 다음 층으로 넘어가지 않는다 (LIM001~004). 어떤 규칙이 만들었는지(<code>via</code>)는 모든 사건에 적힌다.</p></div>
+      <div class="gap"><h3>아직 없는 기능 <span class="n">· 기능 부재 5</span></h3><p>문이 늘 닫힘, 먼지 운반, 원천이 여럿인 번짐, 양으로 계산하는 번짐, 바깥 경계 (LIM008~012).</p></div>
       <div class="gap"><h3>비어 있는 층</h3><p>4b 내면(컨디션·모드), 7 장면(이벤트 포착), 8 표현(문장 엔진). 4a는 일정만, 5는 기억이 없다.</p></div>
       <div class="gap"><h3>물체층의 남은 일</h3><p>재질, 물건의 위치(어느 장소·무엇 위에), 버린 물건의 보관과 보존. 하루씨가 집 안 어느 방에 있는지도 아직 없다.</p></div>
     </div>

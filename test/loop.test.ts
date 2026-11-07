@@ -52,7 +52,7 @@ test('고리가 닫힌다: 알아챔 → 살피기 → 이해함 → 버리기 �
     ],
   );
   assert.deepEqual(bugs(trace), []);
-  assert.ok(events(trace, 'delay_cancelled').some((e) => e.data['rule'] === 'PLC000001/odor_thicken'), '짙어지기 예약이 취소된다');
+  assert.ok(events(trace, 'delay_cancelled').some((e) => e.data['via'] === 'PLC000001/rule/odor_thicken'), '짙어지기 예약이 취소된다');
   const last = trace.steps.at(-1);
   assert.equal((last?.values['world.state'] as Record<string, string>)['PLC000001#1|space:smell'], undefined, '주방 냄새가 빠졌다 (없음)');
 });

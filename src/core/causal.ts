@@ -20,6 +20,7 @@ import type { Db } from './db.ts';
 import { effectiveRules, instancesOfKind } from './kinds.ts';
 import { Progress } from './progress.ts';
 import { spreadRules } from './spread.ts';
+import { formatVia } from './via.ts';
 import type { GameEvent } from './events.ts';
 import type { EventLog } from './log.ts';
 import { condRange, formatStateKey, parsePattern } from './statekey.ts';
@@ -145,10 +146,10 @@ export class Causal {
   }
 
   /** 지금 걸려 있는 예약 (발화 시각, 규칙, 인스턴스). 화면의 예고와 시험에 쓴다. */
-  pending(): { readonly due: number; readonly rule: string; readonly at: string }[] {
+  pending(): { readonly due: number; readonly via: string; readonly at: string }[] {
     return [...this.#reservations.values()]
-      .map((r) => ({ due: r.due, rule: `${r.rule.owner}/${r.rule.key}`, at: r.at }))
-      .sort((a, b) => a.due - b.due || a.rule.localeCompare(b.rule) || a.at.localeCompare(b.at));
+      .map((r) => ({ due: r.due, via: formatVia(r.rule.owner, 'rule', r.rule.key), at: r.at }))
+      .sort((a, b) => a.due - b.due || a.via.localeCompare(b.via) || a.at.localeCompare(b.at));
   }
 
   /** 세계를 시각 to까지 진행한다. 그 사이의 발화는 각자의 시각으로 기록된다. */
@@ -169,7 +170,7 @@ export class Causal {
       const decided = batch.map(([id, r]) => ({ id, r, holds: this.#holds(world, r.rule, r.at) }));
       for (const { id, r, holds } of decided) {
         this.#reservations.delete(id);
-        const data = { rule: `${r.rule.owner}/${r.rule.key}`, at: r.at };
+        const data = { via: formatVia(r.rule.owner, 'rule', r.rule.key), at: r.at };
         if (!holds) {
           this.#log.append({ t: due, type: DELAY_CANCELLED, src: CAUSAL_SRC, cause: r.seq, data });
           continue;
@@ -202,7 +203,7 @@ export class Causal {
         if (this.#reservations.has(id)) continue;
         if (!this.#holds(world, rule, at) || this.#done(world, rule, at)) continue;
         const due = t + rule.delayMin;
-        const e = this.#log.append({ t, type: DELAY_SCHEDULED, src: CAUSAL_SRC, data: { rule: `${rule.owner}/${rule.key}`, at, due } });
+        const e = this.#log.append({ t, type: DELAY_SCHEDULED, src: CAUSAL_SRC, data: { via: formatVia(rule.owner, 'rule', rule.key), at, due } });
         this.#reservations.set(id, { rule, at, due, seq: e.seq });
       }
     }

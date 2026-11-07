@@ -13,6 +13,7 @@ import type { EventLog } from './log.ts';
 import { effectiveProgress } from './kinds.ts';
 import type { FullProgress } from './kinds.ts';
 import { formatStateKey } from './statekey.ts';
+import { formatVia } from './via.ts';
 import type { Vocab } from './vocab.ts';
 import type { World } from './world.ts';
 
@@ -101,7 +102,8 @@ export class Progress {
       }
       if (reach === idx) continue;
       const level = order.at(reach) as string;
-      const e = this.#log.append({ t, type: STAGE_ADVANCED, src: 'causal', data: { key, to: level } });
+      const via = formatVia(world.defOfInstance(tr.instance) ?? '', 'progress', tr.law.feature);
+      const e = this.#log.append({ t, type: STAGE_ADVANCED, src: 'causal', data: { key, to: level, via } });
       world.set(key, level, { t, cause: e.seq });
     }
   }

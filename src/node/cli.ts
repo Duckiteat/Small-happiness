@@ -21,6 +21,7 @@ import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
 import { appendix, commitPatch, gaps, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
 import { verifyReceipts } from '../core/receipt.ts';
+import { viaKindsLookup } from '../core/via.ts';
 import { receiptText } from '../core/receipt-text.ts';
 import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
@@ -115,7 +116,7 @@ function main(): void {
       if (flags.has('--check')) {
         // 쓴 영수증을 영수증만으로 검증하고(사슬·집계·마감·봉인), 다시 돌려 찍은 것과 봉인이 같은지 본다 (결정론·손 편집)
         const stored = readReceipts(root, file);
-        const v = verifyReceipts(stored, sha256);
+        const v = verifyReceipts(stored, sha256, viaKindsLookup(vocab));
         if (!v.ok) die(`영수증 검증 실패 ${v.errors.length}건\n` + v.errors.map((e) => `  ✗ ${e}`).join('\n'));
         const fresh = receiptsFor(root, vocab, file);
         const diff = fresh.filter((r, i) => stored[i]?.seal !== r.seal).map((r) => r.day);

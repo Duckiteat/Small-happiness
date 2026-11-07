@@ -14,6 +14,7 @@
 
 import { levelMatches, stateMatches } from './causal.ts';
 import type { BoardValue } from './board.ts';
+import { formatVia } from './via.ts';
 import type { Db } from './db.ts';
 import { effectiveInitial, effectiveOffers, instancesOfKind } from './kinds.ts';
 import { meaningOf } from './meaning.ts';
@@ -39,7 +40,8 @@ export interface RecentAction {
   readonly event: string;
   readonly who: string;
   readonly verb: string;
-  readonly offer: string;
+  /** 이 행동을 내놓은 제공 행동의 근거 참조 (via.ts: 정의/offer/키) */
+  readonly via: string;
   readonly at: string;
   readonly ends: number;
   readonly effects: readonly Effect[];
@@ -57,7 +59,7 @@ export function parseRecent(value: BoardValue | undefined): RecentAction[] {
     event: String(r['event']),
     who: String(r['who']),
     verb: String(r['verb']),
-    offer: String(r['offer']),
+    via: String(r['via']),
     at: String(r['at']),
     ends: Number(r['ends']),
     effects: (Array.isArray(r['effects']) ? r['effects'] : []).filter(isObj).map((e) => ({ key: String(e['key']), op: String(e['op']), level: String(e['level']) })),
@@ -147,13 +149,13 @@ export class Agency {
           this.#tried.add(signature);
           const ends = t + offer.minutes;
           this.#busyUntil = ends;
-          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, data: { who, verb: offer.verb, offer: `${owner}/${key}`, at, ends } });
+          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends } });
           return [
             {
               event: e.seq,
               who,
               verb: offer.verb,
-              offer: `${owner}/${key}`,
+              via: formatVia(owner, 'offer', key),
               at,
               ends,
               effects: effects.map((x) => ({ key: x.key, op: x.cond?.op ?? '=', level: x.cond?.level ?? '' })),
