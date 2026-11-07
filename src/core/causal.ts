@@ -72,7 +72,7 @@ export class CausalError extends Error {
   }
 }
 
-interface Rule {
+export interface Rule {
   readonly def: string; // 이 규칙이 걸리는 인스턴스의 정의
   readonly owner: string; // 규칙을 선언한 정의 (자기 자신에 묶이는 패턴의 정의)
   readonly key: string; // 규칙 키
@@ -104,6 +104,11 @@ function compileRules(db: Db): Rule[] {
   return rules;
 }
 
+/** 저장소에서 돌아가는 모든 규칙: 정의의 규칙(종류에서 물려받은 것 포함) + 장소 그래프에서 만든 번짐 규칙. 감사(audit.ts)도 이 목록을 쓴다. */
+export function allRules(db: Db, vocab: Vocab): Rule[] {
+  return [...compileRules(db), ...spreadRules(db, vocab)];
+}
+
 export class Causal {
   readonly #db: Db;
   readonly #vocab: Vocab;
@@ -119,7 +124,7 @@ export class Causal {
     this.#db = db;
     this.#vocab = vocab;
     this.#log = log;
-    this.#rules = [...compileRules(db), ...spreadRules(db, vocab)]; // 손으로 쓴 규칙 + 장소 그래프에서 만든 번짐 규칙
+    this.#rules = allRules(db, vocab); // 손으로 쓴 규칙 + 장소 그래프에서 만든 번짐 규칙
     this.#progress = new Progress(db, vocab, log);
     this.#now = start;
   }

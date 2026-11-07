@@ -30,6 +30,9 @@ import { ReceiptError, parseReceipt, printReceipts, verifyReceipts } from '../co
 import type { Hasher, Receipt, ReceiptRun } from '../core/receipt.ts';
 import { ReceiptNames, receiptText } from '../core/receipt-text.ts';
 import { viaKindsLookup } from '../core/via.ts';
+import { auditLog } from '../core/audit.ts';
+import type { AuditResult } from '../core/audit.ts';
+import type { GameEvent } from '../core/events.ts';
 import { findGaps, gapsMarkdown, GAPS_PATH, limitationsMarkdown, LIMITATIONS_DATA, LIMITATIONS_PATH, parseRegistry } from '../core/gaps.ts';
 
 export const DB_PATH = 'data/db.json';
@@ -373,4 +376,17 @@ export function gaps(root: string, vocab: Vocab, mode: 'write' | 'check'): { ok:
     else if (!existsSync(file) || readFileSync(file, 'utf8') !== content) stale.push(rel);
   }
   return { ok: stale.length === 0 && report.unregistered.length === 0, unregistered: report.unregistered.length, stale };
+}
+
+// ── 영수증 감사 (docs/영수증-명세.md 8장) ──────────────────────────────────
+
+/** 사건 기록을 시나리오가 쓰는 저장소의 정의와 맞춰 본다 (엔진을 돌리지 않는다). */
+export function auditEvents(root: string, vocab: Vocab, scenarioFile: string, events: readonly GameEvent[]): AuditResult {
+  const scenario = parseScenario(JSON.parse(readFileSync(join(root, scenarioFile), 'utf8')));
+  return auditLog(events, scenarioDb(root, vocab, scenario), vocab, { externalUntil: scenario.start });
+}
+
+/** 시나리오를 돌려 나온 기록을 감사한다. */
+export function auditScenario(root: string, vocab: Vocab, scenarioFile: string): AuditResult {
+  return auditEvents(root, vocab, scenarioFile, scenarioRun(root, vocab, scenarioFile).log.map(parseEvent));
 }
