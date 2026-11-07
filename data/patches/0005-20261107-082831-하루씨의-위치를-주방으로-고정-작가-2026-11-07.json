@@ -1,0 +1,68 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "하루씨의 위치를 주방으로 고정 (작가 2026-11-07): 집에 있는 동안 주방에 머물고 주방의 냄새만 맡는다. 방을 옮기는 일은 아직 없다. 감각 임계는 임시값(tuned:false)이며 작가 확인 전이다.",
+    "defs": [
+      {
+        "id": "CHR000001",
+        "names": {
+          "ko": "하루씨",
+          "en": "Haru"
+        },
+        "senses": {
+          "smell": {
+            "notice": 1,
+            "tuned": false
+          },
+          "sight": {
+            "notice": 1,
+            "tuned": false
+          }
+        },
+        "stays": "PLC000002",
+        "desc": [
+          "혼자 사는 직장인 (세계-설정 1장). 직업·출퇴근은 미정"
+        ]
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {},
+  "mapped": [],
+  "report": {
+    "why": "하루씨의 위치를 주방으로 고정 (작가 2026-11-07): 집에 있는 동안 주방에 머물고 주방의 냄새만 맡는다. 방을 옮기는 일은 아직 없다. 감각 임계는 임시값(tuned:false)이며 작가 확인 전이다.",
+    "scope": {
+      "added": {},
+      "updated": {
+        "character": [
+          {
+            "id": "CHR000001",
+            "fields": [
+              "names",
+              "senses",
+              "stays",
+              "desc"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

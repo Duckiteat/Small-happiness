@@ -364,6 +364,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           const notice = db.defs[defOf(who) ?? '']?.senses?.[pv.key]?.notice;
           if (pv.owner !== defOf(who) || sense !== pv.key || notice === undefined) bad(e.seq, 'awareness', `${via}는 ${who}가 ${k.feature}를 느끼는 감각이 아니다`);
           else {
+            const stays = db.defs[defOf(who) ?? '']?.stays;
+            if (stays !== undefined && k.subject.startsWith('PLC') && defOf(k.subject) !== stays) bad(e.seq, 'awareness', `${who}는 ${stays}에 머무는데 ${k.subject}의 ${k.feature}를 느꼈다`);
             const felt = ladder(k.feature).indexOf(now) >= notice;
             if (felt && level !== now) bad(e.seq, 'awareness', `느낀 단계(${level})가 세계의 단계(${now})와 다르다`);
             if (!felt && level !== ladder(k.feature)[0]) bad(e.seq, 'awareness', `알아채는 칸(${notice}) 아래인데 ${level}를 느꼈다고 적었다 (없어진 것은 0칸이어야 한다)`);

@@ -36,7 +36,7 @@ const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
   OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
   PLC: [...COMMON_FIELDS, 'environment', 'passages', 'slots', 'meanings', 'rules', 'offers'],
-  CHR: [...COMMON_FIELDS, 'senses'],
+  CHR: [...COMMON_FIELDS, 'senses', 'stays'],
 };
 
 /** 이 종류의 정의가 가질 수 있는 최상위 필드. 아직 설계되지 않은 종류는 공통 필드만 쓴다. */
@@ -145,6 +145,8 @@ export interface Definition {
   readonly rules?: { readonly [key: string]: RuleDef };
   readonly offers?: { readonly [key: string]: OfferDef };
   readonly senses?: { readonly [sense: string]: SenseDef };
+  /** 인물이 집에 있는 동안 머무는 장소 (번호 또는 이름). 그 장소의 냄새만 맡는다. 없으면 모든 장소 (위치를 아직 안 둔 것) */
+  readonly stays?: string;
   /** 장소의 환경 특성: 사전 env_trait → 사전 env_level */
   readonly environment?: { readonly [trait: string]: string };
   readonly passages?: readonly PassageDef[];
@@ -496,6 +498,7 @@ export type Fields = Partial<{
   rules: Record<string, RuleDef>;
   offers: Record<string, OfferDef>;
   senses: Record<string, SenseDef>;
+  stays: string;
   environment: Record<string, string>;
   passages: PassageDef[];
   progress: Record<string, ProgressDef>;
@@ -568,6 +571,10 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.senses = v;
         break;
       }
+      case 'stays':
+        if (typeof value !== 'string' || value.trim() === '') push(at, 'stays는 장소 번호나 이름 문자열이어야 한다');
+        else out.stays = value.trim();
+        break;
       case 'environment': {
         const v = fieldEnvironment(value, at, push);
         if (v !== undefined) out.environment = v;
@@ -609,6 +616,7 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
     ...(f.rules !== undefined ? { rules: f.rules } : {}),
     ...(f.offers !== undefined ? { offers: f.offers } : {}),
     ...(f.senses !== undefined ? { senses: f.senses } : {}),
+    ...(f.stays !== undefined ? { stays: f.stays } : {}),
     ...(f.environment !== undefined ? { environment: f.environment } : {}),
     ...(f.passages !== undefined ? { passages: f.passages } : {}),
     ...(f.progress !== undefined ? { progress: f.progress } : {}),

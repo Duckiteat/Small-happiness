@@ -15,7 +15,7 @@ const KIND_PREFIX: Readonly<Record<string, string>> = { objects: 'OBJ', places: 
 const FIELDS: Readonly<Record<string, readonly string[]>> = {
   objects: ['id', 'names', 'aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial', 'is_a', 'override'],
   places: ['id', 'names', 'aliases', 'desc', 'environment', 'passages', 'slots', 'meanings', 'rules', 'offers'],
-  characters: ['id', 'names', 'aliases', 'desc', 'senses'],
+  characters: ['id', 'names', 'aliases', 'desc', 'senses', 'stays'],
 };
 
 /** 펼치기(override)로 바꿀 수 있는 필드. */

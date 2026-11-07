@@ -60,6 +60,8 @@ test('감사: 사건을 하나씩 망가뜨리면 해당 검사가 잡는다 (�
       mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'delay_scheduled'), (e) => data(e, { due: Number(e.data['due']) + 60 })) },
     { name: '발화를 예약 시각이 아닌 때에 기록한다', check: 'timing', message: /예약 시각 .*아닌/,
       mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'delay_fired'), (e) => ({ t: e.t + 1 })) },
+    { name: '머무는 곳이 아닌 장소의 냄새를 느꼈다고 적는다', check: 'awareness', message: /머무는데/,
+      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'awareness_up' && String(e.data['via']).includes('/sense/')), (e) => data(e, { key: 'PLC000001#1|space:smell' })) },
     { name: '규칙이 걸리지 않는 개체의 예약', check: 'rule', message: /걸리는 규칙이 아니다/,
       mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'delay_scheduled'), (e) => data(e, { at: 'CHR000001#1' })) },
     { name: '조건이 풀렸는데 발화한 것으로 적는다', check: 'holds', message: /조건이 풀려 있는데 발화/,

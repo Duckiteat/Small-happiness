@@ -207,6 +207,17 @@ function mapDefinition(db: Db, vocab: Vocab | undefined, def: Definition, errors
     Object.entries(def.environment).map(([t, l]) => [key('env_trait', t, `${def.id}.environment`), key('env_level', l, `${def.id}.environment.${t}`)]),
   );
 
+  let stays = def.stays;
+  if (stays !== undefined) {
+    const ref = resolveDefRef(db, stays);
+    if ('error' in ref) errors.push({ level: 'error', where: `${def.id}.stays`, msg: ref.error });
+    else if (ref.id !== stays) {
+      notes.push({ where: `${def.id}.stays`, from: stays, to: ref.id });
+      stays = ref.id;
+      changed = true;
+    }
+  }
+
   let mobility = def.mobility;
   if (vocab !== undefined && mobility !== undefined) {
     const k = vocab.resolve('mobility', mobility);
@@ -221,6 +232,7 @@ function mapDefinition(db: Db, vocab: Vocab | undefined, def: Definition, errors
   return {
     ...def,
     ...(mobility !== undefined ? { mobility } : {}),
+    ...(stays !== undefined ? { stays } : {}),
     ...(environment !== undefined ? { environment } : {}),
     ...(passages !== undefined ? { passages } : {}),
     ...(slots !== undefined ? { slots } : {}),

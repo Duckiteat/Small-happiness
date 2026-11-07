@@ -93,12 +93,14 @@ export class Perception {
       const revealed = this.#reveals.filter((r) => r.ends <= t);
       this.#reveals.splice(0, this.#reveals.length, ...this.#reveals.filter((r) => r.ends > t));
       const instances = world.instances();
-      const places = instances.filter((i) => i.startsWith('PLC'));
       const objects = revealed.length > 0 ? instances.filter((i) => i.startsWith('OBJ')) : [];
       const inspectVia = revealed[0]?.via ?? ''; // 살펴서 안 것의 근거는 그 살피기 행동, 원인은 그 행동이 끝난 사건
       const inspectDone = this.#done.get(revealed[0]?.event ?? '') ?? null;
       for (const who of instances.filter((i) => i.startsWith('CHR'))) {
         const senses = this.#db.defs[defOf(who) ?? '']?.senses ?? {};
+        // 집에 있는 동안 머무는 곳의 냄새만 맡는다 (정의에 stays가 없으면 모든 장소)
+        const stays = this.#db.defs[defOf(who) ?? '']?.stays;
+        const places = instances.filter((i) => i.startsWith('PLC') && (stays === undefined || defOf(i) === stays));
         // 저절로 느낀 것의 근거는 그 감각 (인물 정의의 senses)
         const senseVia = (key: string): string => {
           const k = parseStateKey(key);

@@ -166,5 +166,13 @@
   "self-loop-via-kind.json": {
     "stage": "gate",
     "match": "자기 순환"
+  },
+  "stays-missing-place.json": {
+    "stage": "gate",
+    "match": "없는 정의 번호: PLC000099"
+  },
+  "stays-not-place.json": {
+    "stage": "gate",
+    "match": "머무는 곳은 장소여야 한다"
   }
 }

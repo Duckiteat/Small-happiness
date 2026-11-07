@@ -277,6 +277,11 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
         slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
       });
     }
+    if (def.stays !== undefined) {
+      if (!id.startsWith('CHR')) error(`${id}.stays`, 'stays는 인물에만 있다');
+      else if (db.defs[def.stays] === undefined) error(`${id}.stays`, `없는 정의를 가리킨다: ${def.stays}`);
+      else if (!def.stays.startsWith('PLC')) error(`${id}.stays`, `머무는 곳은 장소여야 한다 (${def.stays}는 장소가 아니다)`);
+    }
     for (const sense of Object.keys(def.senses ?? {})) {
       if (!vocab.has('sense', sense)) error(`${id}.senses.${sense}`, `사전에 없는 감각: ${sense}`);
     }
