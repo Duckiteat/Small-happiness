@@ -7,7 +7,7 @@
 
 import { DEF_PREFIXES, formatDefId, isDefPrefix, parseId } from './ids.ts';
 import type { DefPrefix } from './ids.ts';
-import { buildDefinition, maxUsedNumber, parseFields, resolveDefRef } from './db.ts';
+import { buildDefinition, fieldsOf, maxUsedNumber, parseFields, resolveDefRef } from './db.ts';
 import type { Db, Definition, Fields, Issue } from './db.ts';
 import type { Vocab } from './vocab.ts';
 
@@ -308,21 +308,8 @@ export function mergePatch(dbIn: Db, patch: Patch, vocab?: Vocab): MergeResult {
     } else {
       const old = defsById[id] as Definition;
       const changedFields = Object.keys(fields).filter((k) => k !== 'id');
-      const merged = buildDefinition(id, {
-        names: old.names,
-        ...(old.is_a !== undefined ? { is_a: old.is_a } : {}),
-        aliases: [...old.aliases],
-        desc: [...old.desc],
-        ...(old.mobility !== undefined ? { mobility: old.mobility } : {}),
-        ...(old.slots !== undefined ? { slots: old.slots as Fields['slots'] } : {}),
-        ...(old.meanings !== undefined ? { meanings: [...old.meanings] } : {}),
-        ...(old.rules !== undefined ? { rules: old.rules as Fields['rules'] } : {}),
-        ...(old.offers !== undefined ? { offers: old.offers as Fields['offers'] } : {}),
-        ...(old.senses !== undefined ? { senses: old.senses as Fields['senses'] } : {}),
-        ...(old.progress !== undefined ? { progress: old.progress as Fields['progress'] } : {}),
-        ...(old.initial !== undefined ? { initial: old.initial as Fields['initial'] } : {}),
-        ...fields,
-      });
+      // 옛 필드 전부 + 바뀐 필드 (필드를 이름으로 하나씩 옮기지 않는다 — 새 필드를 빠뜨려 부분 갱신이 지우는 일을 막는다)
+      const merged = buildDefinition(id, { ...fieldsOf(old), ...fields });
       if (merged === undefined) return;
       if (JSON.stringify(merged) !== JSON.stringify(old)) {
         defsById[id] = merged;

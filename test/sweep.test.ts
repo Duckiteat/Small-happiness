@@ -6,7 +6,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { buildEdges, collectRules } from '../src/core/chains.ts';
+import { buildEdges, collectRules, ruleNodes } from '../src/core/chains.ts';
+import { generatedRules } from '../src/core/generated.ts';
 import { compileSources } from '../src/core/compile.ts';
 import { parseEvent } from '../src/core/events.ts';
 import { EventLog } from '../src/core/log.ts';
@@ -61,9 +62,10 @@ test('명령줄: 없는 파일·없는 규칙·없는 기록은 내부 덤프 �
 });
 
 test('규칙 사슬: 종류(is_a)를 거쳐 잇는다 — 음식 하나의 냄새 규칙이 "음식"을 가리키는 주방 냄새 규칙으로 이어진다', () => {
-  const edges = buildEdges(collectRules(db), vocab, db);
+  const rules = [...collectRules(db), ...ruleNodes(generatedRules(db, vocab))];
+  const edges = buildEdges(rules, vocab, db);
   assert.ok(edges.some((e) => e.from.startsWith('OBJ000010/rule/') && e.to === 'PLC000002/rule/odor_reach'), '남은 치킨 냄새 → 주방 냄새');
-  assert.equal(buildEdges(collectRules(db), vocab).some((e) => e.to === 'PLC000002/rule/odor_reach'), false, '저장소를 주지 않으면 같은 정의끼리만 본다');
+  assert.equal(buildEdges(rules, vocab).some((e) => e.to === 'PLC000002/rule/odor_reach'), false, '저장소를 주지 않으면 같은 정의끼리만 본다');
 });
 
 test('실제 첫 주: 단계 간격을 바꿔도 사건 기록이 같다 (정확한 시각 계산 · 번짐 포함)', () => {

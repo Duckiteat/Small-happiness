@@ -299,24 +299,28 @@
               "at": "turned",
               "strains": [
                 "lactic_acid_bacteria"
-              ]
+              ],
+              "strength": "faint"
             },
             {
               "at": "spoiled",
               "strains": [
                 "pseudomonas",
                 "enterobacteria"
-              ]
+              ],
+              "strength": "distinct"
             },
             {
               "at": "rotten",
               "strains": [
                 "enterobacteria",
                 "clostridia"
-              ]
+              ],
+              "strength": "foul"
             }
           ],
-          "verified": false
+          "verified": false,
+          "strength_feature": "smell"
         }
       },
       {
@@ -330,17 +334,20 @@
               "at": "sour",
               "strains": [
                 "lactic_acid_bacteria"
-              ]
+              ],
+              "strength": "faint"
             },
             {
               "at": "lumpy",
               "strains": [
                 "lactic_acid_bacteria",
                 "pseudomonas"
-              ]
+              ],
+              "strength": "distinct"
             }
           ],
-          "verified": false
+          "verified": false,
+          "strength_feature": "smell"
         }
       },
       {
@@ -354,17 +361,20 @@
               "at": "soured",
               "strains": [
                 "lactic_acid_bacteria"
-              ]
+              ],
+              "strength": "faint"
             },
             {
               "at": "mushy",
               "strains": [
                 "lactic_acid_bacteria",
                 "pseudomonas"
-              ]
+              ],
+              "strength": "distinct"
             }
           ],
-          "verified": false
+          "verified": false,
+          "strength_feature": "smell"
         }
       },
       {
@@ -379,10 +389,12 @@
               "strains": [
                 "pseudomonas",
                 "enterobacteria"
-              ]
+              ],
+              "strength": "faint"
             }
           ],
-          "verified": false
+          "verified": false,
+          "strength_feature": "smell"
         }
       },
       {
@@ -396,10 +408,12 @@
               "at": "spread",
               "strains": [
                 "mold_fungi"
-              ]
+              ],
+              "strength": "faint"
             }
           ],
-          "verified": false
+          "verified": false,
+          "strength_feature": "smell"
         }
       },
       {

@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "요리 재료 조정: 두부는 요리하지 않는다 (두부의 부패 과정을 첫 주에 끝까지 보기 위해). 계란과 햄만 요리한다. 나머지는 그대로다.",
+  "why": "음식의 냄새 세기 규칙을 지식으로 옮긴다 (점검 2026-11-07): 음식마다 복사해 있던 smell_* 규칙 28개(9가지 표가 모든 음식에서 같았다)를 냄새 원인의 지식(사전 odor_cause의 단계별 strength)에서 코드가 만드는 규칙으로 바꾼다. 새 음식은 부위·진행표·처음 상태만 적으면 된다. 같은 시나리오 201개에서 상태 변화 11,075건이 하나도 다르지 않음을 확인했다.",
   "defs": [
     {
       "id": "OBJ000001",
@@ -320,35 +320,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_sour_sour": {
-          "label": "시어짐이 시큼 단계면 냄새가 난다",
-          "on": [
-            "OBJ000002|body:sour@>=sour"
-          ],
-          "emits": [
-            "OBJ000002|body:smell@>=faint"
-          ]
-        },
-        "smell_sour_lumpy": {
-          "label": "시어짐이 덩어리짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000002|body:sour@>=lumpy"
-          ],
-          "emits": [
-            "OBJ000002|body:smell@>=distinct"
-          ]
-        },
-        "smell_mold_spread": {
-          "label": "곰팡이가 번짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000002|body:mold@>=spread"
-          ],
-          "emits": [
-            "OBJ000002|body:smell@>=faint"
-          ]
-        }
-      },
+      "rules": {},
       "progress": {
         "sour": {
           "base_s": 561600
@@ -413,44 +385,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_decay_turned": {
-          "label": "부패가 쉼 단계면 냄새가 난다",
-          "on": [
-            "OBJ000003|body:decay@>=turned"
-          ],
-          "emits": [
-            "OBJ000003|body:smell@>=faint"
-          ]
-        },
-        "smell_decay_spoiled": {
-          "label": "부패가 상함 단계면 냄새가 난다",
-          "on": [
-            "OBJ000003|body:decay@>=spoiled"
-          ],
-          "emits": [
-            "OBJ000003|body:smell@>=distinct"
-          ]
-        },
-        "smell_decay_rotten": {
-          "label": "부패가 썩음 단계면 냄새가 난다",
-          "on": [
-            "OBJ000003|body:decay@>=rotten"
-          ],
-          "emits": [
-            "OBJ000003|body:smell@>=foul"
-          ]
-        },
-        "smell_mold_spread": {
-          "label": "곰팡이가 번짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000003|body:mold@>=spread"
-          ],
-          "emits": [
-            "OBJ000003|body:smell@>=faint"
-          ]
-        }
-      },
+      "rules": {},
       "offers": {},
       "progress": {
         "decay": {
@@ -508,35 +443,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_decay_turned": {
-          "label": "부패가 쉼 단계면 냄새가 난다",
-          "on": [
-            "OBJ000004|body:decay@>=turned"
-          ],
-          "emits": [
-            "OBJ000004|body:smell@>=faint"
-          ]
-        },
-        "smell_decay_spoiled": {
-          "label": "부패가 상함 단계면 냄새가 난다",
-          "on": [
-            "OBJ000004|body:decay@>=spoiled"
-          ],
-          "emits": [
-            "OBJ000004|body:smell@>=distinct"
-          ]
-        },
-        "smell_decay_rotten": {
-          "label": "부패가 썩음 단계면 냄새가 난다",
-          "on": [
-            "OBJ000004|body:decay@>=rotten"
-          ],
-          "emits": [
-            "OBJ000004|body:smell@>=foul"
-          ]
-        }
-      },
+      "rules": {},
       "offers": {
         "cook": {
           "label": "계란을 요리한다",
@@ -628,35 +535,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_ripen_soured": {
-          "label": "익음이 시어짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000005|body:ripen@>=soured"
-          ],
-          "emits": [
-            "OBJ000005|body:smell@>=faint"
-          ]
-        },
-        "smell_ripen_mushy": {
-          "label": "익음이 물러짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000005|body:ripen@>=mushy"
-          ],
-          "emits": [
-            "OBJ000005|body:smell@>=distinct"
-          ]
-        },
-        "smell_mold_spread": {
-          "label": "곰팡이가 번짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000005|body:mold@>=spread"
-          ],
-          "emits": [
-            "OBJ000005|body:smell@>=faint"
-          ]
-        }
-      },
+      "rules": {},
       "progress": {
         "ripen": {
           "base_s": 5184000
@@ -714,26 +593,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_wilt_shriveled": {
-          "label": "시듦이 쭈글·짓무름 단계면 냄새가 난다",
-          "on": [
-            "OBJ000006|body:wilt@>=shriveled"
-          ],
-          "emits": [
-            "OBJ000006|body:smell@>=faint"
-          ]
-        },
-        "smell_mold_spread": {
-          "label": "곰팡이가 번짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000006|body:mold@>=spread"
-          ],
-          "emits": [
-            "OBJ000006|body:smell@>=faint"
-          ]
-        }
-      },
+      "rules": {},
       "progress": {
         "wilt": {
           "base_s": 13564800
@@ -790,17 +650,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_wilt_shriveled": {
-          "label": "시듦이 쭈글·짓무름 단계면 냄새가 난다",
-          "on": [
-            "OBJ000007|body:wilt@>=shriveled"
-          ],
-          "emits": [
-            "OBJ000007|body:smell@>=faint"
-          ]
-        }
-      },
+      "rules": {},
       "progress": {
         "wilt": {
           "base_s": 864000
@@ -862,35 +712,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_sour_sour": {
-          "label": "시어짐이 시큼 단계면 냄새가 난다",
-          "on": [
-            "OBJ000008|body:sour@>=sour"
-          ],
-          "emits": [
-            "OBJ000008|body:smell@>=faint"
-          ]
-        },
-        "smell_sour_lumpy": {
-          "label": "시어짐이 덩어리짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000008|body:sour@>=lumpy"
-          ],
-          "emits": [
-            "OBJ000008|body:smell@>=distinct"
-          ]
-        },
-        "smell_mold_spread": {
-          "label": "곰팡이가 번짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000008|body:mold@>=spread"
-          ],
-          "emits": [
-            "OBJ000008|body:smell@>=faint"
-          ]
-        }
-      },
+      "rules": {},
       "progress": {
         "sour": {
           "base_s": 622080
@@ -955,44 +777,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_decay_turned": {
-          "label": "부패가 쉼 단계면 냄새가 난다",
-          "on": [
-            "OBJ000009|body:decay@>=turned"
-          ],
-          "emits": [
-            "OBJ000009|body:smell@>=faint"
-          ]
-        },
-        "smell_decay_spoiled": {
-          "label": "부패가 상함 단계면 냄새가 난다",
-          "on": [
-            "OBJ000009|body:decay@>=spoiled"
-          ],
-          "emits": [
-            "OBJ000009|body:smell@>=distinct"
-          ]
-        },
-        "smell_decay_rotten": {
-          "label": "부패가 썩음 단계면 냄새가 난다",
-          "on": [
-            "OBJ000009|body:decay@>=rotten"
-          ],
-          "emits": [
-            "OBJ000009|body:smell@>=foul"
-          ]
-        },
-        "smell_mold_spread": {
-          "label": "곰팡이가 번짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000009|body:mold@>=spread"
-          ],
-          "emits": [
-            "OBJ000009|body:smell@>=faint"
-          ]
-        }
-      },
+      "rules": {},
       "offers": {
         "cook": {
           "label": "햄을 요리한다",
@@ -1080,44 +865,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_decay_turned": {
-          "label": "부패가 쉼 단계면 냄새가 난다",
-          "on": [
-            "OBJ000010|body:decay@>=turned"
-          ],
-          "emits": [
-            "OBJ000010|body:smell@>=faint"
-          ]
-        },
-        "smell_decay_spoiled": {
-          "label": "부패가 상함 단계면 냄새가 난다",
-          "on": [
-            "OBJ000010|body:decay@>=spoiled"
-          ],
-          "emits": [
-            "OBJ000010|body:smell@>=distinct"
-          ]
-        },
-        "smell_decay_rotten": {
-          "label": "부패가 썩음 단계면 냄새가 난다",
-          "on": [
-            "OBJ000010|body:decay@>=rotten"
-          ],
-          "emits": [
-            "OBJ000010|body:smell@>=foul"
-          ]
-        },
-        "smell_mold_spread": {
-          "label": "곰팡이가 번짐 단계면 냄새가 난다",
-          "on": [
-            "OBJ000010|body:mold@>=spread"
-          ],
-          "emits": [
-            "OBJ000010|body:smell@>=faint"
-          ]
-        }
-      },
+      "rules": {},
       "progress": {
         "decay": {
           "base_s": 440640
@@ -1174,17 +922,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "smell_wilt_shriveled": {
-          "label": "시듦이 쭈글·짓무름 단계면 냄새가 난다",
-          "on": [
-            "OBJ000011|body:wilt@>=shriveled"
-          ],
-          "emits": [
-            "OBJ000011|body:smell@>=faint"
-          ]
-        }
-      },
+      "rules": {},
       "progress": {
         "wilt": {
           "base_s": 4492800

@@ -5,7 +5,8 @@
 
 import { PREFIX_KIND } from './db.ts';
 import type { Db } from './db.ts';
-import { buildEdges, chainRoots, chainsFrom, collectRules } from './chains.ts';
+import { buildEdges, collectRules, ruleNodes } from './chains.ts';
+import { generatedRules } from './generated.ts';
 import { parseId } from './ids.ts';
 import { describeStage, odorChain } from './odor.ts';
 import type { Vocab } from './vocab.ts';
@@ -37,24 +38,28 @@ export function appendixMarkdown(db: Db, vocab: Vocab): string {
     out.push('');
   }
 
-  // 2. 규칙 사슬
-  const rules = collectRules(db);
+  // 2. 규칙 사슬: 손으로 쓴 규칙 + 데이터에서 만든 규칙(번짐·냄새). 같은 이름의 규칙(음식마다 하나씩)은 한 줄로 묶는다
+  const hand = collectRules(db);
+  const made = ruleNodes(generatedRules(db, vocab));
+  const rules = [...hand, ...made];
   const edges = buildEdges(rules, vocab, db);
+  const madeRefs = new Set(made.map((r) => r.ref));
+  const nameOf = (ref: string): string => (madeRefs.has(ref) ? (ref.split('/rule/')[1] ?? ref) : ref);
   out.push('## 2. 규칙 사슬', '');
   if (rules.length === 0) {
     out.push('(규칙 없음)', '');
   } else {
-    out.push(`규칙 ${rules.length}개, 자동 연결 ${edges.length}개.`, '');
-    const label = (ref: string): string => {
-      const r = rules.find((x) => x.ref === ref);
-      return r?.rule.label !== undefined ? `${ref} (${r.rule.label})` : ref;
+    out.push(`규칙 ${rules.length}개 (손으로 쓴 ${hand.length} · 데이터에서 만든 ${made.length}), 자동 연결 ${edges.length}개. 같은 이름으로 만들어진 규칙(음식마다 하나씩)은 한 줄로 묶었다.`, '');
+    const next = new Map<string, Set<string>>();
+    for (const e of edges) next.set(nameOf(e.from), (next.get(nameOf(e.from)) ?? new Set<string>()).add(nameOf(e.to)));
+    const count = new Map<string, number>();
+    for (const r of rules) count.set(nameOf(r.ref), (count.get(nameOf(r.ref)) ?? 0) + 1);
+    const label = (name: string): string => {
+      const r = hand.find((x) => x.ref === name);
+      return r?.rule.label !== undefined ? ` (${r.rule.label})` : (count.get(name) ?? 1) > 1 ? ` ×${count.get(name)}` : '';
     };
-    for (const root of chainRoots(rules, edges)) {
-      const paths = chainsFrom(edges, root).filter((p) => p.length > 1);
-      if (paths.length === 0) continue;
-      out.push(`- 시작: ${label(root)}`);
-      for (const path of paths) out.push(`  - ${path.map((r) => r.split('/rule/')[1]).join(' → ')}`);
-    }
+    out.push('| 규칙 | 다음에 이어지는 규칙 |', '|---|---|');
+    for (const name of [...next.keys()].sort()) out.push(`| ${name}${label(name)} | ${[...(next.get(name) ?? [])].sort().map((n) => n.split('/rule/')[1] ?? n).join(', ')} |`);
     out.push('');
   }
 

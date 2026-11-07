@@ -3,6 +3,7 @@
 // 순수 함수다: 파일을 읽거나 쓰지 않는다. 출력은 기존 패치 형식의 객체이며, 이를 parsePatch → mergePatch → runGate 가 검사한다.
 // 아직 설계만 된 필드(명세 단계)는 조용히 버리지 않고 거부한다.
 
+import { allowedFields } from './db.ts';
 import type { Issue } from './db.ts';
 import { PATCH_FORMAT, PATCH_VERSION } from './patch.ts';
 
@@ -13,10 +14,15 @@ const KIND_PREFIX: Readonly<Record<string, string>> = { objects: 'OBJ', places: 
 
 /** 종류별로 지금 받는 최상위 필드. */
 const FIELDS: Readonly<Record<string, readonly string[]>> = {
-  objects: ['id', 'names', 'aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial', 'is_a', 'override'],
-  places: ['id', 'names', 'aliases', 'desc', 'environment', 'passages', 'slots', 'meanings', 'rules', 'offers'],
-  characters: ['id', 'names', 'aliases', 'desc', 'senses', 'stays'],
+  objects: [...allowedFields('OBJ'), 'override'],
+  places: allowedFields('PLC'),
+  characters: allowedFields('CHR'),
 };
+
+/** 원본 종류가 받는 최상위 필드 (정의 형식의 목록과 같고, 물건만 펼치기용 override를 더 받는다). */
+export function sourceFields(kind: string): readonly string[] {
+  return FIELDS[kind] ?? [];
+}
 
 /** 펼치기(override)로 바꿀 수 있는 필드. */
 const OVERRIDABLE: readonly string[] = ['mobility', 'slots', 'meanings', 'rules', 'offers'];

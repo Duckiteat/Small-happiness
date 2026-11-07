@@ -606,6 +606,16 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
   return out;
 }
 
+/**
+ * 정의의 모든 필드(id 제외)를 필드 묶음으로 되돌린다. 갱신 병합이 "옛 필드 전부 + 바뀐 필드"로 합칠 때 쓴다.
+ * 필드를 이름으로 하나씩 옮기던 목록을 없애서, 새 필드를 더해도 부분 갱신이 그 필드를 지우지 못한다.
+ */
+export function fieldsOf(def: Definition): Fields {
+  const { id, ...rest } = def;
+  void id;
+  return rest as Fields;
+}
+
 /** 필드 묶음을 정규 순서의 정의로 만든다. names가 없으면 undefined. */
 export function buildDefinition(id: string, f: Fields): Definition | undefined {
   if (f.names === undefined) return undefined;

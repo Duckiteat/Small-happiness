@@ -176,9 +176,13 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
         const stages = attrs['stages'];
         const hasStages = Array.isArray(stages) && stages.length > 0;
         if (hasStages && typeof attrs['feature'] !== 'string') push(`${path}.attrs.feature`, 'stages를 쓰면 단계를 가진 특징(feature 키)이 필요하다');
-        if (hasStages && !stages.every((s) => typeof s === 'object' && s !== null && !Array.isArray(s) && typeof s['at'] === 'string' && Array.isArray(s['strains']) && s['strains'].length > 0 && s['strains'].every((x) => typeof x === 'string'))) {
-          push(`${path}.attrs.stages`, '단계마다 { at: 단계 키, strains: [균주 키 …] }여야 한다');
+        if (hasStages && !stages.every((s) => typeof s === 'object' && s !== null && !Array.isArray(s) && typeof s['at'] === 'string' && Array.isArray(s['strains']) && s['strains'].length > 0 && s['strains'].every((x) => typeof x === 'string') && (s['strength'] === undefined || typeof s['strength'] === 'string'))) {
+          push(`${path}.attrs.stages`, '단계마다 { at: 단계 키, strains: [균주 키 …], strength?: 냄새 세기 단계 키 }여야 한다');
         }
+        // 단계마다 냄새의 세기(strength)를 적으면 그 세기를 가진 특징(strength_feature)이 필요하다
+        const withStrength = hasStages && stages.some((s) => typeof s === 'object' && s !== null && !Array.isArray(s) && s['strength'] !== undefined);
+        if (withStrength && typeof attrs['strength_feature'] !== 'string') push(`${path}.attrs.strength_feature`, '단계에 strength를 쓰면 냄새 세기를 가진 특징(strength_feature)이 필요하다');
+        if (attrs['strength_feature'] !== undefined && typeof attrs['strength_feature'] !== 'string') push(`${path}.attrs.strength_feature`, 'strength_feature는 특징 키여야 한다');
         if (!hasStages && !list('compounds')) push(`${path}.attrs`, '단계(feature + stages)나 화합물(compounds) 중 하나는 있어야 한다');
         if (attrs['compounds'] !== undefined && !list('compounds')) push(`${path}.attrs.compounds`, 'compounds는 compound 키의 비어 있지 않은 목록이어야 한다');
       }
@@ -203,6 +207,7 @@ const REFS: readonly (readonly [string, string, string])[] = [
   ['odor_kind', 'feature', 'feature'], // 냄새 종류가 들어가는 특징
   ['compound', 'odor', 'odor_kind'], // 이 화합물이 어떤 냄새인가
   ['odor_cause', 'feature', 'feature'], // 냄새 원인의 단계를 가진 특징
+  ['odor_cause', 'strength_feature', 'feature'], // 냄새의 세기를 가진 특징
 ];
 
 function groupByCategory(raw: readonly VocabCategoryRaw[]): Map<string, VocabEntryRaw[]> {
@@ -292,6 +297,11 @@ function checkOdorKnowledge(grouped: ReadonlyMap<string, VocabEntryRaw[]>, keys:
     const levels = e?.attrs?.['levels'];
     return Array.isArray(levels) ? levels.map((l) => levelKeyOf(l)) : undefined;
   };
+  /** 특징의 단계 키이고 잠기지 않았는가 */
+  const usable = (feature: unknown, level: string): boolean => {
+    const levels = grouped.get('feature')?.find((x) => x.key === feature)?.attrs?.['levels'];
+    return Array.isArray(levels) && levels.some((l) => levelKeyOf(l) === level && !(typeof l === 'object' && l !== null && !Array.isArray(l) && l['locked'] === true));
+  };
   for (const e of grouped.get('strain') ?? []) {
     const produces = e.attrs?.['produces'];
     if (Array.isArray(produces)) for (const c of produces) if (!has('compound', c)) push(`strain.${e.key}.attrs.produces`, `"${String(c)}"는 compound 분류에 없는 키다`);
@@ -306,6 +316,7 @@ function checkOdorKnowledge(grouped: ReadonlyMap<string, VocabEntryRaw[]>, keys:
       if (typeof s !== 'object' || s === null || Array.isArray(s)) return;
       const at = `odor_cause.${e.key}.attrs.stages[${i}]`;
       if (order !== undefined && typeof s['at'] === 'string' && !order.includes(s['at'])) push(`${at}.at`, `"${s['at']}"는 특징 "${String(e.attrs?.['feature'])}"의 단계 키가 아니다`);
+      if (typeof s['strength'] === 'string' && !usable(e.attrs?.['strength_feature'], s['strength'])) push(`${at}.strength`, `"${s['strength']}"는 특징 "${String(e.attrs?.['strength_feature'])}"에서 쓸 수 있는 단계 키가 아니다 (없거나 잠겼다)`);
       if (Array.isArray(s['strains'])) for (const x of s['strains']) if (!has('strain', x)) push(`${at}.strains`, `"${String(x)}"는 strain 분류에 없는 키다`);
     });
   }

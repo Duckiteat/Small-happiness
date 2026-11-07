@@ -78,7 +78,10 @@ test('자동 생성 부록: 내용, 쓰기, 최신 여부 검사', () => {
   commitPatch(root, sample, vocab, { now: NOW });
   const md = appendixMarkdown(loadDb(root), vocab);
   assert.match(md, /\| OBJ000001 \| object \| 음식 \| portable \|/);
-  assert.match(md, /spoil → odor_reach → bugs → spread/);
+  // 규칙 사슬 표: 규칙마다 바로 다음에 이어지는 규칙 (spoil → odor_reach → bugs → spread)
+  assert.match(md, /\| \S+\/rule\/spoil[^|]*\| [^|]*\bodor_reach\b/);
+  assert.match(md, /\| \S+\/rule\/odor_reach[^|]*\| [^|]*\bbugs\b/);
+  assert.match(md, /\| \S+\/rule\/bugs[^|]*\| [^|]*\bspread\b/);
 
   assert.equal(appendix(root, vocab, 'check').ok, false); // 아직 안 씀
   assert.equal(appendix(root, vocab, 'write').ok, true);

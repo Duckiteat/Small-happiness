@@ -1,7 +1,7 @@
 // 냄새의 원인 사슬 (docs/냄새-모델.md · 결정-기록 "냄새의 원인과 종류")
 //
 // 지식 해상도(사전): 원인(부패·시어짐·곰팡이·요리 …) → 균주 → 유기화합물 → 냄새 종류.
-// 시뮬레이션 해상도(규칙): 원인의 단계에 이르면 그 단계의 대표 냄새 종류가 물건에 생긴다.
+// 시뮬레이션 해상도(규칙): 원인의 단계에 이르면 그 단계의 냄새 세기와 대표 냄새 종류가 물건에 생긴다.
 // 이 파일은 둘 사이의 다리다 — 사슬을 계산하고(odorChain), 사슬에서 규칙을 만든다(odorRules).
 // 번짐 규칙을 통로 그래프에서 만드는 것과 같은 방식이고, 엔진은 냄새·균주·화합물 이름을 모른다. 난수를 쓰지 않는다.
 //
@@ -26,6 +26,8 @@ export interface OdorStage {
   /** 대표 냄새 종류 (가장 심각한 것)와 그것이 들어가는 특징 */
   readonly dominant: string;
   readonly kindFeature: string;
+  /** 이 단계의 냄새 세기 (예: 상함 → smell 뚜렷함). 적지 않은 단계는 null */
+  readonly strength: { readonly feature: string; readonly level: string } | null;
 }
 
 function strs(v: unknown): string[] {
@@ -43,14 +45,14 @@ export function odorChain(vocab: Vocab): OdorStage[] {
     const r = vocab.entry('odor_kind', kind)?.attrs['rank'];
     return typeof r === 'number' ? r : 0;
   };
-  const make = (cause: string, feature: string | null, at: string | null, strains: string[], direct: string[]): void => {
+  const make = (cause: string, feature: string | null, at: string | null, strains: string[], direct: string[], strength: OdorStage['strength']): void => {
     const compounds = [...new Set([...strains.flatMap((s) => strs(vocab.entry('strain', s)?.attrs['produces'])), ...direct])];
     const kinds = [...new Set(compounds.map(odorOf).filter((k) => k !== ''))].sort((a, b) => rankOf(b) - rankOf(a) || a.localeCompare(b));
     const dominant = kinds[0];
     if (dominant === undefined) return; // 냄새가 나지 않는 단계
     const kindFeature = vocab.entry('odor_kind', dominant)?.attrs['feature'];
     if (typeof kindFeature !== 'string') return;
-    out.push({ cause, feature, at, strains, compounds, kinds, dominant, kindFeature });
+    out.push({ cause, feature, at, strains, compounds, kinds, dominant, kindFeature, strength });
   };
   for (const cause of vocab.keys('odor_cause')) {
     const attrs = vocab.entry('odor_cause', cause)?.attrs ?? {};
@@ -59,10 +61,13 @@ export function odorChain(vocab: Vocab): OdorStage[] {
     if (Array.isArray(stages) && feature !== null) {
       for (const s of stages) {
         if (typeof s !== 'object' || s === null || Array.isArray(s)) continue;
-        if (typeof s['at'] === 'string') make(cause, feature, s['at'], strs(s['strains']), strs(s['compounds']));
+        const strengthFeature = attrs['strength_feature'];
+        const level = s['strength'];
+        const strength = typeof strengthFeature === 'string' && typeof level === 'string' ? { feature: strengthFeature, level } : null;
+        if (typeof s['at'] === 'string') make(cause, feature, s['at'], strs(s['strains']), strs(s['compounds']), strength);
       }
     }
-    if (!Array.isArray(stages)) make(cause, null, null, [], strs(attrs['compounds']));
+    if (!Array.isArray(stages)) make(cause, null, null, [], strs(attrs['compounds']), null);
   }
   return out;
 }
@@ -80,13 +85,19 @@ export function odorRules(db: Db, vocab: Vocab): SpreadRule[] {
       const from = slotOf(d, st.feature);
       const to = slotOf(d, st.kindFeature);
       if (from === null || to === null) continue;
+      // 결과: 냄새의 세기(그 단계의 강도)와 냄새 종류(대표 종류). 세기 특징이 없는 정의는 종류만
+      const strengthSlot = st.strength === null ? null : slotOf(d, st.strength.feature);
+      const emits: SpreadRule['emits'] = [
+        ...(st.strength !== null && strengthSlot !== null ? [{ def, slot: strengthSlot, feature: st.strength.feature, cond: { op: '>=' as const, level: st.strength.level } }] : []),
+        { def, slot: to, feature: st.kindFeature, cond: { op: '>=' as const, level: st.dominant } },
+      ];
       rules.push({
         def,
         owner: def,
         key: `odor_${st.cause}_${st.at}`,
         on: [{ def, slot: from, feature: st.feature, cond: { op: '>=', level: st.at } }],
         onAll: [],
-        emits: [{ def, slot: to, feature: st.kindFeature, cond: { op: '>=', level: st.dominant } }],
+        emits,
         delayMin: 0,
       });
     }
@@ -112,5 +123,6 @@ export function describeStage(vocab: Vocab, st: OdorStage): string {
   const strains = st.strains.length === 0 ? '' : `${st.strains.map((s) => nameOf(vocab, 'strain', s)).join(' · ')} → `;
   const others = st.kinds.filter((k) => k !== st.dominant);
   const kinds = `${nameOf(vocab, 'odor_kind', st.dominant)}${others.length === 0 ? '' : ` (${others.map((k) => nameOf(vocab, 'odor_kind', k)).join(' · ')}도 섞임)`}`;
-  return `${head}: ${strains}${st.compounds.map((c) => nameOf(vocab, 'compound', c)).join(' · ')} → ${kinds}`;
+  const strength = st.strength === null ? '' : ` · 세기 ${levelName(vocab, st.strength.feature, st.strength.level)}`;
+  return `${head}: ${strains}${st.compounds.map((c) => nameOf(vocab, 'compound', c)).join(' · ')} → ${kinds}${strength}`;
 }

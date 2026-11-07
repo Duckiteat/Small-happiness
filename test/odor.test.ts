@@ -54,7 +54,7 @@ test('사슬: 단계마다 균주 → 화합물 → 냄새가 계산되고 가�
   const spoiled = chain.find((s) => s.cause === 'decay' && s.at === 'spoiled');
   assert.deepEqual(spoiled?.strains, ['pseudomonas', 'enterobacteria']);
   assert.deepEqual(spoiled?.kinds, ['putrid', 'sulfur']);
-  assert.equal(describeStage(vocab, spoiled as NonNullable<typeof spoiled>), '부패 · 상함: 슈도모나스 · 장내세균과 → 디메틸 이황화물 · 메탄티올 · 황화수소 · 푸트레신 · 카다베린 · 인돌 → 썩는 냄새 (황 냄새도 섞임)');
+  assert.equal(describeStage(vocab, spoiled as NonNullable<typeof spoiled>), '부패 · 상함: 슈도모나스 · 장내세균과 → 디메틸 이황화물 · 메탄티올 · 황화수소 · 푸트레신 · 카다베린 · 인돌 → 썩는 냄새 (황 냄새도 섞임) · 세기 뚜렷함');
   const cooking = chain.find((s) => s.cause === 'cooking');
   assert.deepEqual([cooking?.feature, cooking?.strains, cooking?.compounds], [null, [], ['pyrazine', 'diallyl_disulfide']]);
   // 사슬의 끝은 모두 특징 사다리의 칸이다
@@ -64,10 +64,13 @@ test('사슬: 단계마다 균주 → 화합물 → 냄새가 계산되고 가�
 test('규칙: 원인 특징과 종류 특징을 둘 다 가진 정의마다 단계별 규칙이 만들어지고, 근거(via)로 찾을 수 있다', () => {
   const rules = odorRules(db, vocab);
   assert.equal(rules.length, 28, '부패 3단계 × 4 + 시어짐 2 × 2 + 익음 2 × 1 + 시듦 1 × 3 + 곰팡이 1 × 7');
+  assert.equal(Object.values(db.defs).filter((d) => d.is_a !== undefined).flatMap((d) => Object.keys(d.rules ?? {})).length, 0, '음식마다 복사하던 냄새 세기 손규칙은 이제 없다');
   assert.ok(rules.every((r) => r.delayMin === 0 && r.owner === r.def && r.onAll.length === 0));
   assert.equal(rules.some((r) => r.def === 'OBJ000001' || r.def.startsWith('PLC')), false, '종류(음식)와 장소에는 만들지 않는다');
   const chicken = rules.find((r) => r.def === 'OBJ000010' && r.key === 'odor_decay_spoiled');
-  assert.deepEqual([chicken?.on[0]?.feature, chicken?.on[0]?.cond, chicken?.emits[0]?.feature, chicken?.emits[0]?.cond], ['decay', { op: '>=', level: 'spoiled' }, 'odor', { op: '>=', level: 'putrid' }]);
+  // 결과는 그 단계의 냄새 세기와 대표 냄새 종류 둘이다 (예전에는 세기를 음식마다 손규칙으로 복사했다)
+  assert.deepEqual([chicken?.on[0]?.feature, chicken?.on[0]?.cond], ['decay', { op: '>=', level: 'spoiled' }]);
+  assert.deepEqual(chicken?.emits.map((e) => [e.feature, e.cond]), [['smell', { op: '>=', level: 'distinct' }], ['odor', { op: '>=', level: 'putrid' }]]);
   assert.notEqual(viaResolver(db, vocab).resolve('OBJ000010/rule/odor_decay_spoiled'), null);
 });
 
