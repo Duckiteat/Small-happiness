@@ -3,7 +3,7 @@
 // 플레이어가 보지 않는 시간(하루씨가 외출했거나 자는 동안)과 보는 시간(집에 깨어 있음)을 나눈다.
 //   - 보지 않는 시간: 구간 시작부터 일정한 간격(UNOBSERVED_STEP_MIN)마다 한 단계, 그리고 구간이 끝나는 순간
 //     (귀가·기상) 한 단계. 귀가 장면은 그 순간의 판으로 그린다.
-//   - 보는 시간: 정해진 간격이 없다. 행동이나 장면이 끝날 때 한 단계를 돈다 (행동 층이 생기면 그 끝 시각이 들어온다).
+//   - 보는 시간(사전 presence의 observed: 집에 있음·식사 준비): 정해진 간격이 없다. 행동이나 장면이 끝날 때 한 단계를 돈다 (행동 층이 생기면 그 끝 시각이 들어온다).
 //   - 구간의 경계(나감·잠듦·귀가·기상)는 항상 한 단계다.
 // 간격은 "보는 때"일 뿐 "변하는 때"가 아니다. 그 사이에 언제 임계를 넘었는지는 3층이 정확한 시각으로 계산해야 하며,
 // 그래서 간격을 바꿔도 세계의 결과는 같아야 한다 (3층 구현의 완료 조건).
@@ -16,8 +16,13 @@ import type { Vocab } from './vocab.ts';
 /** 보지 않는 시간의 단계 간격(분). 임시값 tuned:false — 결정-기록 4장. */
 export const UNOBSERVED_STEP_MIN = 180;
 
-/** 보는 시간의 상태 키 (사전 presence). 일정 구간이 없는 시간은 모두 이것이다. */
+/** 보는 시간의 기본 상태 키 (사전 presence). 일정 구간이 없는 시간은 모두 이것이다. */
 export const OBSERVED = 'home';
+
+/** 이 상태를 플레이어가 함께 보는가 (사전 presence의 observed: 집에 있음 · 식사 준비). */
+export function isObserved(vocab: Vocab, presence: string): boolean {
+  return vocab.entry('presence', presence)?.attrs['observed'] === true;
+}
 
 export interface PlanBlock {
   /** 사전 presence의 키 (보는 시간 `home`은 구간으로 쓰지 않는다). */
@@ -83,6 +88,7 @@ export function nextStepTime(
   end: number,
   actionEnds: readonly number[] = [],
   stepMin: number = UNOBSERVED_STEP_MIN,
+  observed: (presence: string) => boolean = (p) => p === OBSERVED,
 ): number | null {
   if (!Number.isInteger(stepMin) || stepMin <= 0) throw new ScheduleError(`간격은 양의 정수(분)여야 한다: ${stepMin}`);
   const candidates: number[] = [end];
@@ -90,7 +96,7 @@ export function nextStepTime(
     candidates.push(b.from, b.to);
     if (b.from <= now && now < b.to) candidates.push(b.from + stepMin * (Math.floor((now - b.from) / stepMin) + 1));
   }
-  for (const t of actionEnds) if (presenceAt(blocks, t) === OBSERVED) candidates.push(t);
+  for (const t of actionEnds) if (observed(presenceAt(blocks, t))) candidates.push(t);
   const next = Math.min(...candidates.filter((t) => t > now));
   return Number.isFinite(next) && next <= end ? next : null;
 }

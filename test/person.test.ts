@@ -16,7 +16,7 @@ const db = loadDb(ROOT);
 const scenario = parseScenario(JSON.parse(readFileSync(join(ROOT, 'content', 'scenarios', 'first-week.json'), 'utf8')));
 
 const noticed = (trace: ReturnType<typeof runScenario>): Set<string> =>
-  new Set(trace.log.map(parseEvent).filter((e) => e.type === 'awareness_up' && String(e.data['via']).includes('/sense/')).map((e) => String(e.data['key']).split('|')[0] ?? ''));
+  new Set(trace.log.map(parseEvent).filter((e) => (e.type === 'awareness_up' || e.type === 'awareness_changed') && String(e.data['via']).includes('/sense/')).map((e) => String(e.data['key']).split('|')[0] ?? ''));
 
 test('하루씨는 주방에 머문다: 현관까지 번진 냄새는 세계에는 있지만 알아채지 못하고, 주방 냄새만 알아챈다', () => {
   assert.equal(db.defs['CHR000001']?.stays, 'PLC000002');

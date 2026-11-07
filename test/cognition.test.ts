@@ -1,5 +1,6 @@
 // 발견 (5층 지각 + 6층 판단): 앎은 본 단계와 함께 낡고, 다시 보면 바뀌고, 집에 있으면 변화가 있을 때 깨어난다
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -83,6 +84,11 @@ test('집에 있으면 세계가 바뀌는 시각에 깨어난다: 주말 낮(6�
   const day6 = trace.steps.filter((s) => s.t > 5 * 1440 + 420 && s.t < 5 * 1440 + 1380);
   assert.ok(day6.length > 0, '6일 07:00~23:00 사이에 단계가 있다');
   assert.ok(day6.every((s) => Array.isArray(s.values['recent']) && s.values['recent'].length === 0), '행동이 아니라 세계의 변화로 깨어났다');
+  // 일정 구간의 경계(식사 준비의 시작·끝)는 항상 한 단계다. 그 밖의 단계는 세계가 바뀌는 시각이다
+  const blocks = (JSON.parse(readFileSync(join(ROOT, 'content', 'scenarios', 'first-week.json'), 'utf8')) as { routine: { blocks: { from: number; to: number }[] } }).routine.blocks;
+  const boundary = new Set(blocks.flatMap((b) => [b.from, b.to]));
+  const woke = day6.filter((s) => !boundary.has(s.t));
+  assert.ok(woke.length > 0, '경계가 아닌 시각에 세계의 변화로 깨어난 단계가 있다');
   const changedAt = new Set((trace.log as E[]).filter((e) => e.type === 'state_changed').map((e) => e.t));
-  assert.ok(day6.every((s) => changedAt.has(s.t)), '깨어난 시각마다 세계가 바뀌었다');
+  assert.ok(woke.every((s) => changedAt.has(s.t)), '깨어난 시각마다 세계가 바뀌었다');
 });

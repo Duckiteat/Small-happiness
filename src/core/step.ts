@@ -9,7 +9,7 @@ import { Board, BoardError, LAYERS, OWNER, RNG_LAYERS } from './board.ts';
 import type { BoardValue, LayerId, Namespace } from './board.ts';
 import type { Rng } from './rng.ts';
 import { parseRecent } from './agency.ts';
-import { nextStepTime, parsePlan } from './schedule.ts';
+import { isObserved, nextStepTime, parsePlan } from './schedule.ts';
 import type { Vocab } from './vocab.ts';
 
 export interface LayerContext {
@@ -106,7 +106,7 @@ export function runDay(layers: readonly Layer[], start: number, end: number, rng
     const source = Board.readPrev(prev, '0', 'world.stimulus_source');
     const nextChange = typeof source === 'object' && !Array.isArray(source) ? (source as { readonly next_change?: BoardValue }).next_change : undefined;
     if (typeof nextChange === 'number') ends.push(nextChange);
-    t = nextStepTime(parsePlan(Board.readPrev(prev, '0', 'plan'), vocab), t, end, ends, stepMin);
+    t = nextStepTime(parsePlan(Board.readPrev(prev, '0', 'plan'), vocab), t, end, ends, stepMin, (p) => isObserved(vocab, p));
   }
   return results;
 }

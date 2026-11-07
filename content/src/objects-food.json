@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "냄새 종류 (작가 2026-11-07): 음식의 몸에 냄새 종류(odor)를 더한다. 종류는 냄새의 원인 사슬(부패 → 균주 → 유기화합물 → 냄새)에서 규칙이 만들어 넣는다 (사전 40-odor.json, 코드 odor.ts). 버리면 냄새 종류도 사라진다.",
+  "why": "요리 재료 조정: 두부는 요리하지 않는다 (두부의 부패 과정을 첫 주에 끝까지 보기 위해). 계란과 햄만 요리한다. 나머지는 그대로다.",
   "defs": [
     {
       "id": "OBJ000001",
@@ -451,6 +451,7 @@
           ]
         }
       },
+      "offers": {},
       "progress": {
         "decay": {
           "base_s": 1468800
@@ -534,6 +535,29 @@
           "emits": [
             "OBJ000004|body:smell@>=foul"
           ]
+        }
+      },
+      "offers": {
+        "cook": {
+          "label": "계란을 요리한다",
+          "verb": "cook",
+          "needs": [],
+          "when": [
+            "OBJ000004|cond:seal@>=open"
+          ],
+          "when_meaning": "edible",
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000004|body:smell@=gone",
+            "OBJ000004|body:odor@=gone",
+            "OBJ000004|cond:seal@=gone",
+            "PLC000002|space:smell@>=distinct",
+            "PLC000002|space:odor@>=savory"
+          ],
+          "minutes": 40,
+          "tuned": false
         }
       },
       "progress": {
@@ -967,6 +991,29 @@
           "emits": [
             "OBJ000009|body:smell@>=faint"
           ]
+        }
+      },
+      "offers": {
+        "cook": {
+          "label": "햄을 요리한다",
+          "verb": "cook",
+          "needs": [],
+          "when": [
+            "OBJ000009|cond:seal@>=open"
+          ],
+          "when_meaning": "edible",
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000009|body:smell@=gone",
+            "OBJ000009|body:odor@=gone",
+            "OBJ000009|cond:seal@=gone",
+            "PLC000002|space:smell@>=distinct",
+            "PLC000002|space:odor@>=savory"
+          ],
+          "minutes": 40,
+          "tuned": false
         }
       },
       "progress": {

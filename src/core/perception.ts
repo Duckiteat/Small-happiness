@@ -18,7 +18,7 @@ import { formatVia } from './via.ts';
 import type { Db } from './db.ts';
 import { defOf } from './ids.ts';
 import type { EventLog } from './log.ts';
-import { OBSERVED } from './schedule.ts';
+import { isObserved } from './schedule.ts';
 import { parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
 import type { World } from './world.ts';
@@ -89,7 +89,7 @@ export class Perception {
   step(world: World, t: number, presence: string, prevRecent: BoardValue | undefined): { perceived: Percept[]; aware: AwareMap } {
     for (const r of parseRecent(prevRecent)) if (r.reveals !== undefined) this.#reveals.push({ place: r.reveals, ends: r.ends, via: r.via, event: r.event });
     const perceived: Percept[] = [];
-    if (presence === OBSERVED) {
+    if (isObserved(this.#vocab, presence)) {
       const revealed = this.#reveals.filter((r) => r.ends <= t);
       this.#reveals.splice(0, this.#reveals.length, ...this.#reveals.filter((r) => r.ends > t));
       const instances = world.instances();
@@ -134,6 +134,14 @@ export class Perception {
       }
     }
     return { perceived, aware: this.snapshot() };
+  }
+
+  /**
+   * 자기가 한 행동이 바꾼 상태를 안다 (이해함). 행동이 끝난 직후 2층이 알려 준다. 원인은 그 행동의 끝, 근거는 그 행동이다.
+   * 요리로 쓴 재료가 없어졌다는 것을 하루씨가 알아야 같은 재료를 다시 요리하지 않는다.
+   */
+  learn(who: string, key: string, level: string, t: number, via: string, cause: string): void {
+    this.#observe(who, key, UNDERSTOOD, level, t, via, cause);
   }
 
   /** 고른 행동이 끝났음을 알려 준다 (2층이 끝난 사건을 기록한 직후). 살펴서 안 것의 원인이 된다. */

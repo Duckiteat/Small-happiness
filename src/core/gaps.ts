@@ -124,7 +124,7 @@ export interface GapReport {
   readonly scenarios: readonly { readonly scenario: string; readonly days: number; readonly events: number; readonly gaps: number }[];
 }
 
-/** 영수증 묶음들에서 원인 빈칸을 걸러 등록부 항목에 맞춘다. 항목은 앞에 있는 것이 먼저 맞는다 (자세한 대상을 앞에 둔다). */
+/** 영수증 묶음들에서 원인 빈칸을 걸러 등록부 항목에 맞춘다. 여러 항목에 맞으면 더 구체적인 대상(data 조건이 많은 것)이 이긴다. */
 export function findGaps(runs: readonly (readonly Receipt[])[], registry: Registry): GapReport {
   const byEntry = new Map<string, GapHit[]>(registry.entries.map((e) => [e.id, []]));
   const unregistered: GapHit[] = [];
@@ -136,7 +136,9 @@ export function findGaps(runs: readonly (readonly Receipt[])[], registry: Regist
         if (item.cause !== null) return;
         gaps++;
         const hit: GapHit = { scenario: r.run.scenario, day: r.day, item, before: k > 0 ? (r.items[k - 1] ?? null) : null };
-        const entry = registry.entries.find((e) => e.targets.some((t) => matches(t, item)));
+        // 여러 항목에 맞으면 더 구체적인 대상(data 조건이 많은 것)이 이긴다. 같으면 앞에 적힌 항목
+        const specificity = (e: Limitation): number => Math.max(-1, ...e.targets.filter((t) => matches(t, item)).map((t) => Object.keys(t.data ?? {}).length));
+        const entry = registry.entries.filter((e) => specificity(e) >= 0).sort((a, b) => specificity(b) - specificity(a))[0];
         if (entry === undefined) unregistered.push(hit);
         else byEntry.get(entry.id)?.push(hit);
       });

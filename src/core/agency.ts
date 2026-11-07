@@ -21,7 +21,7 @@ import { effectiveInitial, effectiveOffers, instancesOfKind } from './kinds.ts';
 import { meaningOf } from './meaning.ts';
 import type { EventLog } from './log.ts';
 import type { AwareMap } from './perception.ts';
-import { OBSERVED } from './schedule.ts';
+import { isObserved } from './schedule.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
@@ -89,7 +89,7 @@ export class Agency {
 
   /** 한 단계의 행동 선택. 고르지 않으면 빈 목록. */
   step(world: World, t: number, presence: string, aware: AwareMap): RecentAction[] {
-    if (presence !== OBSERVED || t < this.#busyUntil) return [];
+    if (!isObserved(this.#vocab, presence) || t < this.#busyUntil) return [];
     const instances = world.instances();
     const who = instances.find((i) => i.startsWith('CHR'));
     if (who === undefined) return [];
@@ -122,6 +122,7 @@ export class Agency {
     for (const def of Object.keys(this.#db.defs).sort()) {
       for (const { owner, key, item: offer } of effectiveOffers(this.#db, def)) {
         for (const at of instances.filter((i) => world.defOfInstance(i) === def)) {
+          if (offer.during !== undefined && !offer.during.includes(presence)) continue; // 정해진 시간에만 하는 행동 (요리는 식사 준비 시간)
           const targets = (p: StatePattern): string[] =>
             (p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def)).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
           const needs = offer.needs.map((n) => ({ keys: targets(pattern(n.aware)), min: rank(n.at_least) }));

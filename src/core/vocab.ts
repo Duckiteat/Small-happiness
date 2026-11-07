@@ -149,6 +149,11 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       }
       break;
     }
+    case 'presence': {
+      // observed: 이 상태를 플레이어가 함께 보는가 (집에 있음·식사 준비는 보고, 외출·잠은 보지 않는다). 지각·행동·시계가 읽는다
+      if (typeof attrs['observed'] !== 'boolean') push(`${path}.attrs.observed`, 'observed(플레이어가 함께 보는가)를 true/false로 적어야 한다');
+      break;
+    }
     case 'odor_kind': {
       // 냄새 종류: rank는 사다리 칸 번호(심각도), feature는 이 종류가 들어가는 특징
       const r = attrs['rank'];

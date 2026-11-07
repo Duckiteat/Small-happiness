@@ -132,6 +132,8 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
               applyLevel(world, vocab, e.key, k.feature, { op: e.op, level: e.level }, { t: a.ends, cause: done.seq });
             }
           }
+          // 자기가 한 일이 바꾼 상태는 안다
+          for (const e of a.effects) perception.learn(a.who, e.key, world.level(e.key), a.ends, a.via, done.seq);
         }
         causal.advance(world, c.t);
         c.write('world.state', world.snapshot().states);

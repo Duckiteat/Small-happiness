@@ -68,7 +68,8 @@ test('실제 첫 주: 근거가 필요한 유형이 모두 나오고, 모든 via
     kinds.set(raw.type, set);
   }
   assert.deepEqual([...kinds.keys()].sort(), ['action_chosen', 'action_done', 'awareness_changed', 'awareness_up', 'delay_cancelled', 'delay_fired', 'delay_scheduled', 'stage_advanced']);
-  assert.deepEqual([...(kinds.get('awareness_up') ?? [])].sort(), ['offer', 'sense'], '저절로 느낀 것은 감각, 살펴서 안 것은 그 살피기 행동이 근거다');
+  const awareness = new Set([...(kinds.get('awareness_up') ?? []), ...(kinds.get('awareness_changed') ?? [])]);
+  assert.deepEqual([...awareness].sort(), ['offer', 'sense'], '저절로 느낀 것은 감각, 살펴서 안 것(자기 행동의 결과 포함)은 그 행동이 근거다');
   assert.deepEqual([...(kinds.get('stage_advanced') ?? [])], ['progress']);
   assert.equal(resolver.resolve('PLC000002/rule/지어낸_규칙'), null);
   assert.equal(resolver.resolve('PLC000002/rule/spread_odor_ge_distinct'), null, '번짐 규칙은 그것을 받는 장소(현관)의 것이다');

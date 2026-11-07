@@ -317,8 +317,9 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         });
         chosen.set(e.seq, { via, who, verb, at, ends, effects });
         // 원인: 이 행동의 조건을 채운 하루씨의 앎(awareness 사건). 어느 앎인지까지는 행동을 고른 이유를 다시 계산해야 안다 (LIM014)
+        // 앎이 필요 없는 행동(needs가 빈 요리 등)은 시간(일정)이 이끈 것이라 원인 사건이 없을 수 있다 (한계 LIM020)
         bump('cause');
-        if (e.cause === null || awarenessBy.get(e.cause) !== who) bad(e.seq, 'cause', `행동의 원인이 ${who}의 앎(awareness 사건)이 아니다: ${e.cause ?? '없음'}`);
+        if (e.cause === null ? offer.item.needs.length > 0 : awarenessBy.get(e.cause) !== who) bad(e.seq, 'cause', `행동의 원인이 ${who}의 앎(awareness 사건)이 아니다: ${e.cause ?? '없음'}`);
         break;
       }
       case 'action_done': {

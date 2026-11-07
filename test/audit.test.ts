@@ -40,6 +40,7 @@ const at = (events: readonly GameEvent[], pred: (e: GameEvent, i: number) => boo
 const patch = (events: GameEvent[], i: number, change: Partial<GameEvent> | ((e: GameEvent) => Partial<GameEvent>)): GameEvent[] =>
   events.map((e, k) => (k === i ? { ...e, ...(typeof change === 'function' ? change(e) : change) } : e));
 const data = (e: GameEvent, change: Record<string, string | number>): Partial<GameEvent> => ({ data: { ...e.data, ...change } });
+const isSense = (e: GameEvent): boolean => (e.type === 'awareness_up' || e.type === 'awareness_changed') && String(e.data['via']).includes('/sense/') && e.data['level'] !== 'none';
 const effectOfFire = (e: GameEvent, events: readonly GameEvent[]): boolean => e.type === 'state_changed' && events.some((c) => c.seq === e.cause && c.type === 'delay_fired');
 
 test('감사: 사건을 하나씩 망가뜨리면 해당 검사가 잡는다 (결과·시각·조건·행동·진행·앎·원인)', () => {
@@ -61,7 +62,7 @@ test('감사: 사건을 하나씩 망가뜨리면 해당 검사가 잡는다 (�
     { name: '발화를 예약 시각이 아닌 때에 기록한다', check: 'timing', message: /예약 시각 .*아닌/,
       mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'delay_fired'), (e) => ({ t: e.t + 1 })) },
     { name: '머무는 곳이 아닌 장소의 냄새를 느꼈다고 적는다', check: 'awareness', message: /머무는데/,
-      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'awareness_up' && String(e.data['via']).includes('/sense/')), (e) => data(e, { key: 'PLC000001#1|space:smell' })) },
+      mutate: (ev) => patch(ev, at(ev, (e) => isSense(e)), (e) => data(e, { key: 'PLC000001#1|space:smell' })) },
     { name: '규칙이 걸리지 않는 개체의 예약', check: 'rule', message: /걸리는 규칙이 아니다/,
       mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'delay_scheduled'), (e) => data(e, { at: 'CHR000001#1' })) },
     { name: '조건이 풀렸는데 발화한 것으로 적는다', check: 'holds', message: /조건이 풀려 있는데 발화/,
@@ -77,17 +78,19 @@ test('감사: 사건을 하나씩 망가뜨리면 해당 검사가 잡는다 (�
     { name: '진행이 사다리를 내려간다', check: 'progress', message: /사다리를 올라가야 한다/,
       mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'stage_advanced'), (e) => data(e, { to: (vocab.levelOrder(String(e.data['key']).split(':').pop() ?? '') ?? [])[0] ?? '' })) },
     { name: '느낀 단계가 세계와 다르다', check: 'awareness', message: /세계의 단계/,
-      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'awareness_up' && String(e.data['via']).includes('/sense/')), (e) => data(e, { level: e.data['level'] === 'foul' ? 'faint' : 'foul' })) },
+      mutate: (ev) => patch(ev, at(ev, (e) => isSense(e)), (e) => data(e, { level: e.data['level'] === 'foul' ? 'faint' : 'foul' })) },
     { name: '살피지 않았는데 이해했다고 적는다', check: 'awareness', message: /행동이 끝난 기록이 없는데/,
       mutate: (ev) => ev.filter((e) => e.type !== 'action_done') },
     { name: '예약의 원인을 지운다', check: 'cause', message: /조건을 마지막으로 채운 사건/,
       mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'delay_scheduled' && e.cause !== null), { cause: null }) },
     { name: '저절로 느낀 것의 원인을 엉뚱한 사건으로 바꾼다', check: 'cause', message: /조건을 마지막으로 채운 사건/,
-      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'awareness_up' && String(e.data['via']).includes('/sense/')), { cause: (ev[0] as GameEvent).seq }) },
+      mutate: (ev) => patch(ev, at(ev, (e) => isSense(e)), { cause: (ev[0] as GameEvent).seq }) },
     { name: '살펴서 안 것의 원인을 지운다', check: 'cause', message: /살피기의 끝/,
       mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'awareness_up' && String(e.data['via']).includes('/offer/')), { cause: null }) },
-    { name: '행동의 원인(앎)을 지운다', check: 'cause', message: /앎\(awareness 사건\)이 아니다/,
-      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'action_chosen'), { cause: null }) },
+    { name: '앎이 필요한 행동의 원인(앎)을 지운다', check: 'cause', message: /앎\(awareness 사건\)이 아니다/,
+      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'action_chosen' && e.cause !== null), { cause: null }) },
+    { name: '요리가 앎이 아닌 사건을 원인으로 적는다', check: 'cause', message: /앎\(awareness 사건\)이 아니다/,
+      mutate: (ev) => patch(ev, at(ev, (e) => e.type === 'action_chosen' && e.cause === null), { cause: (ev[0] as GameEvent).seq }) },
     { name: '원인 없는 상태 변화를 처음 설정 뒤에 끼운다', check: 'state', message: /원인 없는 상태 변화/,
       mutate: (ev) => { const last = ev.at(-1) as GameEvent; return [...ev, { seq: 'L999999', t: last.t, type: 'state_changed', src: 'world', cause: null, data: { key: 'OBJ000002#1|cond:temp', from: 'fridge', to: 'frozen' } }]; } },
     { name: '앎이 일으킨 상태 변화(원인이 엉뚱한 사건)', check: 'state', message: /상태 변화의 원인이 awareness_up/,
@@ -121,6 +124,7 @@ test('감사: 일정·처음 상태·같은 물건 여럿을 무작위로 바꾼
         const from = base + 430 + Math.floor(rnd() * 180);
         blocks.push({ kind: 'out', from, to: from + 60 + Math.floor(rnd() * 600) });
       }
+      blocks.push(blocks.length > 0 && (blocks[blocks.length - 1] as { kind: string }).kind === 'out' ? { kind: 'meal', from: base + 1275, to: base + 1315 } : { kind: 'meal', from: base + 700, to: base + 740 });
       blocks.push({ kind: 'asleep', from: base + 1320 + Math.floor(rnd() * 100), to: base + 1440 + 400 });
     }
     const spawn = defs.filter(() => rnd() < 0.85).flatMap((d) => (d.startsWith('OBJ') && rnd() < 0.3 ? [d, d] : [d]));

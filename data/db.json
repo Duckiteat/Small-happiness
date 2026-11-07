@@ -491,6 +491,7 @@
           ]
         }
       },
+      "offers": {},
       "progress": {
         "decay": {
           "base_s": 1468800
@@ -576,6 +577,29 @@
           "emits": [
             "OBJ000004|body:smell@>=faint"
           ]
+        }
+      },
+      "offers": {
+        "cook": {
+          "label": "계란을 요리한다",
+          "verb": "cook",
+          "needs": [],
+          "when": [
+            "OBJ000004|cond:seal@>=open"
+          ],
+          "when_meaning": "edible",
+          "effect": [
+            "OBJ000004|body:smell@=gone",
+            "OBJ000004|body:odor@=gone",
+            "OBJ000004|cond:seal@=gone",
+            "PLC000002|space:smell@>=distinct",
+            "PLC000002|space:odor@>=savory"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 40,
+          "tuned": false
         }
       },
       "progress": {
@@ -1019,6 +1043,29 @@
           "emits": [
             "OBJ000009|body:smell@>=faint"
           ]
+        }
+      },
+      "offers": {
+        "cook": {
+          "label": "햄을 요리한다",
+          "verb": "cook",
+          "needs": [],
+          "when": [
+            "OBJ000009|cond:seal@>=open"
+          ],
+          "when_meaning": "edible",
+          "effect": [
+            "OBJ000009|body:smell@=gone",
+            "OBJ000009|body:odor@=gone",
+            "OBJ000009|cond:seal@=gone",
+            "PLC000002|space:smell@>=distinct",
+            "PLC000002|space:odor@>=savory"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 40,
+          "tuned": false
         }
       },
       "progress": {

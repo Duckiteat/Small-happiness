@@ -44,10 +44,11 @@ test('세계 상태: 상태가 정해진 마지막 사건을 안다 (바뀐 적�
   assert.equal(world.lastChange('NONE#1|a:b'), null);
 });
 
-test('원인이 없는 사건은 두 가지뿐이다: 시나리오가 세운 개체와 법칙이 원인인 진행 (나머지는 모두 cause가 있다)', () => {
+test('원인이 없는 사건은 세 가지뿐이다: 시나리오가 세운 개체, 법칙이 원인인 진행, 시간(일정)이 이끈 요리 (나머지는 모두 cause가 있다)', () => {
   for (const file of [WEEK, 'examples/scenarios/skeleton-day.json']) {
     const noCause = new Set(scenarioRun(ROOT, vocab, file).log.map(parseEvent).filter((e) => e.cause === null).map((e) => e.type));
-    assert.deepEqual([...noCause].sort(), file === WEEK ? ['instance_created', 'stage_advanced'] : ['instance_created'], file);
+    // 원인 없는 행동은 앎이 필요 없는 요리뿐이다 (한계 LIM020: 일정 구간이 시작되는 일이 사건으로 기록되지 않는다)
+    assert.deepEqual([...noCause].sort(), file === WEEK ? ['action_chosen', 'instance_created', 'stage_advanced'] : ['instance_created'], file);
   }
   assert.ok(loadDb(ROOT).defs['PLC000002'], '실제 저장소');
 });

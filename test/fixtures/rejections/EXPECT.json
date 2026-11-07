@@ -174,5 +174,13 @@
   "stays-not-place.json": {
     "stage": "gate",
     "match": "머무는 곳은 장소여야 한다"
+  },
+  "offer-during-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 상황: nap"
+  },
+  "offer-during-unobserved.json": {
+    "stage": "gate",
+    "match": "플레이어가 함께 보지 않는 상황"
   }
 }

@@ -249,6 +249,10 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     for (const [key, offer] of Object.entries(def.offers ?? {})) {
       const at = `${id}.offers.${key}`;
       if (!vocab.has('action', offer.verb)) error(`${at}.verb`, `사전에 없는 행동: ${offer.verb}`);
+      for (const p of offer.during ?? []) {
+        if (!vocab.has('presence', p)) error(`${at}.during`, `사전에 없는 상황: ${p}`);
+        else if (vocab.entry('presence', p)?.attrs['observed'] !== true) error(`${at}.during`, `플레이어가 함께 보지 않는 상황(${p})에서는 행동하지 않는다 (집에 있음·식사 준비만)`);
+      }
       offer.needs.forEach((n, i) => {
         const w = `${at}.needs[${i}]`;
         const p = parsePattern(n.aware);

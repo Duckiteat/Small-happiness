@@ -75,11 +75,12 @@ test('세계: 치킨이 쉬면 시큼한 냄새, 상하면 썩는 냄새가 되�
   const events = runScenario(db, vocab, WEEK).log.map(parseEvent);
   const odor = (key: string) => events.filter((e) => e.type === 'state_changed' && e.data['key'] === key).map((e) => [e.data['from'], e.data['to']]);
   assert.deepEqual(odor('OBJ000010#1|body:odor'), [['none', 'sour'], ['sour', 'putrid'], ['putrid', 'gone']]);
-  assert.deepEqual(odor('PLC000002#1|space:odor'), [['none', 'putrid'], ['putrid', 'none']], '주방: 냄새가 퍼진 뒤에야 종류가 생기고, 냄새가 가시면 종류도 사라진다');
+  // 주방: 요리 냄새(구수함) 두 번, 그다음 치킨이 상한 뒤의 썩는 냄새. 냄새가 퍼진 뒤에야 종류가 생기고, 냄새가 가시면 종류도 사라진다
+  assert.deepEqual(odor('PLC000002#1|space:odor'), [['none', 'savory'], ['savory', 'none'], ['none', 'savory'], ['savory', 'none'], ['none', 'putrid'], ['putrid', 'none']]);
   const sour = events.find((e) => e.type === 'state_changed' && e.data['key'] === 'OBJ000010#1|body:odor' && e.data['to'] === 'sour');
   assert.equal(events.find((e) => e.seq === sour?.cause)?.data['via'], 'OBJ000010/rule/odor_decay_turned', '원인은 부패의 쉼 단계 규칙');
-  const noticed = events.find((e) => e.type === 'awareness_up' && e.data['key'] === 'PLC000002#1|space:odor');
-  assert.equal(noticed?.data['level'], 'putrid', '하루씨는 주방 냄새의 종류까지 알아챈다');
+  const noticed = events.filter((e) => e.type.startsWith('awareness') && e.data['key'] === 'PLC000002#1|space:odor' && e.data['via'] === 'CHR000001/sense/smell').map((e) => e.data['level']);
+  assert.ok(noticed.includes('putrid'), '하루씨는 주방 냄새의 종류까지 알아챈다');
   // 종류가 여럿 섞이면 가장 심각한 것이 이긴다
   const mixed = runScenario(db, vocab, parseScenario({
     why: '시험: 섞인 냄새', use_db: true, seed: 1, start: 420, end: 480, routine: {},

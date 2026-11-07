@@ -94,6 +94,8 @@ export interface OfferDef {
   readonly when_meaning?: string;
   readonly effect: readonly string[]; // 결과 패턴 (=, >=, <=)
   readonly reveals?: boolean;
+  /** 이 상태(사전 presence)일 때만 하는 행동. 없으면 보는 시간 내내 (예: 요리는 식사 준비 시간에만) */
+  readonly during?: readonly string[];
   readonly minutes: number;
   readonly tuned: boolean;
 }
@@ -349,7 +351,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
       bad(at, '제공 행동은 객체여야 한다');
       continue;
     }
-    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'minutes', 'tuned'], at, push);
+    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'minutes', 'tuned'], at, push);
     const needs = o['needs'];
     const needsOk = Array.isArray(needs) && needs.every((n) => isObj(n) && typeof n['aware'] === 'string' && typeof n['at_least'] === 'string' && Object.keys(n).length === 2);
     if (typeof o['verb'] !== 'string') bad(at, 'verb(사전 action 키)가 필요하다');
@@ -358,6 +360,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
     else if (o['when'] !== undefined && !isStrArr(o['when'])) bad(at, 'when은 상태 패턴 목록이어야 한다');
     else if (o['when_meaning'] !== undefined && (typeof o['when_meaning'] !== 'string' || !TOKEN_RE.test(o['when_meaning']))) bad(at, 'when_meaning은 상태 의미(means) 토큰이어야 한다');
     else if (o['reveals'] !== undefined && typeof o['reveals'] !== 'boolean') bad(at, 'reveals는 true/false여야 한다');
+    else if (o['during'] !== undefined && !(isStrArr(o['during']) && o['during'].length > 0)) bad(at, 'during은 상태(사전 presence) 키의 비어 있지 않은 목록이어야 한다');
     else if (typeof o['minutes'] !== 'number' || !Number.isInteger(o['minutes']) || o['minutes'] <= 0) bad(at, 'minutes(걸리는 시간, 분)는 양의 정수여야 한다');
     else if (typeof o['tuned'] !== 'boolean') bad(at, 'tuned(걸리는 시간이 조정된 값인지)를 true/false로 적어야 한다');
     else if (o['label'] !== undefined && typeof o['label'] !== 'string') bad(at, 'label은 문자열이어야 한다');
@@ -370,6 +373,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
         ...(typeof o['when_meaning'] === 'string' ? { when_meaning: o['when_meaning'] } : {}),
         effect: (o['effect'] as string[]).map((s) => s.trim()),
         ...(o['reveals'] === true ? { reveals: true } : {}),
+        ...(isStrArr(o['during']) ? { during: o['during'].map((s) => s.trim()) } : {}),
         minutes: o['minutes'],
         tuned: o['tuned'],
       };
