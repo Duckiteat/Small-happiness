@@ -1,14 +1,31 @@
 {
   "format_version": 1,
   "file_kind": "places",
-  "why": "첫 주 슬라이스: 현관, 주방, 거실 (세계-설정의 확정 부분). 냄새와 벌레의 규칙은 '어떤 음식이든'에 걸린다. 지연은 임시값(tuned:false).",
+  "why": "공간층 1차: 집 전체 여섯 장소와 통로(장소 그래프), 장소의 환경 특성. 욕실 문은 주방에서 (작가 2026-11-07). 통로의 투과율은 명세 예시값(열린 통로 1000, 닫힌 문 공기 100·자력 이동 0)의 임시값(tuned:false)이고 문은 늘 닫힌 상태로 둔다(문 자동 규칙 보류). 환경 등급은 세계-설정 3-2 초안 표. 주방의 손으로 쓴 '벌레가 거실로 번진다' 규칙은 번짐 엔진이 대신하므로 뺀다 (작가 2026-11-07). 바깥(복도·창밖)은 장소가 아니라 외부 경계라 아직 잇지 않는다.",
   "defs": [
     {
-      "id": "PLC+1",
+      "id": "PLC000001",
       "names": {
         "ko": "현관",
         "en": "entrance"
       },
+      "environment": {
+        "weather_effect": "mid",
+        "temp_swing": "mid",
+        "ventilation": "low",
+        "humidity": "low"
+      },
+      "passages": [
+        {
+          "to": "PLC000002",
+          "kind": "open",
+          "medium_pass": {
+            "air": 1000,
+            "self_move": 1000
+          },
+          "tuned": false
+        }
+      ],
       "slots": {
         "space": {
           "features": [
@@ -21,13 +38,39 @@
       ]
     },
     {
-      "id": "PLC+2",
+      "id": "PLC000002",
       "names": {
         "ko": "주방",
         "en": "kitchen"
       },
       "aliases": [
         "부엌"
+      ],
+      "environment": {
+        "weather_effect": "low",
+        "temp_swing": "low",
+        "ventilation": "low",
+        "humidity": "mid"
+      },
+      "passages": [
+        {
+          "to": "PLC000003",
+          "kind": "door",
+          "medium_pass": {
+            "air": 100,
+            "self_move": 0
+          },
+          "tuned": false
+        },
+        {
+          "to": "PLC000004",
+          "kind": "door",
+          "medium_pass": {
+            "air": 100,
+            "self_move": 0
+          },
+          "tuned": false
+        }
       ],
       "slots": {
         "space": {
@@ -41,20 +84,20 @@
         "odor_reach": {
           "label": "상한 음식의 냄새가 주방에 퍼진다",
           "on": [
-            "OBJ+1|body:smell@>=distinct"
+            "OBJ000001|body:smell@>=distinct"
           ],
           "emits": [
-            "PLC+2|space:smell@>=faint"
+            "PLC000002|space:smell@>=faint"
           ]
         },
         "odor_thicken": {
           "label": "냄새나는 음식이 남아 있으면 주방 냄새가 짙어진다",
           "on": [
-            "OBJ+1|body:smell@>=distinct",
-            "PLC+2|space:smell@=faint"
+            "OBJ000001|body:smell@>=distinct",
+            "PLC000002|space:smell@=faint"
           ],
           "emits": [
-            "PLC+2|space:smell@>=distinct"
+            "PLC000002|space:smell@>=distinct"
           ],
           "delay_s": 10800,
           "tuned": false
@@ -62,13 +105,13 @@
         "air_out": {
           "label": "냄새나는 음식이 하나도 없으면 주방 냄새가 빠진다",
           "on": [
-            "PLC+2|space:smell@>=faint"
+            "PLC000002|space:smell@>=faint"
           ],
           "emits": [
-            "PLC+2|space:smell@<=none"
+            "PLC000002|space:smell@<=none"
           ],
           "on_all": [
-            "OBJ+1|body:smell@<=faint"
+            "OBJ000001|body:smell@<=faint"
           ],
           "delay_s": 10800,
           "tuned": false
@@ -76,23 +119,12 @@
         "bugs": {
           "label": "주방 냄새가 뚜렷하면 벌레가 꼬인다",
           "on": [
-            "PLC+2|space:smell@>=distinct"
+            "PLC000002|space:smell@>=distinct"
           ],
           "emits": [
-            "PLC+2|space:bug@=few"
+            "PLC000002|space:bug@=few"
           ],
           "delay_s": 28800,
-          "tuned": false
-        },
-        "spread": {
-          "label": "벌레가 거실로 번진다",
-          "on": [
-            "PLC+2|space:bug@>=few"
-          ],
-          "emits": [
-            "PLC+3|space:bug@=few"
-          ],
-          "delay_s": 21600,
           "tuned": false
         }
       },
@@ -102,7 +134,7 @@
           "verb": "inspect",
           "needs": [
             {
-              "aware": "PLC+2|space:smell",
+              "aware": "PLC000002|space:smell",
               "at_least": "noticed"
             }
           ],
@@ -117,11 +149,37 @@
       ]
     },
     {
-      "id": "PLC+3",
+      "id": "PLC000003",
       "names": {
         "ko": "거실",
         "en": "living room"
       },
+      "environment": {
+        "weather_effect": "high",
+        "temp_swing": "mid",
+        "ventilation": "low",
+        "humidity": "mid"
+      },
+      "passages": [
+        {
+          "to": "PLC000005",
+          "kind": "door",
+          "medium_pass": {
+            "air": 100,
+            "self_move": 0
+          },
+          "tuned": false
+        },
+        {
+          "to": "PLC000006",
+          "kind": "door",
+          "medium_pass": {
+            "air": 100,
+            "self_move": 0
+          },
+          "tuned": false
+        }
+      ],
       "slots": {
         "space": {
           "features": [
@@ -132,6 +190,81 @@
       },
       "desc": [
         "가장 큰 공간. 중문 너머 (세계-설정 2장)"
+      ]
+    },
+    {
+      "id": "PLC000004",
+      "names": {
+        "ko": "욕실",
+        "en": "bathroom"
+      },
+      "aliases": [
+        "화장실"
+      ],
+      "environment": {
+        "weather_effect": "low",
+        "temp_swing": "low",
+        "ventilation": "very_low",
+        "humidity": "high"
+      },
+      "slots": {
+        "space": {
+          "features": [
+            "smell",
+            "bug"
+          ]
+        }
+      },
+      "desc": [
+        "화장실 겸용, 약 1.5평, 부엌 옆. 문은 주방에서 (작가 2026-11-07). 환풍기가 작다 (세계-설정 2장)"
+      ]
+    },
+    {
+      "id": "PLC000005",
+      "names": {
+        "ko": "베란다",
+        "en": "veranda"
+      },
+      "environment": {
+        "weather_effect": "high",
+        "temp_swing": "high",
+        "ventilation": "mid",
+        "humidity": "high"
+      },
+      "slots": {
+        "space": {
+          "features": [
+            "smell",
+            "bug"
+          ]
+        }
+      },
+      "desc": [
+        "거실에 붙어 있다. 외벽이라 온도 변화가 크다 (세계-설정 2·3장)"
+      ]
+    },
+    {
+      "id": "PLC000006",
+      "names": {
+        "ko": "작은 방",
+        "en": "small room"
+      },
+      "environment": {
+        "weather_effect": "low",
+        "temp_swing": "low",
+        "ventilation": "low",
+        "humidity": "low"
+      },
+      "slots": {
+        "space": {
+          "features": [
+            "smell",
+            "bug"
+          ]
+        }
+      },
+      "desc": [
+        "거실에 달린 방. 문을 닫으면 고립된다 (세계-설정 2·3장)"
       ]
     }
   ]

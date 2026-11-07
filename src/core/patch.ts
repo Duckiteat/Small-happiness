@@ -181,6 +181,32 @@ function mapDefinition(db: Db, vocab: Vocab | undefined, def: Definition, errors
     }),
   );
 
+  // 통로: 대상은 이름도 받고(번호로 바꾼다), 종류·매질과 환경 특성·등급은 별칭을 표준 키로 바꾼다
+  const key = (category: string, word: string, where: string): string => {
+    if (vocab === undefined) return word;
+    const k = vocab.resolve(category, word);
+    if (k === null || k === word) return word; // 사전에 없는 말은 관문이 보고한다
+    notes.push({ where, from: word, to: k });
+    changed = true;
+    return k;
+  };
+  const passages = def.passages?.map((p, i) => {
+    const at = `${def.id}.passages[${i}]`;
+    const ref = resolveDefRef(db, p.to);
+    let to = p.to;
+    if ('error' in ref) errors.push({ level: 'error', where: `${at}.to`, msg: ref.error });
+    else if (ref.id !== p.to) {
+      notes.push({ where: `${at}.to`, from: p.to, to: ref.id });
+      changed = true;
+      to = ref.id;
+    }
+    const medium_pass = Object.fromEntries(Object.entries(p.medium_pass).map(([m, v]) => [key('medium', m, `${at}.medium_pass`), v]));
+    return { ...p, to, kind: key('edge_kind', p.kind, `${at}.kind`), medium_pass };
+  });
+  const environment = def.environment === undefined ? undefined : Object.fromEntries(
+    Object.entries(def.environment).map(([t, l]) => [key('env_trait', t, `${def.id}.environment`), key('env_level', l, `${def.id}.environment.${t}`)]),
+  );
+
   let mobility = def.mobility;
   if (vocab !== undefined && mobility !== undefined) {
     const k = vocab.resolve('mobility', mobility);
@@ -195,6 +221,8 @@ function mapDefinition(db: Db, vocab: Vocab | undefined, def: Definition, errors
   return {
     ...def,
     ...(mobility !== undefined ? { mobility } : {}),
+    ...(environment !== undefined ? { environment } : {}),
+    ...(passages !== undefined ? { passages } : {}),
     ...(slots !== undefined ? { slots } : {}),
     ...(meanings !== undefined ? { meanings } : {}),
     ...(rules !== undefined ? { rules } : {}),

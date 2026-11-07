@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 엔진 구조 지도 (2026-11-07 기준). 공유본: claude.ai 아티팩트. 브라우저에서 바로 연다. 코드가 바뀌면 손으로 고친다 (자동 생성 아님) -->
+<title>하루씨 엔진 지도</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* 배치: 한 줄 읽기 폭의 문서. 그림은 각자 가로 스크롤 상자 안에서 원래 크기로 */
+:root {
+  --bg: #eef2f1;
+  --surface: #fbfcfc;
+  --ink: #1b292d;
+  --muted: #56676c;
+  --line: #c3cfce;
+  --accent: #2c5b8f;
+  --done: #2b7656;
+  --done-bg: #ddefe5;
+  --part: #9a630f;
+  --part-bg: #f6ead3;
+  --empty: #85959a;
+  --f-display: "Gowun Batang", "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11191b; --surface: #172227; --ink: #e1eaec; --muted: #98a8ad; --line: #34454b;
+    --accent: #84b3e3; --done: #72cfa0; --done-bg: #17302a; --part: #e0b25e; --part-bg: #33291a; --empty: #6f8186;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11191b; --surface: #172227; --ink: #e1eaec; --muted: #98a8ad; --line: #34454b;
+  --accent: #84b3e3; --done: #72cfa0; --done-bg: #17302a; --part: #e0b25e; --part-bg: #33291a; --empty: #6f8186;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.65;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+main { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2 { font-family: var(--f-display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.3; }
+h1 { font-size: clamp(28px, 6vw, 40px); }
+h2 { font-size: 22px; }
+p { margin: 0; max-width: 66ch; }
+.lede { color: var(--muted); }
+.eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+section { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+code, .mono { font-family: var(--f-mono); font-size: .88em; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.facts b { color: var(--ink); font-weight: 600; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 16px; height: 12px; border-radius: 3px; border: 1.5px solid; display: inline-block; }
+.sw.done { background: var(--done-bg); border-color: var(--done); }
+.sw.part { background: var(--part-bg); border-color: var(--part); }
+.sw.empty { background: transparent; border: 1.5px dashed var(--empty); }
+.sw.fb { width: 22px; height: 0; border: 0; border-top: 2px dashed var(--accent); border-radius: 0; }
+
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.scroll svg { display: block; width: 100%; min-width: 700px; height: auto; }
+figcaption { font-size: 13px; color: var(--muted); max-width: 70ch; }
+
+/* 그림 안의 표시: 색은 모두 토큰에서 */
+svg text { fill: var(--ink); font-family: var(--f-body); }
+svg .t-name { font-size: 14px; font-weight: 600; }
+svg .t-desc { font-size: 11.5px; fill: var(--muted); }
+svg .t-ns { font-size: 10.5px; font-family: var(--f-mono); fill: var(--muted); }
+svg .t-st { font-size: 11px; font-weight: 600; }
+svg .t-lane { font-size: 12px; letter-spacing: .08em; fill: var(--muted); }
+svg .t-fb { font-size: 11px; fill: var(--accent); }
+svg .t-edge { font-size: 11px; fill: var(--muted); }
+svg .b-done rect { fill: var(--done-bg); stroke: var(--done); stroke-width: 1.5; }
+svg .b-done .t-st { fill: var(--done); }
+svg .b-part rect { fill: var(--part-bg); stroke: var(--part); stroke-width: 1.5; }
+svg .b-part .t-st { fill: var(--part); }
+svg .b-empty rect { fill: var(--surface); stroke: var(--empty); stroke-width: 1.5; stroke-dasharray: 5 4; }
+svg .b-empty .t-st { fill: var(--empty); }
+svg .b-tool rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.2; }
+svg .b-data rect { fill: var(--bg); stroke: var(--muted); stroke-width: 1.2; }
+svg .down { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+svg .fb { stroke: var(--accent); stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
+svg .mk { fill: var(--ink); }
+svg .mkf { fill: var(--accent); }
+
+/* 4일차 흐름 */
+.flow { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.flow li { display: grid; grid-template-columns: 74px 1fr; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+.flow li:first-child { border-top: 0; }
+.when { font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.what { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.what .why { font-size: 13px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.l3 { color: var(--done); border-color: var(--done); }
+.chip.l5, .chip.l6 { color: var(--accent); border-color: var(--accent); }
+.chip.l2 { color: var(--part); border-color: var(--part); }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.tablewrap { overflow-x: auto; }
+th, td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+td:first-child { white-space: nowrap; font-weight: 600; }
+td.where { color: var(--muted); font-size: 13px; }
+
+.gaps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.gap { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.gap h3 { margin: 0; font-size: 15px; }
+.gap p { font-size: 13.5px; color: var(--muted); }
+.n { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<main>
+  <header style="display:flex;flex-direction:column;gap:12px">
+    <div class="eyebrow">작은 행복 · 엔진 구조 · 2026-11-07 기준</div>
+    <h1>하루씨 엔진 지도</h1>
+    <p class="lede">세계는 아홉 층으로 한 단계씩 돈다. 층은 서로 직접 부르지 않고, 단계마다 새로 채우는 <b>품질판</b>(이름 공간마다 주인이 하나)을 통해서만 주고받는다. 아래 그림은 지금 코드에 있는 그대로다.</p>
+    <div class="facts">
+      <span>정의 <b class="n">18</b> (인물 1 · 물건 11 · 장소 6)</span>
+      <span>패치 기록 <b class="n">4</b></span>
+      <span>사전 분류 <b class="n">17</b></span>
+      <span>시험 <b class="n">307</b> 통과</span>
+      <span>한계 등록부 <b class="n">12</b>항목</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="s-layers">
+    <h2 id="s-layers">아홉 층과 두 라인</h2>
+    <p>세계 라인(0→1→2→3)과 사람 라인(4a→4b)은 서로 읽지 않고 <b>5 지각</b>에서 처음 만난다. 같은 단계 안에서는 아래 층의 결과만 읽고(실선), 위로 거슬러 가는 것은 <b>직전 단계</b>의 판을 읽는 일곱 길 F1~F7뿐이다(점선).</p>
+    <div class="legend" aria-label="범례">
+      <span><i class="sw done"></i>구현됨</span>
+      <span><i class="sw part"></i>1차·일부</span>
+      <span><i class="sw empty"></i>비어 있음 (중립값만 씀)</span>
+      <span><i class="sw fb"></i>되먹임 (직전 단계를 읽음)</span>
+    </div>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="-12 0 772 700" role="img" aria-label="아홉 층 그림: 세계 라인 0 시계, 1 공간, 2 물체, 3 인과와 사람 라인 4a 외부계, 4b 내면이 5 지각에서 만나고 6 행동, 7 장면, 8 표현으로 이어진다. 행동은 F1로 물체에, F5로 시계에, F6으로 지각에 되돌아가고, 인과는 F7로 시계를 깨운다.">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker>
+            <marker id="ahf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mkf" d="M0,0 L10,5 L0,10 z"/></marker>
+          </defs>
+
+          <text class="t-lane" x="170" y="24" text-anchor="middle">라인 A · 세계</text>
+          <text class="t-lane" x="590" y="24" text-anchor="middle">라인 B · 사람</text>
+
+          <!-- 라인 A -->
+          <g class="b-done"><rect x="40" y="40" width="260" height="58" rx="8"/>
+            <text class="t-name" x="54" y="62">0 · 시계</text><text class="t-st" x="288" y="62" text-anchor="end">구현</text>
+            <text class="t-desc" x="54" y="78">단계를 언제 돌릴지 정함</text><text class="t-ns" x="54" y="92">time</text></g>
+          <g class="b-part"><rect x="40" y="120" width="260" height="58" rx="8"/>
+            <text class="t-name" x="54" y="142">1 · 공간</text><text class="t-st" x="288" y="142" text-anchor="end">1차</text>
+            <text class="t-desc" x="54" y="158">장소 6 · 통로 · 환경 특성</text><text class="t-ns" x="54" y="172">world.place</text></g>
+          <g class="b-part"><rect x="40" y="200" width="260" height="58" rx="8"/>
+            <text class="t-name" x="54" y="222">2 · 물체</text><text class="t-st" x="288" y="222" text-anchor="end">일부</text>
+            <text class="t-desc" x="54" y="238">개체와 상태, 행동의 결과 기록</text><text class="t-ns" x="54" y="252">world.state · kit</text></g>
+          <g class="b-part"><rect x="40" y="280" width="260" height="58" rx="8"/>
+            <text class="t-name" x="54" y="302">3 · 인과</text><text class="t-st" x="288" y="302" text-anchor="end">1차</text>
+            <text class="t-desc" x="54" y="318">규칙 · 지연 · 진행 · 번짐</text><text class="t-ns" x="54" y="332">world.stimulus_source</text></g>
+
+          <!-- 라인 B -->
+          <g class="b-part"><rect x="460" y="40" width="260" height="58" rx="8"/>
+            <text class="t-name" x="474" y="62">4a · 외부계</text><text class="t-st" x="708" y="62" text-anchor="end">일정만</text>
+            <text class="t-desc" x="474" y="78">하루씨의 일정 (밖의 하루 카드 없음)</text><text class="t-ns" x="474" y="92">ext · plan</text></g>
+          <g class="b-empty"><rect x="460" y="120" width="260" height="58" rx="8"/>
+            <text class="t-name" x="474" y="142">4b · 내면</text><text class="t-st" x="708" y="142" text-anchor="end">비어 있음</text>
+            <text class="t-desc" x="474" y="158">컨디션 · 모드 · 감각 프로파일</text><text class="t-ns" x="474" y="172">self</text></g>
+
+          <!-- 만나는 곳부터 -->
+          <g class="b-part"><rect x="200" y="390" width="360" height="58" rx="8"/>
+            <text class="t-name" x="214" y="412">5 · 지각</text><text class="t-st" x="548" y="412" text-anchor="end">1차 (기억 없음)</text>
+            <text class="t-desc" x="214" y="428">느낌 → 알아챔 → 이해함, 하루씨의 앎</text><text class="t-ns" x="214" y="442">perceived · aware · memory · visible_to_player</text></g>
+          <g class="b-part"><rect x="200" y="470" width="360" height="58" rx="8"/>
+            <text class="t-name" x="214" y="492">6 · 행동</text><text class="t-st" x="548" y="492" text-anchor="end">1차 (첫 행동만)</text>
+            <text class="t-desc" x="214" y="508">앎이 갖춘 행동을 고름 (살피기 · 버리기)</text><text class="t-ns" x="214" y="522">recent</text></g>
+          <g class="b-empty"><rect x="200" y="550" width="360" height="58" rx="8"/>
+            <text class="t-name" x="214" y="572">7 · 장면</text><text class="t-st" x="548" y="572" text-anchor="end">비어 있음</text>
+            <text class="t-desc" x="214" y="588">이벤트 포착 (열림은 지각, 선택은 행동)</text><text class="t-ns" x="214" y="602">scene</text></g>
+          <g class="b-part"><rect x="200" y="630" width="360" height="58" rx="8"/>
+            <text class="t-name" x="214" y="652">8 · 표현</text><text class="t-st" x="548" y="652" text-anchor="end">임시</text>
+            <text class="t-desc" x="214" y="668">문장 · 화면 (지금은 단계마다 상태 한 줄)</text><text class="t-ns" x="214" y="682">판을 읽고 쓰지 않음</text></g>
+
+          <!-- 같은 단계: 아래로 -->
+          <path class="down" d="M170,98 V117" marker-end="url(#ah)"/>
+          <path class="down" d="M170,178 V197" marker-end="url(#ah)"/>
+          <path class="down" d="M170,258 V277" marker-end="url(#ah)"/>
+          <path class="down" d="M590,98 V117" marker-end="url(#ah)"/>
+          <path class="down" d="M250,338 V387" marker-end="url(#ah)"/>
+          <text class="t-edge" x="258" y="368">세계 상태 · 자극</text>
+          <path class="down" d="M510,178 V387" marker-end="url(#ah)"/>
+          <text class="t-edge" x="518" y="290">일정 · 내면</text>
+          <path class="down" d="M380,448 V467" marker-end="url(#ah)"/>
+          <path class="down" d="M380,528 V547" marker-end="url(#ah)"/>
+          <path class="down" d="M380,608 V627" marker-end="url(#ah)"/>
+
+          <!-- 되먹임: 직전 단계의 판 -->
+          <path class="fb" d="M200,490 H24 V229 H37" marker-end="url(#ahf)"/>
+          <text class="t-fb" x="112" y="483" text-anchor="middle">F1 행동의 효과 → 물체</text>
+          <path class="fb" d="M200,510 H8 V60 H37" marker-end="url(#ahf)"/>
+          <text class="t-fb" x="108" y="525" text-anchor="middle">F5 일정 · 행동 끝 → 시계</text>
+          <path class="fb" d="M300,309 H334 V75 H303" marker-end="url(#ahf)"/>
+          <text class="t-fb" x="342" y="196">F7 다음 변화</text>
+          <text class="t-fb" x="342" y="210">→ 시계</text>
+          <path class="fb" d="M520,470 V451" marker-end="url(#ahf)"/>
+          <text class="t-fb" x="527" y="464">F6</text>
+          <path class="fb" d="M560,490 H744 V140 H723" marker-end="url(#ahf)"/>
+          <text class="t-fb" x="652" y="483" text-anchor="middle">F2 행동 결과 → 내면</text>
+          <path class="fb" d="M560,410 H730 V160 H723" marker-end="url(#ahf)"/>
+          <text class="t-fb" x="645" y="403" text-anchor="middle">F3 · F4 알아챈 것 → 내면</text>
+        </svg>
+      </div>
+      <figcaption>모든 층은 0의 시각을 읽는다. F2·F3·F4는 판의 약속에는 있지만 4b 내면이 아직 없어서 아무도 읽지 않는다. F6은 살피기가 끝난 다음 단계에 그 장소의 물건까지 보게 하는 길이다. 난수는 4a·5·6·7·8층에만 주어지고, 1~3층과 4b에는 닿을 길이 없다.</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="s-board">
+    <h2 id="s-board">되먹임 일곱 길</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>길</th><th>무엇이</th><th>어디로</th><th>지금</th></tr></thead>
+        <tbody>
+          <tr><td>F1</td><td>끝난 행동의 효과 요청 (<code>recent</code>)</td><td>2 물체가 그 시각으로 기록</td><td>씀 (버리기 → 냄새·보관 소멸)</td></tr>
+          <tr><td>F2</td><td>행동 결과 (<code>recent</code>)</td><td>4b 내면</td><td>아무도 안 읽음</td></tr>
+          <tr><td>F3</td><td>알아챈 것 (<code>perceived</code>)</td><td>4b 내면</td><td>아무도 안 읽음</td></tr>
+          <tr><td>F4</td><td>어제의 집 인상 (<code>memory</code>)</td><td>4b 내면</td><td>기억이 비어 있음</td></tr>
+          <tr><td>F5</td><td>일정 · 행동이 끝나는 시각 (<code>plan</code>, <code>recent</code>)</td><td>0 시계: 다음 단계 시각</td><td>씀 (외출·잠은 3시간마다)</td></tr>
+          <tr><td>F6</td><td>살피기 (<code>recent</code>의 reveals)</td><td>5 지각: 그 장소의 물건까지 봄</td><td>씀</td></tr>
+          <tr><td>F7</td><td>세계가 스스로 바뀔 다음 시각 (<code>world.stimulus_source</code>)</td><td>0 시계: 집에 있을 때 그 시각에 깸</td><td>씀</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-day">
+    <h2 id="s-day">개념이 실제로 이어지는 모습</h2>
+    <p>첫 주 시나리오에서 남은 치킨 하나가 하루씨의 손에 버려지기까지. 시각과 순서는 실행 기록(영수증) 그대로다.</p>
+    <ol class="flow">
+      <li><span class="when">2일 11:50</span><div class="what"><div><b>남은 치킨 부패: 신선 → 쉼</b></div><div class="chips"><span class="chip l3">3 인과 · 진행 법칙</span></div><div class="why">냉장·반밀봉·꾸덕한 조건의 속도로 양이 쌓여 첫 경계를 넘음. 곧이어 치킨 냄새가 은은해짐 (냄새 규칙).</div></div></li>
+      <li><span class="when">3일 23:39</span><div class="what"><div><b>부패: 쉼 → 상함 · 치킨 냄새 뚜렷함 · 주방 냄새 은은함</b></div><div class="chips"><span class="chip l3">3 인과 · 규칙</span><span class="chip">종류 is_a</span></div><div class="why">주방의 규칙은 치킨이 아니라 <b>음식</b>(종류)을 가리킨다. 치킨이 음식이라서 걸린다.</div></div></li>
+      <li><span class="when">4일 02:39</span><div class="what"><div><b>주방 냄새 뚜렷함 → 현관 냄새 은은함</b></div><div class="chips"><span class="chip l3">3 인과 · 지연 3시간</span><span class="chip">1 공간 · 번짐</span></div><div class="why">은은함이 3시간 이어져 짙어짐. 현관은 열린 통로(공기 1000)라 한 칸 약해져 닿고, 거실·욕실은 닫힌 문(공기 100)이라 닿지 않는다. 벌레 규칙이 8시간 뒤(10:39)로 예약된다.</div></div></li>
+      <li><span class="when">4일 07:00</span><div class="what"><div><b>하루씨가 일어나 주방·현관 냄새를 알아챔 → 주방 살피기를 고름</b></div><div class="chips"><span class="chip l5">5 지각</span><span class="chip l6">6 행동</span><span class="chip">F5 기상</span></div><div class="why">냄새가 하루씨의 후각이 알아채는 칸 이상이다. "알아챔"은 살피기의 조건을 채운다.</div></div></li>
+      <li><span class="when">4일 07:05</span><div class="what"><div><b>살피기 끝 → 냉장고 음식을 모두 "이해함" → 남은 치킨 버리기를 고름</b></div><div class="chips"><span class="chip l2">2 물체 · F1</span><span class="chip l5">5 지각 · F6</span><span class="chip l6">6 행동</span></div><div class="why">하루씨는 세계가 아니라 자기 앎으로 판단한다. 본 단계가 "상함"이라 상태 의미가 "못 먹음"이 된다.</div></div></li>
+      <li><span class="when">4일 07:07</span><div class="what"><div><b>치킨 냄새 · 보관 → 소멸</b></div><div class="chips"><span class="chip l2">2 물체 · F1 효과 요청</span></div><div class="why">행동이 결과를 직접 정하지 않고, 끝난 시각에 2층이 효과를 기록한다.</div></div></li>
+      <li><span class="when">4일 10:07</span><div class="what"><div><b>주방 냄새 없음 → 현관 냄새 없음</b></div><div class="chips"><span class="chip l3">3 인과 · 지연 3시간</span><span class="chip">번짐 내려감</span></div><div class="why">냄새나는 음식이 하나도 없는 채로 3시간 → 환기 규칙. 원천이 약해지면 받는 장소도 곧바로 따라 약해진다.</div></div></li>
+      <li><span class="when">4일 10:39</span><div class="what"><div><b>벌레 예약 취소</b></div><div class="chips"><span class="chip l3">3 인과 · 재판정</span></div><div class="why">발화 시각에 조건(주방 냄새 뚜렷함)을 다시 보니 풀려 있다. 버린 덕에 벌레가 오지 않는다.</div></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="s-tools">
+    <h2 id="s-tools">데이터가 들어오고 결과가 남는 길</h2>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 900 270" role="img" aria-label="도구 흐름: 원본을 컴파일한 패치가 관문을 통과하면 서기가 저장소와 패치 기록에 쓰고, verify가 기록을 다시 적용해 같은지 본다. 엔진은 저장소와 사전과 시나리오를 읽어 사건 기록을 내고, 영수증이 하루 한 장씩 사슬로 찍히며, 원인이 빈 사건이 걸러져 한계 등록부와 맞춰진다.">
+          <defs>
+            <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker>
+          </defs>
+          <text class="t-lane" x="10" y="22">넣기</text>
+          <g class="b-data"><rect x="10" y="40" width="120" height="50" rx="7"/><text class="t-name" x="70" y="62" text-anchor="middle">원본</text><text class="t-ns" x="70" y="78" text-anchor="middle">content/src</text></g>
+          <g class="b-tool"><rect x="160" y="40" width="120" height="50" rx="7"/><text class="t-name" x="220" y="62" text-anchor="middle">컴파일</text><text class="t-ns" x="220" y="78" text-anchor="middle">compile</text></g>
+          <g class="b-tool"><rect x="310" y="40" width="120" height="50" rx="7"/><text class="t-name" x="370" y="62" text-anchor="middle">관문</text><text class="t-ns" x="370" y="78" text-anchor="middle">validate</text></g>
+          <g class="b-tool"><rect x="460" y="40" width="120" height="50" rx="7"/><text class="t-name" x="520" y="62" text-anchor="middle">서기</text><text class="t-ns" x="520" y="78" text-anchor="middle">merge</text></g>
+          <g class="b-data"><rect x="610" y="40" width="130" height="50" rx="7"/><text class="t-name" x="675" y="62" text-anchor="middle">저장소</text><text class="t-ns" x="675" y="78" text-anchor="middle">data/db.json</text></g>
+          <g class="b-data"><rect x="770" y="40" width="120" height="50" rx="7"/><text class="t-name" x="830" y="62" text-anchor="middle">패치 기록</text><text class="t-ns" x="830" y="78" text-anchor="middle">data/patches</text></g>
+          <path class="down" d="M130,65 H157" marker-end="url(#ah2)"/>
+          <path class="down" d="M280,65 H307" marker-end="url(#ah2)"/><text class="t-edge" x="294" y="58" text-anchor="middle">패치</text>
+          <path class="down" d="M430,65 H457" marker-end="url(#ah2)"/><text class="t-edge" x="444" y="58" text-anchor="middle">통과</text>
+          <path class="down" d="M580,65 H607" marker-end="url(#ah2)"/>
+          <path class="down" d="M740,65 H767" marker-end="url(#ah2)"/>
+          <path class="down" d="M830,90 V112 H700 V93" marker-end="url(#ah2)"/><text class="t-edge" x="765" y="126" text-anchor="middle">verify: 다시 적용해 같은지</text>
+
+          <g class="b-data"><rect x="10" y="108" width="120" height="40" rx="7"/><text class="t-name" x="70" y="126" text-anchor="middle">사전</text><text class="t-ns" x="70" y="140" text-anchor="middle">data/vocab</text></g>
+          <path class="down" d="M130,128 H340 V93" marker-end="url(#ah2)"/><text class="t-edge" x="236" y="122" text-anchor="middle">말 · 사다리 · 번짐 값</text>
+
+          <text class="t-lane" x="10" y="182">돌리기와 기록</text>
+          <g class="b-data"><rect x="10" y="200" width="120" height="50" rx="7"/><text class="t-name" x="70" y="222" text-anchor="middle">시나리오</text><text class="t-ns" x="70" y="238" text-anchor="middle">first-week.json</text></g>
+          <g class="b-tool"><rect x="160" y="200" width="150" height="50" rx="7"/><text class="t-name" x="235" y="222" text-anchor="middle">엔진 (아홉 층)</text><text class="t-ns" x="235" y="238" text-anchor="middle">day</text></g>
+          <g class="b-data"><rect x="340" y="200" width="120" height="50" rx="7"/><text class="t-name" x="400" y="222" text-anchor="middle">사건 기록</text><text class="t-ns" x="400" y="238" text-anchor="middle">seq · cause</text></g>
+          <g class="b-tool"><rect x="490" y="200" width="120" height="50" rx="7"/><text class="t-name" x="550" y="222" text-anchor="middle">영수증</text><text class="t-ns" x="550" y="238" text-anchor="middle">receipt</text></g>
+          <g class="b-tool"><rect x="640" y="200" width="120" height="50" rx="7"/><text class="t-name" x="700" y="222" text-anchor="middle">원인 빈칸</text><text class="t-ns" x="700" y="238" text-anchor="middle">gaps</text></g>
+          <g class="b-data"><rect x="790" y="200" width="100" height="50" rx="7"/><text class="t-name" x="840" y="222" text-anchor="middle">한계 등록부</text><text class="t-ns" x="840" y="238" text-anchor="middle">limitations</text></g>
+          <path class="down" d="M675,90 V164 H270 V197" marker-end="url(#ah2)"/><text class="t-edge" x="470" y="158" text-anchor="middle">정의</text>
+          <path class="down" d="M70,148 V170 H200 V197" marker-end="url(#ah2)"/>
+          <path class="down" d="M130,225 H157" marker-end="url(#ah2)"/>
+          <path class="down" d="M310,225 H337" marker-end="url(#ah2)"/>
+          <path class="down" d="M460,225 H487" marker-end="url(#ah2)"/><text class="t-edge" x="474" y="264" text-anchor="middle">하루 한 장 · 사슬</text>
+          <path class="down" d="M610,225 H637" marker-end="url(#ah2)"/>
+          <path class="down" d="M760,225 H787" marker-end="url(#ah2)"/>
+        </svg>
+      </div>
+      <figcaption>데이터는 패치로만 들어가고(직접 고치면 verify가 잡는다), 코어는 파일을 쓰지 않는다. 쓰기는 서기 하나가 한다. 엔진이 내는 것은 사건 기록 하나뿐이고, 영수증·원인 빈칸·한계 등록부는 모두 그 기록에서 계산된다. 영수증은 사건마다, 하루마다 앞의 해시를 물어 고치면 드러난다.</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="s-terms">
+    <h2 id="s-terms">개념 사전</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>개념</th><th>뜻</th><th>어디에</th></tr></thead>
+        <tbody>
+          <tr><td>정의 · 개체</td><td>정의는 종류의 설계(음식, 주방, 하루씨). 세계에는 그 개체가 생긴다 (<code>OBJ000010#1</code>).</td><td class="where">저장소 · 2 물체</td></tr>
+          <tr><td>부위 · 특징 · 단계</td><td>개체의 상태는 <code>개체|부위:특징</code> 하나에 단계 키 하나. 특징마다 여섯 칸 사다리, 일부 칸은 잠김.</td><td class="where">사전 feature</td></tr>
+          <tr><td>종류 (is_a)</td><td>규칙과 행동을 종류에 한 번 쓰면 그 종류의 물건이 모두 물려받는다.</td><td class="where">kinds.ts</td></tr>
+          <tr><td>규칙</td><td><code>on</code>이 모두 맞으면 <code>emits</code>의 상태를 만든다. 지연이 있으면 예약했다가 발화 때 다시 본다.</td><td class="where">3 인과 · causal.ts</td></tr>
+          <tr><td>진행 법칙</td><td>조건(보관·수분·가공·온도)의 속도로 양이 쌓이고 경계를 넘으면 단계가 오른다. 냉동이면 멈춘다.</td><td class="where">3 인과 · progress.ts</td></tr>
+          <tr><td>통로 · 번짐</td><td>장소 사이의 통로마다 매질(공기·벌레)별 투과율. 원천 장소의 단계가 통로를 따라 약해지며 번진다.</td><td class="where">1 공간 · spread.ts</td></tr>
+          <tr><td>앎</td><td>하루씨가 아는 것: 인지 단계(모름·알아챔·이해함) + 본 단계 + 본 시각. 행동은 세계가 아니라 앎으로 판단한다.</td><td class="where">5 지각</td></tr>
+          <tr><td>제공 행동</td><td>물건·장소가 내놓는 행동. 필요한 앎을 갖추면 고를 수 있고, 결과는 효과 요청으로만 낸다.</td><td class="where">6 행동</td></tr>
+          <tr><td>사건 · 원인</td><td>모든 변화는 사건으로 남고 <code>cause</code>가 원인 사건을 가리킨다. 기록만으로 세계를 다시 만들 수 있다.</td><td class="where">기록 · log.ts</td></tr>
+          <tr><td>영수증</td><td>하루 한 장. 사건은 사건끼리, 하루는 하루끼리 해시로 이어지고, 마감이 다음 날로 넘어간다.</td><td class="where">receipt.ts</td></tr>
+          <tr><td>한계</td><td>엔진이 아직 못 하는 것과 이유. 설계 오류 · 기능 부재 · 원천으로 나누고, 상태는 기록에서 계산된다.</td><td class="where">data/limitations.json</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-gaps">
+    <h2 id="s-gaps">아직 비어 있는 곳</h2>
+    <div class="gaps">
+      <div class="gap"><h3>원인이 끊긴 곳 <span class="n">· 설계 오류 5</span></h3><p>알아챔 → 고름 → 이해함 사이, 지연 예약 등에서 원인 사건 번호가 다음 층으로 넘어가지 않는다 (LIM001~004, 007).</p></div>
+      <div class="gap"><h3>아직 없는 기능 <span class="n">· 기능 부재 6</span></h3><p>문이 늘 닫힘, 먼지 운반, 원천이 여럿인 번짐, 양으로 계산하는 번짐, 바깥 경계, 진행의 원인 사건 (LIM005, 008~012).</p></div>
+      <div class="gap"><h3>비어 있는 층</h3><p>4b 내면(컨디션·모드), 7 장면(이벤트 포착), 8 표현(문장 엔진). 4a는 일정만, 5는 기억이 없다.</p></div>
+      <div class="gap"><h3>물체층의 남은 일</h3><p>재질, 물건의 위치(어느 장소·무엇 위에), 버린 물건의 보관과 보존. 하루씨가 집 안 어느 방에 있는지도 아직 없다.</p></div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

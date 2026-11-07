@@ -15,7 +15,9 @@
     "day": "node src/node/cli.ts day",
     "golden": "node src/node/cli.ts golden --write",
     "golden:check": "node src/node/cli.ts golden --check",
-    "guard": "node src/node/cli.ts guard"
+    "guard": "node src/node/cli.ts guard",
+    "gaps": "node src/node/cli.ts gaps --write",
+    "gaps:check": "node src/node/cli.ts gaps --check"
   },
   "engines": {
     "node": ">=22.18"

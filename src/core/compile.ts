@@ -14,7 +14,7 @@ const KIND_PREFIX: Readonly<Record<string, string>> = { objects: 'OBJ', places: 
 /** 종류별로 지금 받는 최상위 필드. */
 const FIELDS: Readonly<Record<string, readonly string[]>> = {
   objects: ['id', 'names', 'aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial', 'is_a', 'override'],
-  places: ['id', 'names', 'aliases', 'desc', 'slots', 'meanings', 'rules', 'offers'],
+  places: ['id', 'names', 'aliases', 'desc', 'environment', 'passages', 'slots', 'meanings', 'rules', 'offers'],
   characters: ['id', 'names', 'aliases', 'desc', 'senses'],
 };
 
@@ -26,7 +26,7 @@ const RULE_FIELDS: readonly string[] = ['label', 'on', 'on_all', 'emits', 'delay
 
 /** 명세 단계 필드가 쓰였을 때의 안내용 목록 (거부 메시지에 쓴다). */
 const SPEC_ONLY: readonly string[] = [
-  'material', 'parts', 'traits', 'environment', 'passages', 'params', 'habits',
+  'material', 'parts', 'traits', 'params', 'habits',
   'cost', 'warn_before_s',
 ];
 

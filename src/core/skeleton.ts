@@ -44,7 +44,7 @@ function stateText(states: BoardValue, db: Db, vocab: Vocab): string {
     const k = parseStateKey(key);
     if (k === null || typeof level !== 'string') continue;
     if (effectiveInitial(db, defOf(k.subject) ?? '')[`${k.slot}:${k.feature}`] === level) continue;
-    const name = db.defs[defOf(k.subject) ?? '']?.names.ko ?? k.subject;
+    const name = instanceName(db, k.subject);
     const feature = vocab.entry('feature', k.feature);
     const levels = feature?.attrs['levels'];
     const levelKo = Array.isArray(levels)
@@ -55,8 +55,15 @@ function stateText(states: BoardValue, db: Db, vocab: Vocab): string {
   return parts.join(', ');
 }
 
+/** 개체 이름. 같은 정의의 둘째부터는 번호를 붙여 구별한다 (예: 남은 치킨 #2). */
+export function instanceName(db: Db, instance: string): string {
+  const base = db.defs[defOf(instance) ?? instance]?.names.ko ?? instance;
+  const n = /#(\d+)$/.exec(instance)?.[1];
+  return n !== undefined && n !== '1' ? `${base} #${n}` : base;
+}
+
 function name(db: Db, instance: string): string {
-  return db.defs[defOf(instance) ?? '']?.names.ko ?? instance;
+  return instanceName(db, instance);
 }
 
 /** 하루씨가 이 단계에 느낀 것과 그 앎의 단계 (알아챔·이해함). */
@@ -233,6 +240,7 @@ export function parseScenario(raw: unknown): Scenario {
     if (!isObj(s) || typeof s['t'] !== 'number' || typeof s['key'] !== 'string' || typeof s['level'] !== 'string') {
       throw new TypeError(`set[${i}]은 { t, key, level }이어야 한다`);
     }
+    if (s['t'] > start) throw new TypeError(`set[${i}]의 시각 ${s['t']}가 하루의 시작(${start})보다 뒤다 (set은 시작 전의 처음 상태다)`);
     return { t: s['t'], key: s['key'], level: s['level'] };
   });
   return { why, patches: fromDb ? [] : ([...(patches as string[])] as string[]), use_db: fromDb, seed, spawn: [...spawn] as string[], set: sets, start, end, routine };

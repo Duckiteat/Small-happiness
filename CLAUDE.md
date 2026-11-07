@@ -29,7 +29,7 @@
 
 ## 끝내기 전에
 ```sh
-npm run typecheck && npm test && npm run appendix:check && npm run verify
+npm run typecheck && npm test && npm run appendix:check && npm run gaps:check && npm run verify
 npm run guard          # 직전 커밋과 비교
 ```
 - 코드·형식·어휘·문서 구조를 바꾸면 `CHANGES.md` 맨 위에 **한 행**(Scope · Why · Impact · Verification)을 같은 커밋에서 더한다 (행은 고치지 않는다). 새 문서는 `docs/보고서-목록.md`에 올린다 (시험이 확인).

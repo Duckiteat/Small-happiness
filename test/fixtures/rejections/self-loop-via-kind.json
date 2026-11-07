@@ -1,0 +1,1 @@
+{"format": "small-happiness-patch", "version": 1, "why": "거부 시험: 종류를 거쳐 자기 자신으로 돌아오는 규칙 (음식 종류의 냄새가 이 반찬의 냄새를 키움)", "defs": [{"id": "OBJ+1", "names": {"ko": "시험 반찬"}, "is_a": "OBJ000001", "mobility": "portable", "slots": {"body": {"features": ["rot", "smell"]}}, "rules": {"loop": {"on": ["OBJ000001|body:smell@>=faint"], "emits": ["OBJ+1|body:smell@>=distinct"]}}}]}

@@ -74,9 +74,9 @@ export function patchReport(before: Db, after: Db, merge: MergeReport, gate: Gat
     for (const t of hit) (referencedBy[t] ??= []).push(id);
   }
 
-  const edgesAfter = buildEdges(collectRules(after), vocab);
+  const edgesAfter = buildEdges(collectRules(after), vocab, after);
   const edgeKey = (e: { from: string; to: string }): string => `${e.from}>${e.to}`;
-  const edgesBefore = new Set(buildEdges(collectRules(before), vocab).map(edgeKey));
+  const edgesBefore = new Set(buildEdges(collectRules(before), vocab, before).map(edgeKey));
   const touchesChanged = (ref: string): boolean => changed.has(ref.split('/rule/')[0] as string);
   const chainEdges = edgesAfter
     .filter((e) => touchesChanged(e.from) || touchesChanged(e.to))
@@ -131,6 +131,7 @@ export function patchReportMarkdown(report: PatchReport, after: Db): string {
   if (refs.length === 0) out.push('- 바뀐 정의를 규칙으로 가리키는 다른 정의: 없음');
   for (const [target, by] of refs) out.push(`- ${target}(${nameOf(after, target)})를 규칙으로 가리키는 정의: ${by.join(', ')}`);
   out.push(`- 새로 이어진 규칙 사슬 간선: ${report.impact.newChainEdges}`);
+  out.push(`- 바뀐 정의가 걸린 규칙 사슬 간선 (새것과 원래 있던 것 모두): ${report.impact.chainEdges.length}`);
   for (const e of report.impact.chainEdges) out.push(`  - ${e.from} → ${e.to}`);
   out.push('');
 

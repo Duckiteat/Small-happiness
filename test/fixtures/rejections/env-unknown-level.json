@@ -1,0 +1,1 @@
+{"format": "small-happiness-patch", "version": 1, "why": "거부 시험: 사전에 없는 환경 등급", "defs": [{"id": "PLC000002", "environment": {"humidity": "soggy"}}]}
