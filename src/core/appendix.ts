@@ -7,6 +7,7 @@ import { PREFIX_KIND } from './db.ts';
 import type { Db } from './db.ts';
 import { buildEdges, chainRoots, chainsFrom, collectRules } from './chains.ts';
 import { parseId } from './ids.ts';
+import { describeStage, odorChain } from './odor.ts';
 import type { Vocab } from './vocab.ts';
 
 export const APPENDIX_PATH = 'docs/자동생성-부록.md';
@@ -57,8 +58,13 @@ export function appendixMarkdown(db: Db, vocab: Vocab): string {
     out.push('');
   }
 
-  // 3. 사전
-  out.push('## 3. 사전', '', '| 분류 | 항목 수 |', '|---|---|');
+  // 3. 냄새의 원인 사슬 (사전의 지식에서 계산)
+  out.push('## 3. 냄새의 원인 사슬', '', '원인의 단계 → 균주 → 유기화합물 → 냄새 종류. 사전 `odor_cause`·`strain`·`compound`·`odor_kind`에서 계산한 것이고, 대표 냄새는 가장 심각한 종류다. 서지로 확인하지 않은 지식이다 (`verified: false`).', '');
+  for (const st of odorChain(vocab)) out.push(`- ${describeStage(vocab, st)}`);
+  out.push('');
+
+  // 4. 사전
+  out.push('## 4. 사전', '', '| 분류 | 항목 수 |', '|---|---|');
   for (const c of vocab.categories()) out.push(`| ${c} | ${vocab.keys(c).length} |`);
   out.push('');
   return out.join('\n');

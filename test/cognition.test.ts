@@ -61,9 +61,11 @@ test('없어진 냄새는 살필 이유가 아니다: 냄새가 없다고 알게
   const h = home();
   const smell = `${h.kitchen}|space:smell`;
   h.world.set(smell, 'faint', { t: 10 });
+  h.world.set(`${h.kitchen}|space:odor`, 'sour', { t: 10 }); // 살피기는 시큼함 이상의 냄새 종류를 알아챘을 때만 한다 (구수한 요리 냄새는 살피지 않는다)
   const a = h.perception.step(h.world, 10, 'home', []);
   assert.deepEqual(h.agency.step(h.world, 10, 'home', a.aware).map((x) => x.verb), ['inspect']);
   h.world.set(smell, 'none', { t: 20 });
+  h.world.set(`${h.kitchen}|space:odor`, 'none', { t: 20 });
   const b = h.perception.step(h.world, 20, 'home', []);
   assert.deepEqual(h.agency.step(h.world, 20, 'home', b.aware), []);
 });

@@ -1,0 +1,419 @@
+[
+  {
+    "category": "feature",
+    "entries": [
+      {
+        "key": "odor",
+        "ko": "냄새 종류",
+        "en": "odor kind",
+        "desc": "냄새가 어떤 종류인가. 사다리 칸 번호가 곧 심각도(우선순위)다: 여러 종류가 섞이면 가장 심각한 종류가 이긴다 (>= 로 올리기만 한다). 냄새의 세기는 smell이 따로 정한다. 종류의 지식(원인 → 균주 → 유기화합물 → 냄새)은 odor_kind·compound·strain·odor_cause에 있다",
+        "attrs": {
+          "sense": "smell",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "savory",
+              "ko": "구수함"
+            },
+            {
+              "key": "sour",
+              "ko": "시큼한 발효 냄새"
+            },
+            {
+              "key": "musty",
+              "ko": "곰팡내"
+            },
+            {
+              "key": "sulfur",
+              "ko": "황 냄새"
+            },
+            {
+              "key": "putrid",
+              "ko": "썩는 냄새"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "category": "odor_kind",
+    "entries": [
+      {
+        "key": "savory",
+        "ko": "구수함",
+        "desc": "익히거나 볶을 때 나는 고소하고 구수한 냄새",
+        "attrs": {
+          "rank": 1,
+          "feature": "odor"
+        }
+      },
+      {
+        "key": "sour",
+        "ko": "시큼한 발효 냄새",
+        "desc": "식초나 젖산 같은 시큼한 냄새 (발효)",
+        "attrs": {
+          "rank": 2,
+          "feature": "odor"
+        }
+      },
+      {
+        "key": "musty",
+        "ko": "곰팡내",
+        "desc": "곰팡이와 젖은 흙 같은 퀴퀴한 냄새",
+        "attrs": {
+          "rank": 3,
+          "feature": "odor"
+        }
+      },
+      {
+        "key": "sulfur",
+        "ko": "황 냄새",
+        "desc": "썩은 달걀이나 익은 양배추 같은 황 화합물 냄새",
+        "attrs": {
+          "rank": 4,
+          "feature": "odor"
+        }
+      },
+      {
+        "key": "putrid",
+        "ko": "썩는 냄새",
+        "desc": "고기나 생선이 썩는 역한 냄새",
+        "attrs": {
+          "rank": 5,
+          "feature": "odor"
+        }
+      }
+    ]
+  },
+  {
+    "category": "compound",
+    "entries": [
+      {
+        "key": "acetic_acid",
+        "ko": "아세트산",
+        "en": "acetic acid",
+        "desc": "식초의 시큼한 냄새",
+        "attrs": {
+          "odor": "sour",
+          "verified": false
+        }
+      },
+      {
+        "key": "hydrogen_sulfide",
+        "ko": "황화수소",
+        "en": "hydrogen sulfide",
+        "desc": "썩은 달걀 냄새",
+        "attrs": {
+          "odor": "sulfur",
+          "verified": false
+        }
+      },
+      {
+        "key": "methanethiol",
+        "ko": "메탄티올",
+        "en": "methanethiol",
+        "desc": "썩은 양배추 같은 황 냄새",
+        "attrs": {
+          "odor": "sulfur",
+          "verified": false
+        }
+      },
+      {
+        "key": "dimethyl_disulfide",
+        "ko": "디메틸 이황화물",
+        "en": "dimethyl disulfide",
+        "desc": "썩은 양배추나 마늘 같은 황 냄새",
+        "attrs": {
+          "odor": "sulfur",
+          "verified": false
+        }
+      },
+      {
+        "key": "putrescine",
+        "ko": "푸트레신",
+        "en": "putrescine",
+        "desc": "썩는 고기 냄새",
+        "attrs": {
+          "odor": "putrid",
+          "verified": false
+        }
+      },
+      {
+        "key": "cadaverine",
+        "ko": "카다베린",
+        "en": "cadaverine",
+        "desc": "썩는 고기 냄새",
+        "attrs": {
+          "odor": "putrid",
+          "verified": false
+        }
+      },
+      {
+        "key": "indole",
+        "ko": "인돌",
+        "en": "indole",
+        "desc": "분변처럼 역한 냄새",
+        "attrs": {
+          "odor": "putrid",
+          "verified": false
+        }
+      },
+      {
+        "key": "butyric_acid",
+        "ko": "부티르산",
+        "en": "butyric acid",
+        "desc": "산패한 버터나 토사물 같은 역한 냄새",
+        "attrs": {
+          "odor": "putrid",
+          "verified": false
+        }
+      },
+      {
+        "key": "geosmin",
+        "ko": "지오스민",
+        "en": "geosmin",
+        "desc": "젖은 흙 냄새",
+        "attrs": {
+          "odor": "musty",
+          "verified": false
+        }
+      },
+      {
+        "key": "octenol",
+        "ko": "1-옥텐-3-올",
+        "en": "1-octen-3-ol",
+        "desc": "버섯이나 곰팡이 냄새",
+        "attrs": {
+          "odor": "musty",
+          "verified": false
+        }
+      },
+      {
+        "key": "pyrazine",
+        "ko": "피라진류",
+        "en": "pyrazines",
+        "desc": "볶은 견과나 구운 빵 같은 고소한 냄새",
+        "attrs": {
+          "odor": "savory",
+          "verified": false
+        }
+      },
+      {
+        "key": "diallyl_disulfide",
+        "ko": "알릴 이황화물",
+        "en": "diallyl disulfide",
+        "desc": "볶은 마늘이나 파 냄새",
+        "attrs": {
+          "odor": "savory",
+          "verified": false
+        }
+      }
+    ]
+  },
+  {
+    "category": "strain",
+    "entries": [
+      {
+        "key": "lactic_acid_bacteria",
+        "ko": "젖산균",
+        "en": "lactic acid bacteria",
+        "desc": "젖산균류 (Lactobacillus, Leuconostoc 등). 발효로 시큼해지게 한다",
+        "attrs": {
+          "produces": [
+            "acetic_acid"
+          ],
+          "verified": false
+        }
+      },
+      {
+        "key": "pseudomonas",
+        "ko": "슈도모나스",
+        "en": "Pseudomonas",
+        "desc": "냉장에서도 자라는 부패균. 황 화합물을 만든다",
+        "attrs": {
+          "produces": [
+            "dimethyl_disulfide",
+            "methanethiol"
+          ],
+          "verified": false
+        }
+      },
+      {
+        "key": "enterobacteria",
+        "ko": "장내세균과",
+        "en": "Enterobacteriaceae",
+        "desc": "단백질을 분해하는 세균류. 황화수소와 아민을 만든다",
+        "attrs": {
+          "produces": [
+            "hydrogen_sulfide",
+            "putrescine",
+            "cadaverine",
+            "indole"
+          ],
+          "verified": false
+        }
+      },
+      {
+        "key": "clostridia",
+        "ko": "클로스트리디움",
+        "en": "Clostridium",
+        "desc": "산소가 없는 곳에서 자라는 세균. 산패와 황 냄새를 만든다",
+        "attrs": {
+          "produces": [
+            "butyric_acid",
+            "hydrogen_sulfide"
+          ],
+          "verified": false
+        }
+      },
+      {
+        "key": "mold_fungi",
+        "ko": "곰팡이류",
+        "en": "molds",
+        "desc": "곰팡이 (Penicillium, Aspergillus 등). 흙내와 버섯 냄새를 만든다",
+        "attrs": {
+          "produces": [
+            "geosmin",
+            "octenol"
+          ],
+          "verified": false
+        }
+      }
+    ]
+  },
+  {
+    "category": "odor_cause",
+    "entries": [
+      {
+        "key": "decay",
+        "ko": "부패",
+        "desc": "부패의 단계마다 자라는 균주가 다르다 (음식-변화-모델 3장)",
+        "attrs": {
+          "feature": "decay",
+          "stages": [
+            {
+              "at": "turned",
+              "strains": [
+                "lactic_acid_bacteria"
+              ]
+            },
+            {
+              "at": "spoiled",
+              "strains": [
+                "pseudomonas",
+                "enterobacteria"
+              ]
+            },
+            {
+              "at": "rotten",
+              "strains": [
+                "enterobacteria",
+                "clostridia"
+              ]
+            }
+          ],
+          "verified": false
+        }
+      },
+      {
+        "key": "sour",
+        "ko": "시어짐",
+        "desc": "유제품이 시어지는 과정",
+        "attrs": {
+          "feature": "sour",
+          "stages": [
+            {
+              "at": "sour",
+              "strains": [
+                "lactic_acid_bacteria"
+              ]
+            },
+            {
+              "at": "lumpy",
+              "strains": [
+                "lactic_acid_bacteria",
+                "pseudomonas"
+              ]
+            }
+          ],
+          "verified": false
+        }
+      },
+      {
+        "key": "ripen",
+        "ko": "익음",
+        "desc": "김치처럼 발효로 익는 과정",
+        "attrs": {
+          "feature": "ripen",
+          "stages": [
+            {
+              "at": "soured",
+              "strains": [
+                "lactic_acid_bacteria"
+              ]
+            },
+            {
+              "at": "mushy",
+              "strains": [
+                "lactic_acid_bacteria",
+                "pseudomonas"
+              ]
+            }
+          ],
+          "verified": false
+        }
+      },
+      {
+        "key": "wilt",
+        "ko": "시듦",
+        "desc": "채소가 시들다 짓무르는 과정",
+        "attrs": {
+          "feature": "wilt",
+          "stages": [
+            {
+              "at": "shriveled",
+              "strains": [
+                "pseudomonas",
+                "enterobacteria"
+              ]
+            }
+          ],
+          "verified": false
+        }
+      },
+      {
+        "key": "mold",
+        "ko": "곰팡이",
+        "desc": "곰팡이가 번진 상태",
+        "attrs": {
+          "feature": "mold",
+          "stages": [
+            {
+              "at": "spread",
+              "strains": [
+                "mold_fungi"
+              ]
+            }
+          ],
+          "verified": false
+        }
+      },
+      {
+        "key": "cooking",
+        "ko": "요리",
+        "desc": "익히고 볶을 때 생기는 향 화합물. 균주 없이 화합물이 바로 냄새가 된다",
+        "attrs": {
+          "compounds": [
+            "pyrazine",
+            "diallyl_disulfide"
+          ],
+          "verified": false
+        }
+      }
+    ]
+  }
+]

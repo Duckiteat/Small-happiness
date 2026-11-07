@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "음식을 음식-변화-모델로 다시 쓴다: 모든 음식에 같던 '상함' 하나 대신, 음식마다 자기 과정(부패·시어짐·익음·시듦·곰팡이)과 살 때의 조건(보관·수분·가공·온도)을 둔다. 속도 표와 기본 시간은 확인 전 추정(tuned:false).",
+  "why": "냄새 종류 (작가 2026-11-07): 음식의 몸에 냄새 종류(odor)를 더한다. 종류는 냄새의 원인 사슬(부패 → 균주 → 유기화합물 → 냄새)에서 규칙이 만들어 넣는다 (사전 40-odor.json, 코드 odor.ts). 버리면 냄새 종류도 사라진다.",
   "defs": [
     {
       "id": "OBJ000001",
@@ -17,7 +17,8 @@
       "slots": {
         "body": {
           "features": [
-            "smell"
+            "smell",
+            "odor"
           ]
         },
         "cond": {
@@ -43,6 +44,7 @@
           "when_meaning": "inedible",
           "effect": [
             "OBJ000001|body:smell@=gone",
+            "OBJ000001|body:odor@=gone",
             "OBJ000001|cond:seal@=gone"
           ],
           "minutes": 2,
@@ -284,7 +286,8 @@
           "features": [
             "smell",
             "sour",
-            "mold"
+            "mold",
+            "odor"
           ]
         },
         "cond": {
@@ -376,7 +379,8 @@
           "features": [
             "smell",
             "decay",
-            "mold"
+            "mold",
+            "odor"
           ]
         },
         "cond": {
@@ -476,7 +480,8 @@
         "body": {
           "features": [
             "smell",
-            "decay"
+            "decay",
+            "odor"
           ]
         },
         "cond": {
@@ -558,7 +563,8 @@
           "features": [
             "smell",
             "ripen",
-            "mold"
+            "mold",
+            "odor"
           ]
         },
         "cond": {
@@ -657,7 +663,8 @@
           "features": [
             "smell",
             "wilt",
-            "mold"
+            "mold",
+            "odor"
           ]
         },
         "cond": {
@@ -732,7 +739,8 @@
         "body": {
           "features": [
             "smell",
-            "wilt"
+            "wilt",
+            "odor"
           ]
         },
         "cond": {
@@ -796,7 +804,8 @@
           "features": [
             "smell",
             "sour",
-            "mold"
+            "mold",
+            "odor"
           ]
         },
         "cond": {
@@ -888,7 +897,8 @@
           "features": [
             "smell",
             "decay",
-            "mold"
+            "mold",
+            "odor"
           ]
         },
         "cond": {
@@ -989,7 +999,8 @@
           "features": [
             "smell",
             "decay",
-            "mold"
+            "mold",
+            "odor"
           ]
         },
         "cond": {
@@ -1089,7 +1100,8 @@
         "body": {
           "features": [
             "smell",
-            "wilt"
+            "wilt",
+            "odor"
           ]
         },
         "cond": {

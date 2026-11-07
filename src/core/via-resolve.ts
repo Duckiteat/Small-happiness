@@ -3,7 +3,7 @@
 
 import type { Db } from './db.ts';
 import { effectiveProgress } from './kinds.ts';
-import { spreadRules } from './spread.ts';
+import { generatedRules } from './generated.ts';
 import { parseVia } from './via.ts';
 import type { Via } from './via.ts';
 import type { Vocab } from './vocab.ts';
@@ -15,7 +15,7 @@ export interface ViaResolver {
 
 /** 저장소와 사전에서 via를 찾아 주는 도구. 번짐 규칙(통로에서 만든 규칙)은 한 번만 만들어 둔다. */
 export function viaResolver(db: Db, vocab: Vocab): ViaResolver {
-  const generated = new Set(spreadRules(db, vocab).map((r) => `${r.owner}/${r.key}`));
+  const generated = new Set(generatedRules(db, vocab).map((r) => `${r.owner}/${r.key}`));
   return {
     resolve(text) {
       const v = parseVia(text);

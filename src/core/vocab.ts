@@ -149,6 +149,36 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       }
       break;
     }
+    case 'odor_kind': {
+      // 냄새 종류: rank는 사다리 칸 번호(심각도), feature는 이 종류가 들어가는 특징
+      const r = attrs['rank'];
+      if (!isInt(r) || r < 1 || r > LADDER_SIZE - 1) push(`${path}.attrs.rank`, `냄새 종류의 순서(rank)는 1~${LADDER_SIZE - 1} 정수여야 한다 (사다리 칸 번호, 0은 없음)`);
+      if (typeof attrs['feature'] !== 'string') push(`${path}.attrs.feature`, '이 종류가 들어가는 특징(feature 키)이 필요하다');
+      break;
+    }
+    case 'compound':
+    case 'strain':
+    case 'odor_cause': {
+      // 냄새의 지식 (원인 → 균주 → 유기화합물 → 냄새). 서지를 확인하기 전에는 verified:false로 적는다 (모르는 값은 지어내지 않는다)
+      if (typeof attrs['verified'] !== 'boolean') push(`${path}.attrs.verified`, 'verified(서지로 확인했는가)를 true/false로 적어야 한다');
+      const list = (name: string): boolean => {
+        const v = attrs[name];
+        return Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'string');
+      };
+      if (category === 'compound' && typeof attrs['odor'] !== 'string') push(`${path}.attrs.odor`, '어떤 냄새가 나는지(odor_kind 키)가 필요하다');
+      if (category === 'strain' && !list('produces')) push(`${path}.attrs.produces`, '만드는 유기화합물(compound 키) 목록이 필요하다');
+      if (category === 'odor_cause') {
+        const stages = attrs['stages'];
+        const hasStages = Array.isArray(stages) && stages.length > 0;
+        if (hasStages && typeof attrs['feature'] !== 'string') push(`${path}.attrs.feature`, 'stages를 쓰면 단계를 가진 특징(feature 키)이 필요하다');
+        if (hasStages && !stages.every((s) => typeof s === 'object' && s !== null && !Array.isArray(s) && typeof s['at'] === 'string' && Array.isArray(s['strains']) && s['strains'].length > 0 && s['strains'].every((x) => typeof x === 'string'))) {
+          push(`${path}.attrs.stages`, '단계마다 { at: 단계 키, strains: [균주 키 …] }여야 한다');
+        }
+        if (!hasStages && !list('compounds')) push(`${path}.attrs`, '단계(feature + stages)나 화합물(compounds) 중 하나는 있어야 한다');
+        if (attrs['compounds'] !== undefined && !list('compounds')) push(`${path}.attrs.compounds`, 'compounds는 compound 키의 비어 있지 않은 목록이어야 한다');
+      }
+      break;
+    }
     case 'env_level': {
       const r = attrs['rank'];
       if (!isInt(r) || r < 0) push(`${path}.attrs.rank`, '환경 등급의 순서(rank)는 0 이상의 정수여야 한다');
@@ -165,6 +195,9 @@ const REFS: readonly (readonly [string, string, string])[] = [
   ['spreader', 'stimulus', 'sense'],
   ['spreader', 'feature', 'feature'], // 번짐이 바꾸는 장소의 특징
   ['feature', 'sense', 'sense'], // 이 특징을 어느 감각으로 느끼는가 (5층 지각)
+  ['odor_kind', 'feature', 'feature'], // 냄새 종류가 들어가는 특징
+  ['compound', 'odor', 'odor_kind'], // 이 화합물이 어떤 냄새인가
+  ['odor_cause', 'feature', 'feature'], // 냄새 원인의 단계를 가진 특징
 ];
 
 function groupByCategory(raw: readonly VocabCategoryRaw[]): Map<string, VocabEntryRaw[]> {
@@ -242,7 +275,40 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
     }
   }
 
+  checkOdorKnowledge(grouped, keysByCategory, push);
   return issues;
+}
+
+/** 냄새 지식의 목록 참조와 정합: 균주가 만드는 화합물, 원인의 균주·화합물, 원인의 단계 키, 냄새 종류의 순서 = 특징 사다리 칸 번호. */
+function checkOdorKnowledge(grouped: ReadonlyMap<string, VocabEntryRaw[]>, keys: ReadonlyMap<string, Set<string>>, push: Push): void {
+  const has = (category: string, key: unknown): boolean => typeof key === 'string' && (keys.get(category)?.has(key) ?? false);
+  const levelsOf = (feature: unknown): readonly (string | null)[] | undefined => {
+    const e = grouped.get('feature')?.find((x) => x.key === feature);
+    const levels = e?.attrs?.['levels'];
+    return Array.isArray(levels) ? levels.map((l) => levelKeyOf(l)) : undefined;
+  };
+  for (const e of grouped.get('strain') ?? []) {
+    const produces = e.attrs?.['produces'];
+    if (Array.isArray(produces)) for (const c of produces) if (!has('compound', c)) push(`strain.${e.key}.attrs.produces`, `"${String(c)}"는 compound 분류에 없는 키다`);
+  }
+  for (const e of grouped.get('odor_cause') ?? []) {
+    const compounds = e.attrs?.['compounds'];
+    if (Array.isArray(compounds)) for (const c of compounds) if (!has('compound', c)) push(`odor_cause.${e.key}.attrs.compounds`, `"${String(c)}"는 compound 분류에 없는 키다`);
+    const stages = e.attrs?.['stages'];
+    if (!Array.isArray(stages)) continue;
+    const order = levelsOf(e.attrs?.['feature']);
+    stages.forEach((s, i) => {
+      if (typeof s !== 'object' || s === null || Array.isArray(s)) return;
+      const at = `odor_cause.${e.key}.attrs.stages[${i}]`;
+      if (order !== undefined && typeof s['at'] === 'string' && !order.includes(s['at'])) push(`${at}.at`, `"${s['at']}"는 특징 "${String(e.attrs?.['feature'])}"의 단계 키가 아니다`);
+      if (Array.isArray(s['strains'])) for (const x of s['strains']) if (!has('strain', x)) push(`${at}.strains`, `"${String(x)}"는 strain 분류에 없는 키다`);
+    });
+  }
+  for (const e of grouped.get('odor_kind') ?? []) {
+    const order = levelsOf(e.attrs?.['feature']);
+    const rank = e.attrs?.['rank'];
+    if (order !== undefined && typeof rank === 'number' && order[rank] !== e.key) push(`odor_kind.${e.key}.attrs.rank`, `rank ${rank}번 칸이 이 종류(${e.key})가 아니다 — 특징 "${String(e.attrs?.['feature'])}"의 사다리 순서와 같아야 한다 (칸 ${rank} = ${String(order[rank])})`);
+  }
 }
 
 export interface LookupHit {

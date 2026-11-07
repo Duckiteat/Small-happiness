@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEdges, chainRoots, chainsFrom, collectRules, ruleNodes } from '../core/chains.ts';
-import { spreadRules } from '../core/spread.ts';
+import { generatedRules } from '../core/generated.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
 import { appendix, auditEvents, auditScenario, commitPatch, gaps, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
@@ -84,7 +84,7 @@ function main(): void {
     }
     case 'chains': {
       const db = loadDb(root);
-      const rules = [...collectRules(db), ...ruleNodes(spreadRules(db, vocab))]; // 손 규칙 + 장소 그래프의 번짐 규칙
+      const rules = [...collectRules(db), ...ruleNodes(generatedRules(db, vocab))]; // 손 규칙 + 데이터에서 만든 규칙(번짐·냄새 종류)
       const edges = buildEdges(rules, vocab, db);
       if (arg !== undefined && !rules.some((r) => r.ref === arg)) die(`없는 규칙: ${arg} (형식: 정의 번호/rule/키, 예: ${rules[0]?.ref ?? 'PLC000002/rule/bugs'})`);
       const starts = arg !== undefined ? [arg] : chainRoots(rules, edges);

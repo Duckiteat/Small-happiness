@@ -19,7 +19,7 @@
 import type { Db } from './db.ts';
 import { effectiveRules, instancesOfKind } from './kinds.ts';
 import { Progress } from './progress.ts';
-import { spreadRules } from './spread.ts';
+import { generatedRules } from './generated.ts';
 import { formatVia } from './via.ts';
 import { latestSeq } from './events.ts';
 import type { GameEvent } from './events.ts';
@@ -105,9 +105,9 @@ function compileRules(db: Db): Rule[] {
   return rules;
 }
 
-/** 저장소에서 돌아가는 모든 규칙: 정의의 규칙(종류에서 물려받은 것 포함) + 장소 그래프에서 만든 번짐 규칙. 감사(audit.ts)도 이 목록을 쓴다. */
+/** 저장소에서 돌아가는 모든 규칙: 정의의 규칙(종류에서 물려받은 것 포함) + 데이터에서 만든 규칙(장소 그래프의 번짐, 냄새 사슬의 종류). 감사(audit.ts)도 이 목록을 쓴다. */
 export function allRules(db: Db, vocab: Vocab): Rule[] {
-  return [...compileRules(db), ...spreadRules(db, vocab)];
+  return [...compileRules(db), ...generatedRules(db, vocab)];
 }
 
 export class Causal {
