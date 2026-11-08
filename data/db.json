@@ -1149,6 +1149,60 @@
       "utility": [
         "electric"
       ],
+      "slots": {
+        "fan": {
+          "features": [
+            "power"
+          ]
+        }
+      },
+      "rules": {
+        "auto_off": {
+          "label": "후드는 켠 지 한 시간이면 스스로 꺼진다",
+          "on": [
+            "OBJ000018|fan:power@=on"
+          ],
+          "emits": [
+            "OBJ000018|fan:power@<=off"
+          ],
+          "delay_s": 3600,
+          "tuned": false
+        },
+        "vent": {
+          "label": "후드를 켜 두면 주방의 짙은 냄새가 10분 안에 옅어진다",
+          "on": [
+            "OBJ000018|fan:power@=on",
+            "PLC000002|space:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC000002|space:smell@<=faint"
+          ],
+          "delay_s": 600,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "run": {
+          "label": "주방 냄새가 짙으면 후드를 켠다",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "PLC000002|space:smell@>=distinct",
+            "OBJ000018|fan:power@=off"
+          ],
+          "effect": [
+            "OBJ000018|fan:power@=on"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 1,
+          "tuned": false
+        }
+      },
+      "initial": {
+        "fan:power": "off"
+      },
       "desc": []
     },
     "OBJ000019": {

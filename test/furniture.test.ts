@@ -115,3 +115,23 @@ test('밥 짓기: 수도 → 싱크대 → 밥솥 → 전기로 지어짐까지 
     if (k.endsWith(':power')) assert.equal(v, 'off', `${k}: 끝에 켜져 있다`);
   }
 });
+
+test('후드: 요리로 주방 냄새가 짙어지면 켜고, 10분 뒤 냄새가 옅어지며, 한 시간 뒤 스스로 꺼진다 (전기가 환기 효과가 되고 사라진다)', () => {
+  const sc = parseScenario(JSON.parse(readFileSync(join(ROOT, 'content', 'scenarios', 'kitchen-furniture.json'), 'utf8')));
+  const trace = runScenario(db, vocab, sc);
+  type E = { type: string; t: number; data: { key?: string; to?: string } };
+  const log = trace.log as E[];
+  const change = (key: string, to: string): E | undefined => log.find((e) => e.type === 'state_changed' && e.data.key === key && e.data.to === to);
+  const hood = `${byName('후드')}#1`;
+  const smell = 'PLC000002#1|space:smell';
+  const thick = change(smell, 'distinct');
+  const on = change(`${hood}|fan:power`, 'on');
+  const thin = change(smell, 'faint');
+  const off = change(`${hood}|fan:power`, 'off');
+  assert.ok(thick && on && thin && off, '냄새가 짙어짐 · 후드 켜짐 · 냄새 옅어짐 · 후드 꺼짐이 모두 있어야 한다');
+  assert.ok(on.t >= thick.t, '냄새가 짙어진 뒤에 켠다');
+  assert.equal(thin.t - on.t, 10, '켠 뒤 10분 (임시값)');
+  assert.equal(off.t - on.t, 60, '켠 뒤 한 시간에 꺼진다 (임시값)');
+  const last = trace.steps.at(-1)?.values['world.state'] as Record<string, string>;
+  assert.equal(last[`${hood}|fan:power`], undefined, '끝에 꺼져 있다 (기본값 = 꺼짐)');
+});

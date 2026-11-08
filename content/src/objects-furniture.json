@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "물 받기는 밥솥이 비어 있고 쌀이 있을 때만 한다 (밥솥에 이미 부은 뒤 같은 물을 또 받지 않게). 나머지는 그대로다.",
+  "why": "후드가 냄새 모델에 이어진다: 요리로 주방 냄새가 짙어지면 하루씨가 후드를 켜고, 켜 둔 동안 주방 냄새가 옅어지며(전기가 환기라는 효과가 됨), 한 시간 뒤 스스로 꺼진다. 수치는 임시값.",
   "defs": [
     {
       "id": "OBJ000012",
@@ -144,7 +144,61 @@
       "role": "device",
       "utility": [
         "electric"
-      ]
+      ],
+      "slots": {
+        "fan": {
+          "features": [
+            "power"
+          ]
+        }
+      },
+      "initial": {
+        "fan:power": "off"
+      },
+      "rules": {
+        "vent": {
+          "label": "후드를 켜 두면 주방의 짙은 냄새가 10분 안에 옅어진다",
+          "on": [
+            "OBJ000018|fan:power@=on",
+            "PLC000002|space:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC000002|space:smell@<=faint"
+          ],
+          "delay_s": 600,
+          "tuned": false
+        },
+        "auto_off": {
+          "label": "후드는 켠 지 한 시간이면 스스로 꺼진다",
+          "on": [
+            "OBJ000018|fan:power@=on"
+          ],
+          "emits": [
+            "OBJ000018|fan:power@<=off"
+          ],
+          "delay_s": 3600,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "run": {
+          "label": "주방 냄새가 짙으면 후드를 켠다",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "PLC000002|space:smell@>=distinct",
+            "OBJ000018|fan:power@=off"
+          ],
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000018|fan:power@=on"
+          ],
+          "minutes": 1,
+          "tuned": false
+        }
+      }
     },
     {
       "id": "OBJ000019",
