@@ -14,10 +14,11 @@
 // 단순화 (기본안, 위치·번짐 11번 전까지): 물건의 위치가 없어서, 장소를 살피면 집 안의 모든 물건을 본다.
 
 import type { BoardValue } from './board.ts';
+import { formatVia } from './via.ts';
 import type { Db } from './db.ts';
 import { defOf } from './ids.ts';
 import type { EventLog } from './log.ts';
-import { OBSERVED } from './schedule.ts';
+import { isObserved } from './schedule.ts';
 import { parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
 import type { World } from './world.ts';
@@ -41,6 +42,8 @@ export interface Knowing {
   readonly aw: string;
   readonly level: string;
   readonly t: number;
+  /** 이 앎을 만든 awareness 사건 번호. 행동을 고른 이유(cause)를 적을 때 쓴다 */
+  readonly seq: string;
 }
 
 /** 인물 인스턴스 → 상태 키 → 앎. */
@@ -61,7 +64,7 @@ export function parseAware(value: BoardValue | undefined): AwareMap {
     for (const [key, k] of Object.entries(m)) {
       if (typeof k !== 'object' || Array.isArray(k)) continue;
       const o = k as { readonly [f: string]: BoardValue };
-      if (typeof o['aw'] === 'string' && typeof o['level'] === 'string' && typeof o['t'] === 'number') inner[key] = { aw: o['aw'], level: o['level'], t: o['t'] };
+      if (typeof o['aw'] === 'string' && typeof o['level'] === 'string' && typeof o['t'] === 'number' && typeof o['seq'] === 'string') inner[key] = { aw: o['aw'], level: o['level'], t: o['t'], seq: o['seq'] };
     }
     out[who] = inner;
   }
@@ -73,7 +76,8 @@ export class Perception {
   readonly #vocab: Vocab;
   readonly #log: EventLog;
   readonly #aware = new Map<string, Map<string, Knowing>>();
-  readonly #reveals: { readonly place: string; readonly ends: number }[] = [];
+  readonly #reveals: { readonly place: string; readonly ends: number; readonly via: string; readonly event: string }[] = [];
+  readonly #done = new Map<string, string>(); // 고른 행동 사건 → 끝난 사건 (살펴서 안 것의 원인)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -83,16 +87,26 @@ export class Perception {
 
   /** 한 단계의 지각. prevRecent는 직전 단계의 행동(F6). */
   step(world: World, t: number, presence: string, prevRecent: BoardValue | undefined): { perceived: Percept[]; aware: AwareMap } {
-    for (const r of parseRecent(prevRecent)) if (r.reveals !== undefined) this.#reveals.push({ place: r.reveals, ends: r.ends });
+    for (const r of parseRecent(prevRecent)) if (r.reveals !== undefined) this.#reveals.push({ place: r.reveals, ends: r.ends, via: r.via, event: r.event });
     const perceived: Percept[] = [];
-    if (presence === OBSERVED) {
+    if (isObserved(this.#vocab, presence)) {
       const revealed = this.#reveals.filter((r) => r.ends <= t);
       this.#reveals.splice(0, this.#reveals.length, ...this.#reveals.filter((r) => r.ends > t));
       const instances = world.instances();
-      const places = instances.filter((i) => i.startsWith('PLC'));
       const objects = revealed.length > 0 ? instances.filter((i) => i.startsWith('OBJ')) : [];
+      const inspectVia = revealed[0]?.via ?? ''; // 살펴서 안 것의 근거는 그 살피기 행동, 원인은 그 행동이 끝난 사건
+      const inspectDone = this.#done.get(revealed[0]?.event ?? '') ?? null;
       for (const who of instances.filter((i) => i.startsWith('CHR'))) {
         const senses = this.#db.defs[defOf(who) ?? '']?.senses ?? {};
+        // 집에 있는 동안 머무는 곳의 냄새만 맡는다 (정의에 stays가 없으면 모든 장소)
+        const stays = this.#db.defs[defOf(who) ?? '']?.stays;
+        const places = instances.filter((i) => i.startsWith('PLC') && (stays === undefined || defOf(i) === stays));
+        // 저절로 느낀 것의 근거는 그 감각 (인물 정의의 senses)
+        const senseVia = (key: string): string => {
+          const k = parseStateKey(key);
+          const sense = k === null ? undefined : this.#vocab.entry('feature', k.feature)?.attrs['sense'];
+          return formatVia(defOf(who) ?? '', 'sense', typeof sense === 'string' ? sense : '');
+        };
         const felt = (key: string): boolean => {
           const k = parseStateKey(key);
           const sense = k === null ? undefined : this.#vocab.entry('feature', k.feature)?.attrs['sense'];
@@ -101,25 +115,41 @@ export class Perception {
           return notice !== undefined && idx !== null && idx >= notice;
         };
         // 저절로: 장소에 퍼진 것. 느끼면 알아챔, 알던 것이 임계 아래로 내려가면 없어졌다고 안다
-        for (const key of places.flatMap((p) => world.keysOf(p))) {
+        // 그 장소에 놓여 눈에 보이는 물건(받치는 것을 따라 닿는 곳. 냉장고 안에 든 것처럼 어딘가의 안에 있으면 보이지 않는다)의 눈에 보이는 상태도 저절로 안다: 켜진 불, 담긴 물.
+        // 놓임이 없는 물건(냉장고 속 음식처럼 어디에 있는지 모르는 것)은 살펴야만 안다.
+        const here = instances.filter((i) => i.startsWith('OBJ') && places.includes(world.visiblePlace(i)));
+        for (const key of [...places, ...here].flatMap((p) => world.keysOf(p))) {
           if (felt(key)) {
             perceived.push({ who, key, level: world.level(key) });
-            this.#observe(who, key, NOTICED, world.level(key), t);
+            this.#observe(who, key, NOTICED, world.level(key), t, senseVia(key), world.lastChange(key));
             continue;
           }
           const known = this.#aware.get(who)?.get(key);
           const k = parseStateKey(key);
           const zero = k === null ? undefined : this.#vocab.levelOrder(k.feature)?.at(0);
-          if (known !== undefined && zero !== undefined && known.level !== zero) this.#observe(who, key, known.aw, zero, t);
+          if (known !== undefined && zero !== undefined && known.level !== zero) this.#observe(who, key, known.aw, zero, t, senseVia(key), world.lastChange(key));
         }
         // 살펴서: 가까이 본 물건은 임계와 상관없이 모든 상태를 안다 (냄새가 없어도 곰팡이·보관 상태가 보인다)
         for (const key of objects.flatMap((o) => world.keysOf(o))) {
           if (felt(key)) perceived.push({ who, key, level: world.level(key) });
-          this.#observe(who, key, UNDERSTOOD, world.level(key), t);
+          this.#observe(who, key, UNDERSTOOD, world.level(key), t, inspectVia, inspectDone);
         }
       }
     }
     return { perceived, aware: this.snapshot() };
+  }
+
+  /**
+   * 자기가 한 행동이 바꾼 상태를 안다 (이해함). 행동이 끝난 직후 2층이 알려 준다. 원인은 그 행동의 끝, 근거는 그 행동이다.
+   * 요리로 쓴 재료가 없어졌다는 것을 하루씨가 알아야 같은 재료를 다시 요리하지 않는다.
+   */
+  learn(who: string, key: string, level: string, t: number, via: string, cause: string): void {
+    this.#observe(who, key, UNDERSTOOD, level, t, via, cause);
+  }
+
+  /** 고른 행동이 끝났음을 알려 준다 (2층이 끝난 사건을 기록한 직후). 살펴서 안 것의 원인이 된다. */
+  recordDone(chosen: string, done: string): void {
+    this.#done.set(chosen, done);
   }
 
   snapshot(): AwareMap {
@@ -132,7 +162,7 @@ export class Perception {
   }
 
   /** 본 것을 앎에 남긴다. 인지 단계는 오르기만 하고, 본 단계가 바뀌면 앎이 바뀐다. 바뀐 것이 있을 때만 사건을 남긴다. */
-  #observe(who: string, key: string, aw: string, level: string, t: number): void {
+  #observe(who: string, key: string, aw: string, level: string, t: number, via: string, cause: string | null): void {
     const m = this.#aware.get(who) ?? new Map<string, Knowing>();
     this.#aware.set(who, m);
     const prev = m.get(key);
@@ -140,7 +170,7 @@ export class Perception {
     const rose = awarenessRank(this.#vocab, aw) > awarenessRank(this.#vocab, prevAw);
     const to = rose ? aw : prevAw;
     if (!rose && prev !== undefined && prev.level === level) return;
-    m.set(key, { aw: to, level, t });
-    this.#log.append({ t, type: rose ? AWARENESS_UP : AWARENESS_CHANGED, src: PERCEPTION_SRC, data: { who, key, to, level } });
+    const e = this.#log.append({ t, type: rose ? AWARENESS_UP : AWARENESS_CHANGED, src: PERCEPTION_SRC, cause, data: { who, key, to, level, via } });
+    m.set(key, { aw: to, level, t, seq: e.seq });
   }
 }

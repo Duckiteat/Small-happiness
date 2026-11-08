@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "places",
-  "why": "공간층 1차: 집 전체 여섯 장소와 통로(장소 그래프), 장소의 환경 특성. 욕실 문은 주방에서 (작가 2026-11-07). 통로의 투과율은 명세 예시값(열린 통로 1000, 닫힌 문 공기 100·자력 이동 0)의 임시값(tuned:false)이고 문은 늘 닫힌 상태로 둔다(문 자동 규칙 보류). 환경 등급은 세계-설정 3-2 초안 표. 주방의 손으로 쓴 '벌레가 거실로 번진다' 규칙은 번짐 엔진이 대신하므로 뺀다 (작가 2026-11-07). 바깥(복도·창밖)은 장소가 아니라 외부 경계라 아직 잇지 않는다.",
+  "why": "주방의 설비 공급 상태(grid): 정전·단수·가스 끊김과, 끊겨도 두 시간 뒤 스스로 돌아오는 규칙. 나머지는 그대로다. 수치는 임시값.",
   "defs": [
     {
       "id": "PLC000001",
@@ -76,7 +76,15 @@
         "space": {
           "features": [
             "smell",
+            "odor",
             "bug"
+          ]
+        },
+        "grid": {
+          "features": [
+            "grid_electric",
+            "grid_water",
+            "grid_gas"
           ]
         }
       },
@@ -117,20 +125,115 @@
           "tuned": false
         },
         "bugs": {
-          "label": "주방 냄새가 뚜렷하면 벌레가 꼬인다",
+          "label": "상한 냄새(시큼함 이상)가 뚜렷하면 벌레가 꼬인다",
           "on": [
-            "PLC000002|space:smell@>=distinct"
+            "PLC000002|space:smell@>=distinct",
+            "PLC000002|space:odor@>=sour"
           ],
           "emits": [
             "PLC000002|space:bug@=few"
           ],
           "delay_s": 28800,
           "tuned": false
+        },
+        "kind_sour": {
+          "label": "음식 중 가장 심한 냄새가 시큼한 발효 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 시큼한 발효 냄새가 된다",
+          "on": [
+            "OBJ000001|body:odor@>=sour",
+            "PLC000002|space:smell@>=faint"
+          ],
+          "emits": [
+            "PLC000002|space:odor@>=sour"
+          ],
+          "on_all": [
+            "OBJ000001|body:odor@<=sour"
+          ]
+        },
+        "kind_musty": {
+          "label": "음식 중 가장 심한 냄새가 곰팡내이고 주방에 냄새가 퍼지면 주방 냄새도 곰팡내가 된다",
+          "on": [
+            "OBJ000001|body:odor@>=musty",
+            "PLC000002|space:smell@>=faint"
+          ],
+          "emits": [
+            "PLC000002|space:odor@>=musty"
+          ],
+          "on_all": [
+            "OBJ000001|body:odor@<=musty"
+          ]
+        },
+        "kind_sulfur": {
+          "label": "음식 중 가장 심한 냄새가 황 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 황 냄새가 된다",
+          "on": [
+            "OBJ000001|body:odor@>=sulfur",
+            "PLC000002|space:smell@>=faint"
+          ],
+          "emits": [
+            "PLC000002|space:odor@>=sulfur"
+          ],
+          "on_all": [
+            "OBJ000001|body:odor@<=sulfur"
+          ]
+        },
+        "kind_putrid": {
+          "label": "음식 중 가장 심한 냄새가 썩는 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 썩는 냄새가 된다",
+          "on": [
+            "OBJ000001|body:odor@>=putrid",
+            "PLC000002|space:smell@>=faint"
+          ],
+          "emits": [
+            "PLC000002|space:odor@>=putrid"
+          ],
+          "on_all": [
+            "OBJ000001|body:odor@<=putrid"
+          ]
+        },
+        "kind_clear": {
+          "label": "주방 냄새가 가시면 냄새 종류도 사라진다",
+          "on": [
+            "PLC000002|space:smell@<=none"
+          ],
+          "emits": [
+            "PLC000002|space:odor@<=none"
+          ]
+        },
+        "restore_electric": {
+          "label": "끊긴 electric 공급은 두 시간 뒤 돌아온다",
+          "on": [
+            "PLC000002|grid:grid_electric@=cut"
+          ],
+          "emits": [
+            "PLC000002|grid:grid_electric@<=normal"
+          ],
+          "delay_s": 7200,
+          "tuned": false
+        },
+        "restore_water": {
+          "label": "끊긴 water 공급은 두 시간 뒤 돌아온다",
+          "on": [
+            "PLC000002|grid:grid_water@=cut"
+          ],
+          "emits": [
+            "PLC000002|grid:grid_water@<=normal"
+          ],
+          "delay_s": 7200,
+          "tuned": false
+        },
+        "restore_gas": {
+          "label": "끊긴 gas 공급은 두 시간 뒤 돌아온다",
+          "on": [
+            "PLC000002|grid:grid_gas@=cut"
+          ],
+          "emits": [
+            "PLC000002|grid:grid_gas@<=normal"
+          ],
+          "delay_s": 7200,
+          "tuned": false
         }
       },
       "offers": {
         "inspect": {
-          "label": "냄새가 어디서 나는지 주방과 냉장고를 살핀다",
+          "label": "냄새가 어디서 나는지 주방과 냉장고를 살핀다 (구수한 요리 냄새는 살피지 않는다)",
           "verb": "inspect",
           "needs": [
             {
@@ -141,11 +244,19 @@
           "effect": [],
           "reveals": true,
           "minutes": 5,
-          "tuned": false
+          "tuned": false,
+          "when": [
+            "PLC000002|space:odor@>=sour"
+          ]
         }
       },
       "desc": [
         "현관을 열면 바로 있다. 냄새가 고인다. 냉장고의 자리 (세계-설정 2·3장)"
+      ],
+      "supplies": [
+        "electric",
+        "water",
+        "gas"
       ]
     },
     {

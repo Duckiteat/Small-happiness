@@ -3,6 +3,7 @@
 // 순수 함수다: 파일을 읽거나 쓰지 않는다. 출력은 기존 패치 형식의 객체이며, 이를 parsePatch → mergePatch → runGate 가 검사한다.
 // 아직 설계만 된 필드(명세 단계)는 조용히 버리지 않고 거부한다.
 
+import { allowedFields } from './db.ts';
 import type { Issue } from './db.ts';
 import { PATCH_FORMAT, PATCH_VERSION } from './patch.ts';
 
@@ -13,16 +14,21 @@ const KIND_PREFIX: Readonly<Record<string, string>> = { objects: 'OBJ', places: 
 
 /** 종류별로 지금 받는 최상위 필드. */
 const FIELDS: Readonly<Record<string, readonly string[]>> = {
-  objects: ['id', 'names', 'aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial', 'is_a', 'override'],
-  places: ['id', 'names', 'aliases', 'desc', 'environment', 'passages', 'slots', 'meanings', 'rules', 'offers'],
-  characters: ['id', 'names', 'aliases', 'desc', 'senses'],
+  objects: [...allowedFields('OBJ'), 'override'],
+  places: allowedFields('PLC'),
+  characters: allowedFields('CHR'),
 };
+
+/** 원본 종류가 받는 최상위 필드 (정의 형식의 목록과 같고, 물건만 펼치기용 override를 더 받는다). */
+export function sourceFields(kind: string): readonly string[] {
+  return FIELDS[kind] ?? [];
+}
 
 /** 펼치기(override)로 바꿀 수 있는 필드. */
 const OVERRIDABLE: readonly string[] = ['mobility', 'slots', 'meanings', 'rules', 'offers'];
 
 /** 규칙 블록에서 받는 키. warn_before_s 는 명세 단계다. */
-const RULE_FIELDS: readonly string[] = ['label', 'on', 'on_all', 'emits', 'delay_s', 'tuned'];
+const RULE_FIELDS: readonly string[] = ['label', 'on', 'on_all', 'emits', 'delay_s', 'tuned', 'linked'];
 
 /** 명세 단계 필드가 쓰였을 때의 안내용 목록 (거부 메시지에 쓴다). */
 const SPEC_ONLY: readonly string[] = [
@@ -102,37 +108,44 @@ export function compileSource(source: unknown): CompileResult {
   }
   if (issues.length > 0) return { patch: null, issues };
 
-  // ③ 펼치기: is_a 는 같은 파일의 기본 항목 하나만 가리킨다 (한 단계).
+  // ③ 펼치기: is_a 는 같은 파일의 기본 항목을 가리킨다 (기본 항목도 is_a를 가질 수 있다 — 여러 단계, 먼 조상부터 펼친다).
   //    구조(부위·상태 의미·이동성)는 복사하고, 규칙·제공 행동은 복사하지 않는다 — 실행 중에 종류에서 물려받는다
   //    (kinds.ts). 복사하면 규칙이 기본 항목의 번호를 가리킨 채 남아 엉뚱한 물건에 걸린다. is_a는 패치에 남긴다.
-  const out: Obj[] = [];
-  for (const [i, d] of defs.entries()) {
+  const indexOf = new Map(defs.map((d, i) => [String(d['id']), i]));
+  const expanded = new Map<string, Obj | null>();
+  const expand = (id: string, stack: readonly string[]): Obj | null => {
+    if (expanded.has(id)) return expanded.get(id) ?? null;
+    const i = indexOf.get(id) as number;
+    const d = defs[i] as Obj;
     const at = `defs[${i}]`;
-    const id = String(d['id']);
     const isA = d['is_a'];
     const override = d['override'];
+    const done = (r: Obj | null): Obj | null => {
+      expanded.set(id, r);
+      return r;
+    };
     if (isA === undefined) {
       if (override !== undefined) err(`${at}.override`, 'override는 is_a와 함께 쓴다');
-      out.push(stripSource(d));
-      continue;
+      return done(stripSource(d));
     }
     if (typeof isA !== 'string') {
       err(`${at}.is_a`, 'is_a는 번호 문자열이어야 한다');
-      continue;
+      return done(null);
     }
-    const base = byId.get(isA);
-    if (base === undefined) {
+    if (!byId.has(isA)) {
       err(`${at}.is_a`, `is_a가 가리키는 ${isA}가 같은 파일에 없다 (펼치기는 같은 파일 안에서만 한다)`);
-      continue;
+      return done(null);
     }
-    if (base['is_a'] !== undefined) {
-      err(`${at}.is_a`, 'is_a는 한 단계만 가능하다 (기본 항목은 is_a를 쓸 수 없다)');
-      continue;
+    if ([...stack, id].includes(isA)) {
+      err(`${at}.is_a`, `종류가 돌아온다 (${[...stack, id, isA].join(' → ')})`);
+      return done(null);
     }
+    const base = expand(isA, [...stack, id]);
+    if (base === null) return done(null);
     if (override !== undefined) {
       if (!isObj(override)) {
         err(`${at}.override`, 'override는 객체여야 한다');
-        continue;
+        return done(null);
       }
       for (const k of Object.keys(override)) {
         if (!OVERRIDABLE.includes(k)) err(`${at}.override.${k}`, `override로 바꿀 수 없는 필드: ${k}`);
@@ -140,7 +153,7 @@ export function compileSource(source: unknown): CompileResult {
     }
     // 기본 항목의 필드 → 개별 항목 자신의 필드 → override 순서로 덮는다. 번호·names·aliases·desc 는 개별 항목 것이다.
     // 이름·별칭·설명은 개별 항목 것만 쓴다 (기본 항목의 별칭이 복사되면 이름 충돌이 난다)
-    const { names: _n, aliases: _al, desc: _de, rules: _ru, offers: _of, progress: _pr, initial: _in, ...inherited } = stripSource(base);
+    const { names: _n, aliases: _al, desc: _de, rules: _ru, offers: _of, progress: _pr, initial: _in, ...inherited } = base;
     const merged: Obj = { ...inherited, id, names: d['names'], is_a: isA };
     for (const k of ['aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'] as const) {
       if (d[k] !== undefined) merged[k] = d[k];
@@ -148,7 +161,12 @@ export function compileSource(source: unknown): CompileResult {
     if (isObj(override)) for (const [k, v] of Object.entries(override)) merged[k] = v;
     if (merged['names'] === undefined) err(`${at}.names`, '개별 항목에 names가 필요하다');
     const { override: _o, ...kept } = merged;
-    out.push(kept);
+    return done(kept);
+  };
+  const out: Obj[] = [];
+  for (const d of defs) {
+    const r = expand(String(d['id']), []);
+    if (r !== null) out.push(r);
   }
   if (issues.length > 0) return { patch: null, issues };
 

@@ -1,0 +1,15 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: role-unknown.json",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "마법솥"
+   },
+   "mobility": "portable",
+   "role": "magic"
+  }
+ ]
+}

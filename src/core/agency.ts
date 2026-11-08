@@ -14,12 +14,14 @@
 
 import { levelMatches, stateMatches } from './causal.ts';
 import type { BoardValue } from './board.ts';
+import { formatVia } from './via.ts';
+import { latestSeq } from './events.ts';
 import type { Db } from './db.ts';
 import { effectiveInitial, effectiveOffers, instancesOfKind } from './kinds.ts';
 import { meaningOf } from './meaning.ts';
 import type { EventLog } from './log.ts';
 import type { AwareMap } from './perception.ts';
-import { OBSERVED } from './schedule.ts';
+import { isObserved } from './schedule.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
@@ -39,7 +41,8 @@ export interface RecentAction {
   readonly event: string;
   readonly who: string;
   readonly verb: string;
-  readonly offer: string;
+  /** 이 행동을 내놓은 제공 행동의 근거 참조 (via.ts: 정의/offer/키) */
+  readonly via: string;
   readonly at: string;
   readonly ends: number;
   readonly effects: readonly Effect[];
@@ -57,7 +60,7 @@ export function parseRecent(value: BoardValue | undefined): RecentAction[] {
     event: String(r['event']),
     who: String(r['who']),
     verb: String(r['verb']),
-    offer: String(r['offer']),
+    via: String(r['via']),
     at: String(r['at']),
     ends: Number(r['ends']),
     effects: (Array.isArray(r['effects']) ? r['effects'] : []).filter(isObj).map((e) => ({ key: String(e['key']), op: String(e['op']), level: String(e['level']) })),
@@ -86,7 +89,7 @@ export class Agency {
 
   /** 한 단계의 행동 선택. 고르지 않으면 빈 목록. */
   step(world: World, t: number, presence: string, aware: AwareMap): RecentAction[] {
-    if (presence !== OBSERVED || t < this.#busyUntil) return [];
+    if (!isObserved(this.#vocab, presence) || t < this.#busyUntil) return [];
     const instances = world.instances();
     const who = instances.find((i) => i.startsWith('CHR'));
     if (who === undefined) return [];
@@ -119,6 +122,7 @@ export class Agency {
     for (const def of Object.keys(this.#db.defs).sort()) {
       for (const { owner, key, item: offer } of effectiveOffers(this.#db, def)) {
         for (const at of instances.filter((i) => world.defOfInstance(i) === def)) {
+          if (offer.during !== undefined && !offer.during.includes(presence)) continue; // 정해진 시간에만 하는 행동 (요리는 식사 준비 시간)
           const targets = (p: StatePattern): string[] =>
             (p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def)).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
           const needs = offer.needs.map((n) => ({ keys: targets(pattern(n.aware)), min: rank(n.at_least) }));
@@ -147,13 +151,19 @@ export class Agency {
           this.#tried.add(signature);
           const ends = t + offer.minutes;
           this.#busyUntil = ends;
-          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, data: { who, verb: offer.verb, offer: `${owner}/${key}`, at, ends } });
+          // 원인: 이 행동의 조건을 채운 앎들 중 가장 최근에 생긴 것 (needs · when · 상태 의미를 만든 앎)
+          const why = latestSeq([
+            ...needs.flatMap((n) => n.keys.filter((k) => rank(effective(k)) >= n.min).map((k) => knows[k]?.seq)),
+            ...when.flatMap((p) => targets(p).filter((k) => levelMatches(this.#vocab, p.feature, believed(k), p.cond)).map((k) => knows[k]?.seq)),
+            ...(offer.when_meaning !== undefined ? world.keysOf(at).map((k) => knows[k]?.seq) : []),
+          ]);
+          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends } });
           return [
             {
               event: e.seq,
               who,
               verb: offer.verb,
-              offer: `${owner}/${key}`,
+              via: formatVia(owner, 'offer', key),
               at,
               ends,
               effects: effects.map((x) => ({ key: x.key, op: x.cond?.op ?? '=', level: x.cond?.level ?? '' })),

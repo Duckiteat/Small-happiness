@@ -9,7 +9,7 @@ import type { Db, Definition, Issue } from './db.ts';
 import { collectRules, selfLoops } from './chains.ts';
 import { condRange, parseLocalCondition, parsePattern } from './statekey.ts';
 import type { Cond } from './statekey.ts';
-import { effectiveInitial, effectiveProgress } from './kinds.ts';
+import { ancestors, effectiveInitial, effectiveProgress, hasKindCycle } from './kinds.ts';
 import { placeGraph, spreadIssues } from './spread.ts';
 import { normalizeWord } from './vocab.ts';
 import type { Vocab } from './vocab.ts';
@@ -90,6 +90,17 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
       else if (!vocab.has('mobility', def.mobility)) error(`${id}.mobility`, `사전에 없는 값: ${def.mobility}`);
     }
 
+    if (def.role !== undefined && !vocab.has('device_role', def.role)) error(`${id}.role`, `사전에 없는 역할: ${def.role}`);
+    for (const r of def.utility ?? []) if (!vocab.has('resource', r)) error(`${id}.utility`, `사전에 없는 설비: ${r}`);
+    for (const r of def.supplies ?? []) if (!vocab.has('resource', r)) error(`${id}.supplies`, `사전에 없는 설비: ${r}`);
+    if ((def.utility ?? []).length > 0 && def.role !== 'device') error(`${id}.utility`, '설비를 쓰는 가구는 role이 기기(device)여야 한다 — 입력과 출력이 없는 가구는 설비가 없는 비전자제품이다');
+    for (const r of def.holds ?? []) {
+      const e = vocab.entry('resource', r);
+      if (e === undefined) error(`${id}.holds`, `사전에 없는 설비: ${r}`);
+      else if (e.attrs['holdable'] !== true) error(`${id}.holds`, `${r}는 담을 수 없는 자원이다 (머물지 않고 흐른다)`);
+      else if (e.attrs['sealed'] === true && !(def.utility ?? []).includes(r)) error(`${id}.holds`, `${r}는 밀폐 자원이라 그 설비를 쓰는 기기만 담을 수 있다 (자유롭게 담기지 않는다)`);
+    }
+
     for (const [slotKey, slot] of Object.entries(def.slots ?? {})) {
       for (const f of slot.features) {
         if (!vocab.has('feature', f)) error(`${id}.slots.${slotKey}`, `사전에 없는 특징: ${f}`);
@@ -116,6 +127,9 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
   // 규칙 패턴: 형식, 대상 정의 존재, 부위·특징·단계 범위
   for (const [id, def] of Object.entries(db.defs)) {
     for (const [ruleKey, rule] of Object.entries(def.rules ?? {})) {
+      if (rule.linked === true && ![...rule.on, ...(rule.on_all ?? []), ...rule.emits].some((t) => (parsePattern(t)?.def ?? id) !== id)) {
+        error(`${id}.rules.${ruleKey}`, 'linked(이어진 것만)인데 자기 정의가 아닌 다른 정의를 가리키는 패턴이 없다 — 걸 대상이 없는 범위');
+      }
       for (const side of ['on', 'on_all', 'emits'] as const) {
         (rule[side] ?? []).forEach((text, i) => {
           const at = `${id}.rules.${ruleKey}.${side}[${i}]`;
@@ -133,7 +147,7 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
   }
 
-  // 종류(is_a): 같은 종류의 정의를 한 단계만 가리키고, 물려받는 규칙·행동이 쓰는 부위·특징을 모두 갖는다
+  // 종류(is_a): 같은 종류의 정의를 가리키고(여러 단계 가능, 돌아오면 안 된다), 모든 조상에게서 물려받는 규칙·행동이 쓰는 부위·특징을 갖는다
   for (const [id, def] of Object.entries(db.defs)) {
     if (def.is_a === undefined) continue;
     const at = `${id}.is_a`;
@@ -144,20 +158,28 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
     if (def.is_a === id) error(at, '자기 자신의 종류일 수 없다');
     else if (def.is_a.slice(0, 3) !== id.slice(0, 3)) error(at, `같은 종류의 정의만 가리킨다 (${id.slice(0, 3)} ≠ ${def.is_a.slice(0, 3)})`);
-    else if (base.is_a !== undefined) error(at, `종류는 한 단계만 가능하다 (${def.is_a}도 is_a가 있다)`);
-    const inherited = [
-      ...Object.values(base.rules ?? {}).flatMap((r) => [...r.on, ...(r.on_all ?? []), ...r.emits]),
-      ...Object.values(base.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect]),
-    ];
-    const need = new Set<string>();
-    for (const text of inherited) {
-      const p = parsePattern(text);
-      if (p !== null && p.def === def.is_a) need.add(`${p.slot}:${p.feature}`);
+    else if (hasKindCycle(db, id)) {
+      error(at, `종류가 돌아온다 (${[id, ...ancestors(db, id), id].join(' → ')})`);
+      continue;
     }
-    for (const sf of [...need].sort()) {
-      const [slot, feature] = sf.split(':') as [string, string];
-      if (!(def.slots?.[slot]?.features ?? []).includes(feature)) {
-        error(at, `${def.is_a}의 규칙·행동을 물려받으려면 부위 ${slot}에 특징 ${feature}가 있어야 한다`);
+    // 모든 조상의 규칙·행동 중 그 조상 자신을 가리키는 패턴은 이 정의에 걸린다 → 이 정의가 그 부위·특징을 가져야 한다
+    for (const anc of ancestors(db, id)) {
+      const a = db.defs[anc];
+      if (a === undefined) continue;
+      const inherited = [
+        ...Object.values(a.rules ?? {}).flatMap((r) => [...r.on, ...(r.on_all ?? []), ...r.emits]),
+        ...Object.values(a.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect]),
+      ];
+      const need = new Set<string>();
+      for (const text of inherited) {
+        const p = parsePattern(text);
+        if (p !== null && p.def === anc) need.add(`${p.slot}:${p.feature}`);
+      }
+      for (const sf of [...need].sort()) {
+        const [slot, feature] = sf.split(':') as [string, string];
+        if (!(def.slots?.[slot]?.features ?? []).includes(feature)) {
+          error(at, `${anc}의 규칙·행동을 물려받으려면 부위 ${slot}에 특징 ${feature}가 있어야 한다`);
+        }
       }
     }
   }
@@ -206,6 +228,33 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
   }
 
+  // 설비 자원의 사라짐: 자원을 담는 특징(사전 feature의 resource)을 가진 부위는, 그 값을 낮추는 규칙 결과나 행동 효과가 어딘가에 있어야 한다.
+  // 들어오기만 하고 사라질 길이 없는 물그릇·켜지기만 하는 기기를 막는다 (사라지는 길 = 단계 0칸으로 내리기 `=`/`<=`, 또는 소멸)
+  const lowered = new Set<string>();
+  const noteLowering = (text: string): void => {
+    const p = parsePattern(text);
+    if (p === null || p.cond === null) return;
+    const { op, level } = p.cond;
+    const zero = vocab.levelOrder(p.feature)?.[0];
+    const lowers = op === '<=' || op === '<' || (op === '=' && (level === zero || vocab.has('terminal', level)));
+    if (lowers) lowered.add(`${p.def}|${p.slot}:${p.feature}`);
+  };
+  for (const d of Object.values(db.defs)) {
+    for (const r of Object.values(d.rules ?? {})) for (const t of r.emits) noteLowering(t);
+    for (const o of Object.values(d.offers ?? {})) for (const t of o.effect) noteLowering(t);
+  }
+  for (const [id, def] of Object.entries(db.defs)) {
+    for (const [slotKey, slot] of Object.entries(def.slots ?? {})) {
+      for (const f of slot.features) {
+        const resource = vocab.entry('feature', f)?.attrs['resource'];
+        if (typeof resource !== 'string') continue;
+        if (![id, ...ancestors(db, id)].some((x) => lowered.has(`${x}|${slotKey}:${f}`))) {
+          error(`${id}.slots.${slotKey}`, `"${f}"(${resource})를 담는데 그 값을 낮추는 규칙이나 행동이 없다 — 들어오기만 하고 사라질 길이 없는 자원은 거부`);
+        }
+      }
+    }
+  }
+
   // 공간 (1층): 환경 등급은 사전에, 통로는 있는 장소를 가리키고 종류·매질이 사전에 있으며, 한 쌍은 한 번만 적는다
   const pairs = new Set<string>();
   for (const [id, def] of Object.entries(db.defs)) {
@@ -249,6 +298,10 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     for (const [key, offer] of Object.entries(def.offers ?? {})) {
       const at = `${id}.offers.${key}`;
       if (!vocab.has('action', offer.verb)) error(`${at}.verb`, `사전에 없는 행동: ${offer.verb}`);
+      for (const p of offer.during ?? []) {
+        if (!vocab.has('presence', p)) error(`${at}.during`, `사전에 없는 상황: ${p}`);
+        else if (vocab.entry('presence', p)?.attrs['observed'] !== true) error(`${at}.during`, `플레이어가 함께 보지 않는 상황(${p})에서는 행동하지 않는다 (집에 있음·식사 준비만)`);
+      }
       offer.needs.forEach((n, i) => {
         const w = `${at}.needs[${i}]`;
         const p = parsePattern(n.aware);
@@ -276,6 +329,11 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
         if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
         slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
       });
+    }
+    if (def.stays !== undefined) {
+      if (!id.startsWith('CHR')) error(`${id}.stays`, 'stays는 인물에만 있다');
+      else if (db.defs[def.stays] === undefined) error(`${id}.stays`, `없는 정의를 가리킨다: ${def.stays}`);
+      else if (!def.stays.startsWith('PLC')) error(`${id}.stays`, `머무는 곳은 장소여야 한다 (${def.stays}는 장소가 아니다)`);
     }
     for (const sense of Object.keys(def.senses ?? {})) {
       if (!vocab.has('sense', sense)) error(`${id}.senses.${sense}`, `사전에 없는 감각: ${sense}`);

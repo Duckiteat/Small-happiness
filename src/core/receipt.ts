@@ -5,11 +5,14 @@
 //     중간 사건을 고치거나 빼거나 끼우면 그 뒤 고리가 모두 어긋난다.
 //   - 하루 사슬: 영수증마다 앞 영수증의 봉인(seal)을 물고, 봉인 = 해시(앞 봉인 + 영수증 본문). 첫 영수증은 기원(실행 정보)을 문다.
 //   - 마감: 그날까지 기록에 나온 세계 상태·앎·넘어가는 예약. 다음 날은 이 마감에서 시작한다.
+//   - 사건의 근거 참조(data.via, via.ts): 사전 event_type의 via_kinds가 정한 유형은 어떤 규칙·행동·법칙·감각이 만들었는지 적는다.
 //   - 집계·마감·날 넘는 원인 표시는 사건에서 파생된다. 검증은 사건만으로 이것을 다시 계산해 맞춰 본다.
 // 해시 함수는 인자로 받는다 (코어는 입출력 모듈을 쓰지 않는다. 시각·난수와 같은 방식).
 
 import type { GameEvent, JsonValue } from './events.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
+import { viaProblem } from './via.ts';
+import type { ViaKind } from './via.ts';
 
 export const RECEIPT_FORMAT = 'small-happiness-receipt';
 export const RECEIPT_VERSION = 1;
@@ -54,6 +57,8 @@ export interface ReceiptClose {
   readonly aware: { readonly [who: string]: { readonly [key: string]: Awareness } };
   /** 날을 넘어가는 예약 (예약됐고 아직 발동·취소되지 않은 delay_scheduled의 seq) */
   readonly open_delays: readonly string[];
+  /** 개체 → { on, in } 놓임. 놓임 사건이 한 번이라도 있을 때만 이 칸이 있다 (없는 기록의 영수증은 그대로 둔다) */
+  readonly place?: { readonly [id: string]: { readonly on?: string; readonly in?: string } };
 }
 
 export interface Receipt {
@@ -117,6 +122,7 @@ interface Fold {
   state: Record<string, string>;
   aware: Record<string, Record<string, Awareness>>;
   open: string[];
+  place: Record<string, { on?: string; in?: string }>;
 }
 
 function foldEvent(f: Fold, e: { seq: string; type: string; cause: string | null; data: { readonly [key: string]: JsonValue } }): string | null {
@@ -134,6 +140,18 @@ function foldEvent(f: Fold, e: { seq: string; type: string; cause: string | null
       const before = f.state[key];
       if (before !== undefined && from !== null && before !== from) return `${e.seq}: ${key}의 앞 단계가 ${before}인데 사건은 ${from}에서 바뀐다고 적었다`;
       f.state[key] = to;
+      return null;
+    }
+    case 'placed': {
+      const id = str(d['id']), rel = str(d['rel']), from = str(d['from']), to = str(d['to']);
+      if (id === null || (rel !== 'on' && rel !== 'in')) return `${e.seq}: 놓임 사건에 id와 rel(on/in)이 있어야 한다`;
+      const before = f.place[id]?.[rel] ?? null;
+      if (before !== from) return `${e.seq}: ${id}의 ${rel}가 ${before ?? '없음'}인데 사건은 ${from ?? '없음'}에서 바뀐다고 적었다`;
+      const cur = { ...(f.place[id] ?? {}) };
+      if (to === null) delete cur[rel];
+      else cur[rel] = to;
+      if (cur.on === undefined && cur.in === undefined) delete f.place[id];
+      else f.place[id] = cur;
       return null;
     }
     case 'awareness_up':
@@ -167,7 +185,12 @@ function snapshot(f: Fold): ReceiptClose {
   }
   const state: Record<string, string> = {};
   for (const key of Object.keys(f.state).sort()) state[key] = f.state[key] ?? '';
-  return { instances: [...f.instances], state, aware, open_delays: [...f.open] };
+  const close: ReceiptClose = { instances: [...f.instances], state, aware, open_delays: [...f.open] };
+  const ids = Object.keys(f.place).sort();
+  if (ids.length === 0) return close;
+  const place: Record<string, { on?: string; in?: string }> = {};
+  for (const id of ids) place[id] = { ...f.place[id] };
+  return { ...close, place };
 }
 
 function tallyOf(items: readonly { type: string }[]): Receipt['tally'] {
@@ -187,7 +210,7 @@ export function printReceipts(log: readonly GameEvent[], run: ReceiptRun, hash: 
   const firstDay = dayOf(Math.min(run.start, ...log.map((e) => e.t)));
   const lastDay = dayOf(Math.max(run.end, ...log.map((e) => e.t)));
   const dayOfSeq = new Map<string, number>();
-  const fold: Fold = { instances: [], state: {}, aware: {}, open: [] };
+  const fold: Fold = { instances: [], state: {}, aware: {}, open: [], place: {} };
   const receipts: Receipt[] = [];
   let head = genesis;
   let prevSeal = genesis;
@@ -244,13 +267,18 @@ export interface ReceiptVerdict {
  * 형식 · 날 연속 · 하루 사슬(앞 봉인) · 사건 사슬(고리 재계산, seq 연속, 시각 순서, 날 범위) · 원인이 앞에 있음 ·
  * 날 넘는 원인 표시 · 집계 · 마감(사건을 처음부터 접어 다시 만듦) · 봉인 재계산.
  */
-export function verifyReceipts(receipts: readonly Receipt[], hash: Hasher): ReceiptVerdict {
+export function verifyReceipts(
+  receipts: readonly Receipt[],
+  hash: Hasher,
+  /** 사건 유형이 가져야 하는 근거 참조(via) 종류. 주면 모든 사건의 via를 규칙대로 확인한다 (사전 event_type의 via_kinds). */
+  viaKinds?: (type: string) => readonly ViaKind[] | undefined,
+): ReceiptVerdict {
   const errors: string[] = [];
   const bad = (m: string): void => void errors.push(m);
   if (receipts.length === 0) return { ok: false, errors: ['영수증이 없다'], days: 0, events: 0, head: null };
   const run = receipts[0]?.run as ReceiptRun;
   const genesis = genesisRoot(run, hash);
-  const fold: Fold = { instances: [], state: {}, aware: {}, open: [] };
+  const fold: Fold = { instances: [], state: {}, aware: {}, open: [], place: {} };
   const dayOfSeq = new Map<string, number>();
   let prevSeal = genesis, head = genesis, lastT = -Infinity, n = 0;
   receipts.forEach((r, k) => {
@@ -277,6 +305,8 @@ export function verifyReceipts(receipts: readonly Receipt[], hash: Hasher): Rece
       if (it.cause_day !== expectCd) bad(`${at} ${it.seq}: 날 넘는 원인 표시가 맞지 않는다 (기대 ${expectCd ?? '없음'}, 적힌 값 ${it.cause_day ?? '없음'})`);
       const problem = foldEvent(fold, it);
       if (problem !== null) bad(`${at} ${problem}`);
+      const viaIssue = viaKinds === undefined ? null : viaProblem(viaKinds(it.type), it.data);
+      if (viaIssue !== null) bad(`${at} ${it.seq}: ${viaIssue}`);
       dayOfSeq.set(it.seq, r.day);
       head = it.root;
     }
@@ -366,7 +396,18 @@ export function parseReceipt(raw: unknown): Receipt {
   const byType: Record<string, number> = {};
   for (const [k, v] of Object.entries(obj(tally, 'by_type', `${at}.tally`))) byType[k] = typeof v === 'number' ? v : fail(`${at}.tally.by_type.${k}는 숫자여야 한다`);
   const close = obj(raw, 'close', at);
-  exactKeys(close, ['instances', 'state', 'aware', 'open_delays'], [], `${at}.close`);
+  exactKeys(close, ['instances', 'state', 'aware', 'open_delays'], ['place'], `${at}.close`);
+  const place: Record<string, { on?: string; in?: string }> = {};
+  if ('place' in close) {
+    for (const [id, row] of Object.entries(obj(close, 'place', `${at}.close`))) {
+      if (!isObj(row)) return fail(`${at}.close.place.${id}는 객체여야 한다`);
+      exactKeys(row, [], ['on', 'in'], `${at}.close.place.${id}`);
+      const cur: { on?: string; in?: string } = {};
+      if ('on' in row) cur.on = text(row, 'on', `${at}.close.place.${id}`);
+      if ('in' in row) cur.in = text(row, 'in', `${at}.close.place.${id}`);
+      place[id] = cur;
+    }
+  }
   const aware: Record<string, Record<string, Awareness>> = {};
   for (const [who, row] of Object.entries(obj(close, 'aware', `${at}.close`))) {
     if (!isObj(row)) return fail(`${at}.close.aware.${who}는 객체여야 한다`);
@@ -402,6 +443,7 @@ export function parseReceipt(raw: unknown): Receipt {
       state: stringMap(obj(close, 'state', `${at}.close`), `${at}.close.state`),
       aware,
       open_delays: strings(close['open_delays'], `${at}.close.open_delays`),
+      ...(Object.keys(place).length > 0 ? { place } : {}),
     },
     seal: text(raw, 'seal', at),
   };

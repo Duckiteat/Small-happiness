@@ -1,0 +1,601 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "주방이 전기·수도·가스를 공급한다고 둔다 (가구 도입: 설비 출처 확인). 나머지는 그대로다. / 부엌 가구 10개를 정의로 들인다 (크기는 정하지 않음): 입출력이 있는 기기인지(role), 연결 설비(utility: 전기·수도·가스, 없으면 비전자제품), 담을 수 있는 자원(holds). 개체는 시나리오에서 놓을 때 생긴다.",
+    "defs": [
+      {
+        "id": "PLC000001",
+        "names": {
+          "ko": "현관",
+          "en": "entrance"
+        },
+        "environment": {
+          "weather_effect": "mid",
+          "temp_swing": "mid",
+          "ventilation": "low",
+          "humidity": "low"
+        },
+        "passages": [
+          {
+            "to": "PLC000002",
+            "kind": "open",
+            "medium_pass": {
+              "air": 1000,
+              "self_move": 1000
+            },
+            "tuned": false
+          }
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell"
+            ]
+          }
+        },
+        "desc": [
+          "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "PLC000002",
+        "names": {
+          "ko": "주방",
+          "en": "kitchen"
+        },
+        "aliases": [
+          "부엌"
+        ],
+        "environment": {
+          "weather_effect": "low",
+          "temp_swing": "low",
+          "ventilation": "low",
+          "humidity": "mid"
+        },
+        "passages": [
+          {
+            "to": "PLC000003",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          },
+          {
+            "to": "PLC000004",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          }
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "odor",
+              "bug"
+            ]
+          }
+        },
+        "rules": {
+          "odor_reach": {
+            "label": "상한 음식의 냄새가 주방에 퍼진다",
+            "on": [
+              "OBJ000001|body:smell@>=distinct"
+            ],
+            "emits": [
+              "PLC000002|space:smell@>=faint"
+            ]
+          },
+          "odor_thicken": {
+            "label": "냄새나는 음식이 남아 있으면 주방 냄새가 짙어진다",
+            "on": [
+              "OBJ000001|body:smell@>=distinct",
+              "PLC000002|space:smell@=faint"
+            ],
+            "emits": [
+              "PLC000002|space:smell@>=distinct"
+            ],
+            "delay_s": 10800,
+            "tuned": false
+          },
+          "air_out": {
+            "label": "냄새나는 음식이 하나도 없으면 주방 냄새가 빠진다",
+            "on": [
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:smell@<=none"
+            ],
+            "on_all": [
+              "OBJ000001|body:smell@<=faint"
+            ],
+            "delay_s": 10800,
+            "tuned": false
+          },
+          "bugs": {
+            "label": "상한 냄새(시큼함 이상)가 뚜렷하면 벌레가 꼬인다",
+            "on": [
+              "PLC000002|space:smell@>=distinct",
+              "PLC000002|space:odor@>=sour"
+            ],
+            "emits": [
+              "PLC000002|space:bug@=few"
+            ],
+            "delay_s": 28800,
+            "tuned": false
+          },
+          "kind_sour": {
+            "label": "음식 중 가장 심한 냄새가 시큼한 발효 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 시큼한 발효 냄새가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=sour",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=sour"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=sour"
+            ]
+          },
+          "kind_musty": {
+            "label": "음식 중 가장 심한 냄새가 곰팡내이고 주방에 냄새가 퍼지면 주방 냄새도 곰팡내가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=musty",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=musty"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=musty"
+            ]
+          },
+          "kind_sulfur": {
+            "label": "음식 중 가장 심한 냄새가 황 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 황 냄새가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=sulfur",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=sulfur"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=sulfur"
+            ]
+          },
+          "kind_putrid": {
+            "label": "음식 중 가장 심한 냄새가 썩는 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 썩는 냄새가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=putrid",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=putrid"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=putrid"
+            ]
+          },
+          "kind_clear": {
+            "label": "주방 냄새가 가시면 냄새 종류도 사라진다",
+            "on": [
+              "PLC000002|space:smell@<=none"
+            ],
+            "emits": [
+              "PLC000002|space:odor@<=none"
+            ]
+          }
+        },
+        "offers": {
+          "inspect": {
+            "label": "냄새가 어디서 나는지 주방과 냉장고를 살핀다 (구수한 요리 냄새는 살피지 않는다)",
+            "verb": "inspect",
+            "needs": [
+              {
+                "aware": "PLC000002|space:smell",
+                "at_least": "noticed"
+              }
+            ],
+            "effect": [],
+            "reveals": true,
+            "minutes": 5,
+            "tuned": false,
+            "when": [
+              "PLC000002|space:odor@>=sour"
+            ]
+          }
+        },
+        "desc": [
+          "현관을 열면 바로 있다. 냄새가 고인다. 냉장고의 자리 (세계-설정 2·3장)"
+        ],
+        "supplies": [
+          "electric",
+          "water",
+          "gas"
+        ]
+      },
+      {
+        "id": "PLC000003",
+        "names": {
+          "ko": "거실",
+          "en": "living room"
+        },
+        "environment": {
+          "weather_effect": "high",
+          "temp_swing": "mid",
+          "ventilation": "low",
+          "humidity": "mid"
+        },
+        "passages": [
+          {
+            "to": "PLC000005",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          },
+          {
+            "to": "PLC000006",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          }
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "가장 큰 공간. 중문 너머 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "PLC000004",
+        "names": {
+          "ko": "욕실",
+          "en": "bathroom"
+        },
+        "aliases": [
+          "화장실"
+        ],
+        "environment": {
+          "weather_effect": "low",
+          "temp_swing": "low",
+          "ventilation": "very_low",
+          "humidity": "high"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "화장실 겸용, 약 1.5평, 부엌 옆. 문은 주방에서 (작가 2026-11-07). 환풍기가 작다 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "PLC000005",
+        "names": {
+          "ko": "베란다",
+          "en": "veranda"
+        },
+        "environment": {
+          "weather_effect": "high",
+          "temp_swing": "high",
+          "ventilation": "mid",
+          "humidity": "high"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "거실에 붙어 있다. 외벽이라 온도 변화가 크다 (세계-설정 2·3장)"
+        ]
+      },
+      {
+        "id": "PLC000006",
+        "names": {
+          "ko": "작은 방",
+          "en": "small room"
+        },
+        "environment": {
+          "weather_effect": "low",
+          "temp_swing": "low",
+          "ventilation": "low",
+          "humidity": "low"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "거실에 달린 방. 문을 닫으면 고립된다 (세계-설정 2·3장)"
+        ]
+      },
+      {
+        "id": "OBJ+1",
+        "names": {
+          "ko": "식탁",
+          "en": "dining table"
+        },
+        "mobility": "fixed",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ+2",
+        "names": {
+          "ko": "의자",
+          "en": "chair"
+        },
+        "mobility": "portable",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ+3",
+        "names": {
+          "ko": "식탁보",
+          "en": "tablecloth"
+        },
+        "mobility": "portable",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ+4",
+        "names": {
+          "ko": "전자레인지 선반",
+          "en": "microwave shelf"
+        },
+        "mobility": "fixed",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ+5",
+        "names": {
+          "ko": "전자레인지",
+          "en": "microwave"
+        },
+        "mobility": "portable",
+        "role": "device",
+        "utility": [
+          "electric"
+        ]
+      },
+      {
+        "id": "OBJ+6",
+        "names": {
+          "ko": "전기밥솥",
+          "en": "rice cooker"
+        },
+        "mobility": "portable",
+        "role": "device",
+        "utility": [
+          "electric"
+        ],
+        "holds": [
+          "water"
+        ]
+      },
+      {
+        "id": "OBJ+7",
+        "names": {
+          "ko": "후드",
+          "en": "range hood"
+        },
+        "mobility": "fixed",
+        "role": "device",
+        "utility": [
+          "electric"
+        ]
+      },
+      {
+        "id": "OBJ+8",
+        "names": {
+          "ko": "가스레인지",
+          "en": "gas stove"
+        },
+        "mobility": "fixed",
+        "role": "device",
+        "utility": [
+          "gas"
+        ],
+        "holds": [
+          "gas"
+        ]
+      },
+      {
+        "id": "OBJ+9",
+        "names": {
+          "ko": "싱크대",
+          "en": "sink"
+        },
+        "mobility": "fixed",
+        "role": "device",
+        "utility": [
+          "water"
+        ],
+        "holds": [
+          "water"
+        ]
+      },
+      {
+        "id": "OBJ+10",
+        "names": {
+          "ko": "냉장고",
+          "en": "refrigerator"
+        },
+        "mobility": "fixed",
+        "role": "device",
+        "utility": [
+          "electric"
+        ]
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {
+    "OBJ+1": "OBJ000012",
+    "OBJ+2": "OBJ000013",
+    "OBJ+3": "OBJ000014",
+    "OBJ+4": "OBJ000015",
+    "OBJ+5": "OBJ000016",
+    "OBJ+6": "OBJ000017",
+    "OBJ+7": "OBJ000018",
+    "OBJ+8": "OBJ000019",
+    "OBJ+9": "OBJ000020",
+    "OBJ+10": "OBJ000021"
+  },
+  "mapped": [],
+  "report": {
+    "why": "주방이 전기·수도·가스를 공급한다고 둔다 (가구 도입: 설비 출처 확인). 나머지는 그대로다. / 부엌 가구 10개를 정의로 들인다 (크기는 정하지 않음): 입출력이 있는 기기인지(role), 연결 설비(utility: 전기·수도·가스, 없으면 비전자제품), 담을 수 있는 자원(holds). 개체는 시나리오에서 놓을 때 생긴다.",
+    "scope": {
+      "added": {
+        "object": [
+          "OBJ000012",
+          "OBJ000013",
+          "OBJ000014",
+          "OBJ000015",
+          "OBJ000016",
+          "OBJ000017",
+          "OBJ000018",
+          "OBJ000019",
+          "OBJ000020",
+          "OBJ000021"
+        ]
+      },
+      "updated": {
+        "place": [
+          {
+            "id": "PLC000002",
+            "fields": [
+              "names",
+              "aliases",
+              "environment",
+              "passages",
+              "slots",
+              "rules",
+              "offers",
+              "desc",
+              "supplies"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [
+        {
+          "from": "PLC000002/rule/air_out",
+          "to": "PLC000002/rule/kind_clear"
+        },
+        {
+          "from": "PLC000002/rule/kind_musty",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/kind_putrid",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/kind_sour",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/kind_sulfur",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_sulfur"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_sulfur"
+        }
+      ],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

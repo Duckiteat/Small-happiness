@@ -12,11 +12,14 @@ import type { BoardValue } from './board.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
 import { Agency, parseRecent } from './agency.ts';
 import type { RecentAction } from './agency.ts';
-import { applyLevel, Causal } from './causal.ts';
+import { applyLevel, Causal, stateMatches } from './causal.ts';
 import { parseAware, Perception } from './perception.ts';
 import { defOf } from './ids.ts';
+import { chainPairs, parseChain } from './placement.ts';
+import { viaCheck } from './via.ts';
 import { effectiveInitial } from './kinds.ts';
-import { parseStateKey } from './statekey.ts';
+import { formatStateKey, parseStateKey } from './statekey.ts';
+import { HEAT_FEATURE, readTemperature, STORAGE_FEATURE } from './temperature.ts';
 import type { Db } from './db.ts';
 import { EventLog } from './log.ts';
 import { Rng } from './rng.ts';
@@ -39,10 +42,16 @@ function size(v: BoardValue): number {
  */
 function stateText(states: BoardValue, db: Db, vocab: Vocab): string {
   if (typeof states !== 'object' || Array.isArray(states)) return '';
+  const byKey = new Map<string, unknown>(Object.entries(states));
   const parts: string[] = [];
   for (const [key, level] of Object.entries(states)) {
     const k = parseStateKey(key);
     if (k === null || typeof level !== 'string') continue;
+    // 온도는 한 가지로 읽는다 (docs/온도-읽기.md): 가열 중이면 가열 온도만 보이고 보관 온도는 줄에서 뺀다
+    if (k.feature === STORAGE_FEATURE) {
+      const heat = byKey.get(formatStateKey({ subject: k.subject, slot: k.slot, feature: HEAT_FEATURE }));
+      if (readTemperature(vocab, level, typeof heat === 'string' ? heat : undefined).band === 'heat') continue;
+    }
     if (effectiveInitial(db, defOf(k.subject) ?? '')[`${k.slot}:${k.feature}`] === level) continue;
     const name = instanceName(db, k.subject);
     const feature = vocab.entry('feature', k.feature);
@@ -102,9 +111,10 @@ export interface Engine {
 }
 
 /** 층 아홉 개. world·causal은 2층, perception은 5층, agency는 6층, routine(하루씨의 일정)은 4a층만 쓴다. */
-export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlock[], vocab: Vocab): Layer[] {
+export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlock[], vocab: Vocab, scripted: readonly ScriptedChange[] = []): Layer[] {
   const { world, causal, perception, agency, log } = engine;
   const pending: RecentAction[] = []; // 끝나기를 기다리는 행동의 효과 요청 (2층)
+  const script = [...scripted].sort((a, b) => a.t - b.t); // 아직 일어나지 않은 외부 사건 (정전·문 열림 같은, 시나리오가 정한 것)
   return [
     {
       id: '0',
@@ -112,7 +122,12 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
     },
     {
       id: '1',
-      run: (c) => c.write('world.place', { places: Object.keys(db.defs).filter((id) => id.startsWith('PLC')).sort() }),
+      run: (c) => {
+        const places = Object.keys(db.defs).filter((id) => id.startsWith('PLC')).sort();
+        // 놓임(받치는 것·담긴 곳)이 하나라도 있을 때만 칸을 더한다: 놓임이 없는 세계의 판은 그대로다
+        const layout = world.places();
+        c.write('world.place', Object.keys(layout).length === 0 ? { places } : { places, layout });
+      },
     },
     {
       id: '2',
@@ -121,15 +136,35 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
         pending.push(...parseRecent(c.prev('recent')));
         const due = pending.filter((a) => a.ends <= c.t).sort((a, b) => a.ends - b.ends || a.event.localeCompare(b.event));
         pending.splice(0, pending.length, ...pending.filter((a) => a.ends > c.t));
-        for (const a of due) {
+        const scriptDue = script.filter((x) => x.t <= c.t);
+        script.splice(0, script.length, ...script.filter((x) => x.t > c.t));
+        // 끝난 행동과 외부 사건을 일어난 시각 순서로 기록한다 (같은 시각이면 외부 사건이 먼저: 정전 때 끝나는 행동은 정전 뒤에 일어난다)
+        const timeline = [
+          ...scriptDue.map((x) => ({ t: x.t, order: 0, x })),
+          ...due.map((a) => ({ t: a.ends, order: 1, a })),
+        ].sort((p, q) => p.t - q.t || p.order - q.order);
+        for (const item of timeline) {
+          if ('x' in item) {
+            const x = item.x;
+            causal.advance(world, x.t);
+            const k = parseStateKey(x.key);
+            if (k === null || world.defOfInstance(k.subject) === undefined || stateMatches(world, vocab, x.key, k.feature, { op: '=', level: x.level })) continue;
+            const ext = log.append({ t: x.t, type: 'external_event', src: 'scenario', cause: null, data: { key: x.key, level: x.level, label: x.label } });
+            applyLevel(world, vocab, x.key, k.feature, { op: '=', level: x.level }, { t: x.t, cause: ext.seq });
+            continue;
+          }
+          const a = item.a;
           causal.advance(world, a.ends);
-          const done = log.append({ t: a.ends, type: 'action_done', src: 'world', cause: a.event, data: { who: a.who, verb: a.verb, at: a.at } });
+          const done = log.append({ t: a.ends, type: 'action_done', src: 'world', cause: a.event, data: { who: a.who, verb: a.verb, via: a.via, at: a.at } });
+          perception.recordDone(a.event, done.seq);
           for (const e of a.effects) {
             const k = parseStateKey(e.key);
             if (k !== null && (e.op === '=' || e.op === '>=' || e.op === '<=')) {
               applyLevel(world, vocab, e.key, k.feature, { op: e.op, level: e.level }, { t: a.ends, cause: done.seq });
             }
           }
+          // 자기가 한 일이 바꾼 상태는 안다
+          for (const e of a.effects) perception.learn(a.who, e.key, world.level(e.key), a.ends, a.via, done.seq);
         }
         causal.advance(world, c.t);
         c.write('world.state', world.snapshot().states);
@@ -140,7 +175,9 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       id: '3',
       // 자극의 원천은 아직 계산하지 않는다. 세계가 다음에 스스로 바뀔 시각만 올린다 (집에 있을 때 시계가 깨어나는 시각, F7)
       run: (c) => {
-        const next = causal.nextChange(world);
+        const own = causal.nextChange(world);
+        const coming = script[0]?.t;
+        const next = own === null ? (coming ?? null) : coming === undefined ? own : Math.min(own, coming);
         c.write('world.stimulus_source', next === null ? {} : { next_change: next });
       },
     },
@@ -201,6 +238,13 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
 
 // ── 뼈대 시험용 하루 (골든 트레이스) ─────────────────────────────────────────
 
+export interface ScriptedChange {
+  readonly t: number;
+  readonly key: string;
+  readonly level: string;
+  readonly label: string;
+}
+
 export interface Scenario {
   readonly why: string;
   /** 정의를 담은 패치들. 빈 저장소에 차례로 병합한다. use_db면 비어 있고 실제 저장소(data/db.json)를 쓴다. */
@@ -209,6 +253,12 @@ export interface Scenario {
   readonly seed: number;
   readonly spawn: readonly string[];
   readonly set: readonly { readonly t: number; readonly key: string; readonly level: string }[];
+  /** 처음 놓임: 개체 번호를 `^`로 이은 줄들. 왼쪽이 아래, 오른쪽이 위 (예: `PLC000002#1^OBJ000012#1^OBJ000013#1`). 시작 전에 놓인다. */
+  readonly layout: readonly string[];
+  /** 처음 담김: 개체 `id`가 `in`에 담겨 있다. */
+  readonly contain: readonly { readonly id: string; readonly in: string }[];
+  /** 정해진 외부 사건: 시각 t에 상태 key가 level이 된다 (정전, 문 열림). 원인이 시나리오 밖에 있으므로 외부 사건(external_event)으로 기록한다. */
+  readonly scripted: readonly ScriptedChange[];
   /** 하루의 시작과 끝(분). 단계 시각은 일정에서 정해진다 (schedule.ts). */
   readonly start: number;
   readonly end: number;
@@ -223,7 +273,7 @@ function isObj(v: unknown): v is Record<string, unknown> {
 /** 시나리오 파일을 해석한다. 모양이 틀리면 던진다. */
 export function parseScenario(raw: unknown): Scenario {
   if (!isObj(raw)) throw new TypeError('시나리오는 객체여야 한다');
-  const { why, patches, use_db, seed, spawn, set, start, end, routine } = raw;
+  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain, scripted } = raw;
   if (typeof why !== 'string' || why.trim() === '') throw new TypeError('why(이 시나리오를 두는 이유)가 필요하다');
   if (use_db !== undefined && typeof use_db !== 'boolean') throw new TypeError('use_db는 true/false여야 한다');
   const fromDb = use_db === true;
@@ -243,7 +293,25 @@ export function parseScenario(raw: unknown): Scenario {
     if (s['t'] > start) throw new TypeError(`set[${i}]의 시각 ${s['t']}가 하루의 시작(${start})보다 뒤다 (set은 시작 전의 처음 상태다)`);
     return { t: s['t'], key: s['key'], level: s['level'] };
   });
-  return { why, patches: fromDb ? [] : ([...(patches as string[])] as string[]), use_db: fromDb, seed, spawn: [...spawn] as string[], set: sets, start, end, routine };
+  if (layout !== undefined && (!Array.isArray(layout) || !layout.every((x) => typeof x === 'string' && parseChain(x) !== null))) {
+    throw new TypeError('layout은 개체 번호를 ^로 이은 줄의 목록이어야 한다');
+  }
+  if (contain !== undefined && (!Array.isArray(contain) || !contain.every((x) => isObj(x) && typeof x['id'] === 'string' && typeof x['in'] === 'string'))) {
+    throw new TypeError('contain은 { id, in } 목록이어야 한다');
+  }
+  if (scripted !== undefined && !Array.isArray(scripted)) throw new TypeError('scripted는 목록이어야 한다');
+  const scriptedChanges = ((scripted as unknown[] | undefined) ?? []).map((x, i) => {
+    if (!isObj(x) || typeof x['t'] !== 'number' || typeof x['key'] !== 'string' || typeof x['level'] !== 'string' || typeof x['label'] !== 'string') {
+      throw new TypeError(`scripted[${i}]는 { t, key, level, label }이어야 한다`);
+    }
+    if (x['t'] < start) throw new TypeError(`scripted[${i}]의 시각 ${x['t']}가 하루의 시작(${start})보다 앞선다 (시작 전의 설정은 set이다)`);
+    return { t: x['t'], key: x['key'], level: x['level'], label: x['label'] };
+  });
+  return {
+    scripted: scriptedChanges,
+    layout: [...((layout as string[] | undefined) ?? [])],
+    contain: ((contain as { id: string; in: string }[] | undefined) ?? []).map((x) => ({ id: x.id, in: x.in })),
+    why, patches: fromDb ? [] : ([...(patches as string[])] as string[]), use_db: fromDb, seed, spawn: [...spawn] as string[], set: sets, start, end, routine };
 }
 
 export interface DayTrace {
@@ -253,9 +321,14 @@ export interface DayTrace {
 
 /** 시나리오대로 세계를 세우고 뼈대 층으로 하루를 돌린다. 같은 입력이면 같은 기록이 나온다. */
 export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: number): DayTrace {
-  const log = new EventLog({ isKnownType: (type) => vocab.has('event_type', type) });
+  const log = new EventLog({ isKnownType: (type) => vocab.has('event_type', type), checkData: viaCheck(vocab) });
   const world = new World(db, vocab, log);
   for (const def of scenario.spawn) world.spawn(def, { t: 0 });
+  for (const line of scenario.layout) {
+    const ids = parseChain(line) ?? [];
+    for (const { below, above } of chainPairs(ids)) world.place(above, 'on', below, { t: 0 });
+  }
+  for (const c of scenario.contain) world.place(c.id, 'in', c.in, { t: 0 });
   for (const s of scenario.set) world.set(s.key, s.level, { t: s.t });
   const setupEnd = Math.max(0, ...scenario.set.map((s) => s.t));
   const engine: Engine = {
@@ -266,7 +339,7 @@ export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: 
     log,
   };
   const routine = parsePlan(scenario.routine, vocab);
-  const layers = skeletonLayers(db, engine, routine, vocab);
+  const layers = skeletonLayers(db, engine, routine, vocab, scenario.scripted);
   const results = runDay(layers, scenario.start, scenario.end, Rng.fromSeed(scenario.seed), vocab, stepMin);
   return {
     steps: results.map((r) => ({ ...r.board.snapshot(), lines: r.lines })),

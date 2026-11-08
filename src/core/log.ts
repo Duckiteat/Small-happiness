@@ -11,6 +11,8 @@ import { formatLogId, parseId } from './ids.ts';
 export interface LogOptions {
   /** 사건 유형이 사전에 있는지 확인한다. retract는 항상 허용된다. */
   readonly isKnownType?: (type: string) => boolean;
+  /** 사건 유형별 data 규칙(예: via)을 검사한다. 어기면 이유를 돌려주고, 기록은 그 사건을 받지 않는다. */
+  readonly checkData?: (type: string, data: GameEvent['data']) => string | null;
 }
 
 export interface ListOptions {
@@ -33,9 +35,11 @@ export class EventLog {
   readonly #bySeq = new Map<string, GameEvent>();
   readonly #retractedBy = new Map<string, string>(); // 철회된 seq → 철회 사건 seq
   readonly #isKnownType: ((type: string) => boolean) | undefined;
+  readonly #checkData: LogOptions['checkData'];
 
   constructor(options: LogOptions = {}) {
     this.#isKnownType = options.isKnownType;
+    this.#checkData = options.checkData;
   }
 
   get size(): number {
@@ -136,6 +140,8 @@ export class EventLog {
       throw new Error(`${input.seq}: 사전에 없는 사건 유형: ${input.type}`);
     }
     assertJsonValue(input.data, `${input.seq}.data`);
+    const dataProblem = input.type === RETRACT_TYPE ? null : this.#checkData?.(input.type, input.data) ?? null;
+    if (dataProblem !== null) throw new TypeError(`${input.seq}: ${input.type} 사건의 data가 규칙을 어긴다 — ${dataProblem}`);
 
     // 철회 검사를 원인 검사보다 먼저 한다: 철회의 기본 원인은 대상 자신이라,
     // 순서가 반대면 "대상이 없다"가 "원인이 없다"로 보고된다.

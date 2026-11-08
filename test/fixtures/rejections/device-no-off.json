@@ -1,0 +1,37 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 켜지기만 하고 꺼질 길이 없는 기기",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "안 꺼지는 전등"
+   },
+   "mobility": "fixed",
+   "role": "device",
+   "utility": [
+    "electric"
+   ],
+   "slots": {
+    "lamp": {
+     "features": [
+      "power"
+     ]
+    }
+   },
+   "offers": {
+    "on": {
+     "label": "켠다",
+     "verb": "switch",
+     "needs": [],
+     "effect": [
+      "OBJ+1|lamp:power@=on"
+     ],
+     "minutes": 1,
+     "tuned": false
+    }
+   }
+  }
+ ]
+}

@@ -1,5 +1,7 @@
 // 사건 봉투 (docs/기반층-명세.md 0-4)
 
+import { parseId } from './ids.ts';
+
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 export interface GameEvent {
@@ -74,4 +76,23 @@ export function parseEvent(raw: unknown): GameEvent {
   if (!isPlainObject(data)) throw new TypeError(`${seq}: data가 객체가 아니다`);
   assertJsonValue(data, `${seq}.data`);
   return { seq, t, type, src, cause, data: data as GameEvent['data'] };
+}
+
+/**
+ * 사건 번호들 중 가장 최근(번호가 가장 큰) 것. 없으면 null.
+ * "조건을 마지막으로 채운 사건"을 원인으로 적는 약속의 공용 함수다 (결정-기록 "원인 잇기", 영수증-명세 9장).
+ */
+export function latestSeq(seqs: readonly (string | null | undefined)[]): string | null {
+  let best: string | null = null;
+  let bestNum = -1;
+  for (const s of seqs) {
+    if (typeof s !== 'string') continue;
+    const parsed = parseId(s);
+    if (parsed === null || parsed.kind !== 'log') throw new TypeError(`기록 번호가 아니다: ${s}`);
+    if (parsed.num > bestNum) {
+      best = s;
+      bestNum = parsed.num;
+    }
+  }
+  return best;
 }

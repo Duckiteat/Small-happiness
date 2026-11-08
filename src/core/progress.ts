@@ -5,7 +5,8 @@
 //   - 조건은 사건이 일어나는 순간에만 바뀐다. 그래서 바뀌기 직전까지 옛 속도로 쌓고(integrate), 그 뒤로 새 속도를 쓴다.
 //   - 경계를 넘는 시각은 정확히 계산한다 (ceil, 분 단위). 단계 간격을 어떻게 나눠도 결과가 같다.
 //   - 계수 0이면 멈춘다 (냉동의 부패). 입력이 종결 단계(소멸)면 계수가 없으므로 0 — 버린 물건은 진행하지 않는다.
-//   - 축이 종결 단계면 진행하지 않는다. 밖에서 단계를 올렸으면 양을 그 경계까지 맞춘다 (내려가지는 않는다).
+//   - 축이 종결 단계면 진행하지 않는다. 밖에서 단계를 올렸으면 양을 그 경계까지 맞춘다.
+//   - 밖에서 단계를 내렸으면(가열해서 다시 먹을 수 있게 됨) 양을 그 칸의 경계로 되돌린다: 시계가 그 칸에서 다시 시작한다.
 // 난수를 받지 않는다. 상태를 바꾸는 것은 세계 상태(주인)이고, 여기서는 stage_advanced 사건을 원인으로 요청한다.
 
 import type { Db } from './db.ts';
@@ -13,6 +14,7 @@ import type { EventLog } from './log.ts';
 import { effectiveProgress } from './kinds.ts';
 import type { FullProgress } from './kinds.ts';
 import { formatStateKey } from './statekey.ts';
+import { formatVia } from './via.ts';
 import type { Vocab } from './vocab.ts';
 import type { World } from './world.ts';
 
@@ -25,6 +27,8 @@ interface Track {
   readonly inputs: readonly { readonly key: string; readonly table: { readonly [level: string]: number } }[];
   e: bigint;
   t: number;
+  /** 직전에 본 칸 번호 (종결 단계면 null). 밖에서 칸을 내리면 그 칸의 처음부터 다시 시작하기 위해 기억한다 */
+  seen: number | null;
 }
 
 export class Progress {
@@ -53,7 +57,7 @@ export class Progress {
             return { key: formatStateKey({ subject: instance, slot, feature }), table };
           });
           const idx = world.levelIndex(key);
-          tr = { instance, key, law, inputs, e: idx === null ? 0n : this.#threshold(law, idx), t };
+          tr = { instance, key, law, inputs, e: idx === null ? 0n : this.#threshold(law, idx), t, seen: idx };
           this.#tracks.set(key, tr);
           continue;
         }
@@ -62,8 +66,10 @@ export class Progress {
         const idx = world.levelIndex(key);
         if (idx !== null) {
           const floor = this.#threshold(law, idx);
-          if (tr.e < floor) tr.e = floor; // 밖에서 단계를 올린 경우
+          if (tr.seen !== null && idx < tr.seen) tr.e = floor; // 밖에서 단계를 내린 경우: 그 칸에서 시계를 다시 시작한다
+          else if (tr.e < floor) tr.e = floor; // 밖에서 단계를 올린 경우
         }
+        tr.seen = idx;
       }
     }
   }
@@ -101,7 +107,8 @@ export class Progress {
       }
       if (reach === idx) continue;
       const level = order.at(reach) as string;
-      const e = this.#log.append({ t, type: STAGE_ADVANCED, src: 'causal', data: { key, to: level } });
+      const via = formatVia(world.defOfInstance(tr.instance) ?? '', 'progress', tr.law.feature);
+      const e = this.#log.append({ t, type: STAGE_ADVANCED, src: 'causal', data: { key, to: level, via } });
       world.set(key, level, { t, cause: e.seq });
     }
   }

@@ -1,0 +1,519 @@
+[
+  {
+    "category": "resource",
+    "entries": [
+      {
+        "key": "electric",
+        "ko": "전기",
+        "en": "electricity",
+        "aliases": [
+          "전력"
+        ],
+        "desc": "장소의 설비로 들어온다. 머물지 않고 켜진 동안만 흘러, 쓰이는 즉시 열·냉기·바람 같은 효과가 된다",
+        "attrs": {
+          "holdable": false,
+          "sealed": false,
+          "sinks": [
+            "effect"
+          ]
+        }
+      },
+      {
+        "key": "water",
+        "ko": "물",
+        "en": "water",
+        "aliases": [
+          "수도",
+          "수돗물"
+        ],
+        "desc": "수도에서 나와 그릇·싱크대·음식에 머물다가 배수·증발·흡수로 사라진다",
+        "attrs": {
+          "holdable": true,
+          "sealed": false,
+          "sinks": [
+            "drain",
+            "absorb",
+            "evaporate"
+          ]
+        }
+      },
+      {
+        "key": "gas",
+        "ko": "가스",
+        "en": "gas",
+        "desc": "설비로 들어와 기기 안에서만 존재한다(밀폐). 쓰이려면 불이 붙어 연소로 사라진다",
+        "attrs": {
+          "holdable": true,
+          "sealed": true,
+          "sinks": [
+            "burn"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "category": "sink",
+    "entries": [
+      {
+        "key": "effect",
+        "ko": "효과가 됨",
+        "desc": "쓰이는 즉시 열·냉기·바람 같은 효과로 바뀌어 사라진다"
+      },
+      {
+        "key": "drain",
+        "ko": "배수",
+        "desc": "배수구로 흘러 나간다"
+      },
+      {
+        "key": "absorb",
+        "ko": "흡수",
+        "desc": "음식·천에 스며들어 그 물건의 수분이 된다"
+      },
+      {
+        "key": "evaporate",
+        "ko": "증발",
+        "desc": "공기 중으로 날아간다"
+      },
+      {
+        "key": "burn",
+        "ko": "연소",
+        "desc": "불이 붙어 열이 되고 사라진다"
+      }
+    ]
+  },
+  {
+    "category": "device_role",
+    "entries": [
+      {
+        "key": "plain",
+        "ko": "그냥 가구",
+        "aliases": [
+          "가구"
+        ],
+        "desc": "입력과 출력이 없다 (식탁, 의자, 선반, 식탁보)"
+      },
+      {
+        "key": "device",
+        "ko": "기기",
+        "desc": "입력을 받아 출력을 낸다. 설비(전기·수도·가스)를 쓰면 반드시 기기다. 설비가 없으면 비전자제품(완전한 아날로그)"
+      }
+    ]
+  },
+  {
+    "category": "feature",
+    "entries": [
+      {
+        "key": "water",
+        "ko": "물 양",
+        "en": "water amount",
+        "desc": "그릇·싱크대에 담긴 물의 양. 수도에서 들어와 머물다가 배수·흡수·증발로 사라져야 한다 (사라지는 길이 없는 물그릇은 관문이 거부)",
+        "attrs": {
+          "sense": "sight",
+          "resource": "water",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "some",
+              "ko": "조금"
+            },
+            {
+              "key": "full",
+              "ko": "가득"
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "power",
+        "ko": "작동",
+        "en": "power",
+        "desc": "기기가 켜져 전기를 쓰는 중인가. 켜면 전기가 효과로 쓰이고, 끝나면 꺼져야 한다",
+        "attrs": {
+          "sense": "sight",
+          "resource": "electric",
+          "levels": [
+            {
+              "key": "off",
+              "ko": "꺼짐"
+            },
+            {
+              "key": "on",
+              "ko": "켜짐"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "rice",
+        "ko": "밥 상태",
+        "en": "rice state",
+        "desc": "쌀이 담겼는가, 지어졌는가",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "raw",
+              "ko": "쌀"
+            },
+            {
+              "key": "cooked",
+              "ko": "밥"
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "flame",
+        "ko": "불꽃",
+        "en": "flame",
+        "desc": "가스레인지의 불이 붙어 있는가. 가스는 기기 안에서만 있다가 불이 붙으면 연소로 열이 되어 사라진다",
+        "attrs": {
+          "sense": "sight",
+          "resource": "gas",
+          "levels": [
+            {
+              "key": "out",
+              "ko": "꺼짐"
+            },
+            {
+              "key": "lit",
+              "ko": "불 켜짐"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "grid_electric",
+        "ko": "전기 공급",
+        "en": "electric supply",
+        "desc": "장소로 들어오는 전기가 끊겼는가 (정전)",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "normal",
+              "ko": "공급됨"
+            },
+            {
+              "key": "cut",
+              "ko": "끊김"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "grid_water",
+        "ko": "수도 공급",
+        "en": "water supply",
+        "desc": "장소로 들어오는 수도가 끊겼는가 (단수)",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "normal",
+              "ko": "공급됨"
+            },
+            {
+              "key": "cut",
+              "ko": "끊김"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "grid_gas",
+        "ko": "가스 공급",
+        "en": "gas supply",
+        "desc": "장소로 들어오는 가스가 끊겼는가",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "normal",
+              "ko": "공급됨"
+            },
+            {
+              "key": "cut",
+              "ko": "끊김"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "order",
+        "ko": "작동 상태",
+        "en": "working order",
+        "desc": "기기가 멀쩡한가, 망가졌는가. 쓰는 설비(전기·수도·가스)가 끊기면 망가지고, 고칠 수 있다",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "ok",
+              "ko": "정상"
+            },
+            {
+              "key": "broken",
+              "ko": "망가짐"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "door",
+        "ko": "문",
+        "en": "door",
+        "desc": "문이 닫혀 있는가, 열려 있는가",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "closed",
+              "ko": "닫힘"
+            },
+            {
+              "key": "open",
+              "ko": "열림"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "heat",
+        "ko": "가열 온도",
+        "en": "heat",
+        "desc": "가열해서 오른 온도. 없음이면 온도는 보관 온도(temp)로 읽는다 (docs/온도-읽기.md). 범위는 일반적인 값이며 확인하지 않았다(임시)",
+        "attrs": {
+          "sense": "touch",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "warm",
+              "ko": "따뜻함 (~60℃)"
+            },
+            {
+              "key": "hot",
+              "ko": "뜨거움 (60~100℃)"
+            },
+            {
+              "key": "boil",
+              "ko": "끓음 (100℃)"
+            },
+            {
+              "key": "fry",
+              "ko": "튀김 (150~190℃)"
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "category": "action",
+    "entries": [
+      {
+        "key": "fill",
+        "ko": "물 담기",
+        "en": "fill",
+        "aliases": [
+          "물받기",
+          "붓기"
+        ],
+        "desc": "수도를 틀어 그릇에 물을 받거나, 담긴 물을 다른 그릇에 붓는다"
+      },
+      {
+        "key": "switch",
+        "ko": "켜기",
+        "en": "switch on",
+        "aliases": [
+          "작동",
+          "스위치"
+        ],
+        "desc": "기기를 켠다. 전기를 쓰기 시작하고, 끝나면 스스로 꺼진다"
+      },
+      {
+        "key": "repair",
+        "ko": "고치기",
+        "en": "repair",
+        "aliases": [
+          "수리"
+        ],
+        "desc": "망가진 기기를 고친다. 그 기기의 설비가 다시 들어올 때 고칠 수 있다"
+      },
+      {
+        "key": "close",
+        "ko": "닫기",
+        "en": "close",
+        "desc": "열린 문을 닫는다"
+      },
+      {
+        "key": "reheat",
+        "ko": "데우기",
+        "en": "reheat",
+        "aliases": [
+          "데움"
+        ],
+        "desc": "전자레인지로 음식을 데운다. 가열 온도가 오르고 시간이 지나면 식는다"
+      },
+      {
+        "key": "fry",
+        "ko": "튀기기",
+        "en": "fry",
+        "aliases": [
+          "튀김"
+        ],
+        "desc": "기름에 튀겨 데운다. 가열 온도가 튀김 온도까지 오르고 시간이 지나면 식는다"
+      }
+    ]
+  }
+]

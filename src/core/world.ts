@@ -13,15 +13,19 @@
 // 세계 상태는 값이 정의와 사전에 맞는지만 본다.
 
 import type { Db } from './db.ts';
+import { latestSeq } from './events.ts';
 import type { GameEvent, JsonValue } from './events.ts';
 import { defOf, IdAllocator, parseId } from './ids.ts';
 import { effectiveInitial } from './kinds.ts';
 import type { EventLog } from './log.ts';
+import { distance, isLinked, isRelation, isUnder, parents, rootOf, visibleRoot, wouldCycle } from './placement.ts';
+import type { PlaceMap, Relation } from './placement.ts';
 import { formatStateKey, parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
 
 export const STATE_CHANGED = 'state_changed';
 export const INSTANCE_CREATED = 'instance_created';
+export const PLACED = 'placed';
 export const WORLD_SRC = 'world';
 
 export interface WriteMeta {
@@ -50,6 +54,9 @@ export class World {
   readonly #ids = new IdAllocator();
   readonly #instances = new Map<string, string>(); // 인스턴스 → 정의
   readonly #states = new Map<string, string>(); // 상태 키 → 단계 키
+  readonly #last = new Map<string, string>(); // 상태 키 → 마지막으로 바꾼 사건 (기록에서 복원된다)
+  readonly #born = new Map<string, string>(); // 인스턴스 → 생긴 사건
+  readonly #place = new Map<string, { on?: string; in?: string }>(); // 인스턴스 → 받치는 것·담긴 곳 (docs/물건-관계-명세.md)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -61,7 +68,7 @@ export class World {
   static fromLog(db: Db, vocab: Vocab, log: EventLog): World {
     const world = new World(db, vocab, log);
     for (const e of log.effective()) {
-      if (e.type === INSTANCE_CREATED || e.type === STATE_CHANGED) world.#apply(e);
+      if (e.type === INSTANCE_CREATED || e.type === STATE_CHANGED || e.type === PLACED) world.#apply(e);
     }
     return world;
   }
@@ -94,6 +101,58 @@ export class World {
     return this.#write(STATE_CHANGED, { key, from, to: level }, meta);
   }
 
+  /**
+   * 물건의 받치는 것(on)이나 담긴 곳(in)을 바꾼다. to가 null이면 그 관계를 푼다. 값이 같으면 사건을 남기지 않고 null.
+   * 없는 개체, 자기 자신, 순환이 생기는 포인터는 던진다.
+   */
+  place(id: string, rel: Relation, to: string | null, meta: WriteMeta): GameEvent | null {
+    this.#checkPlace(id, rel, to, 'place');
+    const from = this.#place.get(id)?.[rel] ?? null;
+    if (from === to) return null;
+    // 원인: 따로 주지 않으면 이 놓임을 가능하게 한 가장 최근 사건 (두 개체가 생긴 사건 중 나중 것)
+    const cause = meta.cause ?? latestSeq([this.#born.get(id), to === null ? undefined : this.#born.get(to)]);
+    return this.#write(PLACED, { id, rel, from, to }, { ...meta, cause });
+  }
+
+  /** 개체의 받치는 것·담긴 곳. 없으면 undefined. */
+  placeOf(id: string): { readonly on?: string; readonly in?: string } | undefined {
+    return this.#place.get(id);
+  }
+
+  /** 모든 개체의 받치는 것·담긴 곳 (포인터가 있는 개체만, 번호순). */
+  places(): { readonly [id: string]: { readonly on?: string; readonly in?: string } } {
+    const out: Record<string, { on?: string; in?: string }> = {};
+    for (const id of [...this.#place.keys()].sort()) {
+      const p = this.#place.get(id);
+      if (p !== undefined && (p.on !== undefined || p.in !== undefined)) out[id] = { ...p };
+    }
+    return out;
+  }
+
+  /** 있는 곳: 받치는 것·담긴 곳을 따라 올라가 닿는 맨 위 개체 (장소 개체면 그 장소). */
+  whereIs(id: string): string {
+    return rootOf(this.#place, id);
+  }
+
+  /** 눈에 보이는 곳 (받치는 것만 따라 올라간 맨 위). 어딘가의 안에 든 물건은 자기 자신이다. */
+  visiblePlace(id: string): string {
+    return visibleRoot(this.#place, id);
+  }
+
+  /** 서로 이어져 있는가: 한쪽이 다른 쪽 안이나 위에 있다 (같은 개체도 이어진 것). */
+  linked(a: string, b: string): boolean {
+    return isLinked(this.#place, a, b);
+  }
+
+  /** 두 개체 사이의 거리 (포인터를 방향 없이 이은 최단 칸 수). 이어지지 않으면 null. */
+  distanceBetween(a: string, b: string): number | null {
+    return distance(this.#place, a, b);
+  }
+
+  placeMap(): PlaceMap {
+    return this.#place;
+  }
+
   /** 상태의 단계 키. 한 번도 바뀌지 않았으면 사다리 0칸. */
   level(key: string): string {
     const k = this.#checkKey(key);
@@ -105,6 +164,15 @@ export class World {
     const k = this.#checkKey(key);
     const at = this.#ladder(k.feature, key).indexOf(this.level(key));
     return at < 0 ? null : at;
+  }
+
+  /**
+   * 그 상태가 지금 값으로 정해진 마지막 사건 번호: 마지막으로 바꾼 state_changed, 한 번도 바뀌지 않았으면 그 개체가 생긴 사건.
+   * 원인을 적을 때 쓴다 ("조건을 마지막으로 채운 사건", 영수증-명세 9장). 없는 키면 null.
+   */
+  lastChange(key: string): string | null {
+    const k = parseStateKey(key);
+    return this.#last.get(key) ?? (k === null ? null : this.#born.get(k.subject) ?? null);
   }
 
   defOfInstance(id: string): string | undefined {
@@ -162,6 +230,7 @@ export class World {
       if (id !== expected) throw new WorldError(`${at}: 인스턴스 번호 순서가 어긋난다 (기대 ${expected}, 실제 ${id})`);
       this.#ids.nextInstance(def);
       this.#instances.set(id, def);
+      this.#born.set(id, e.seq);
       return;
     }
     if (e.type === STATE_CHANGED) {
@@ -175,9 +244,57 @@ export class World {
       if (from !== now) throw new WorldError(`${at}: ${key}의 지금 단계는 ${now}인데 사건은 ${from}에서 바꾼다`);
       if (from === to) throw new WorldError(`${at}: ${key}의 from과 to가 같다`);
       this.#states.set(key, to);
+      this.#last.set(key, e.seq);
+      return;
+    }
+    if (e.type === PLACED) {
+      const { id, rel, from, to } = e.data;
+      if (typeof id !== 'string' || !isRelation(rel) || (from !== null && typeof from !== 'string') || (to !== null && typeof to !== 'string')) {
+        throw new WorldError(`${at}: data.id·rel(on/in)·from·to(문자열 또는 null)가 필요하다`);
+      }
+      this.#checkPlace(id, rel, to, at);
+      const now = this.#place.get(id)?.[rel] ?? null;
+      if (from !== now) throw new WorldError(`${at}: ${id}의 ${rel}는 지금 ${now ?? '없음'}인데 사건은 ${from ?? '없음'}에서 바꾼다`);
+      if (from === to) throw new WorldError(`${at}: ${id}의 ${rel}의 from과 to가 같다`);
+      const cur = { ...(this.#place.get(id) ?? {}) };
+      if (to === null) delete cur[rel];
+      else cur[rel] = to;
+      this.#place.set(id, cur);
       return;
     }
     throw new WorldError(`${at}: 세계 상태가 다루지 않는 사건이다`);
+  }
+
+  #checkPlace(id: string, rel: string, to: string | null, at: string): void {
+    if (!this.#instances.has(id)) throw new WorldError(`${at}: 없는 인스턴스다: ${id}`);
+    if (to === null) return;
+    if (!this.#instances.has(to)) throw new WorldError(`${at}: ${rel}가 가리키는 인스턴스가 없다: ${to}`);
+    if (to === id) throw new WorldError(`${at}: ${id}가 자기 자신을 ${rel}로 가리킨다`);
+    if (wouldCycle(this.#place, id, to)) throw new WorldError(`${at}: ${id}의 ${rel}를 ${to}로 하면 놓임이 돌아온다 (순환)`);
+    this.#checkSupply(id, to, at);
+  }
+
+  /**
+   * 출처 확인: 설비(전기·수도·가스)를 쓰는 물건은, 놓이는 곳이 장소에 닿았을 때 그 장소가 그 설비를 공급해야 한다.
+   * 옮기는 물건 안에 든 물건(담긴 곳·받치는 것)도 함께 본다. 아직 장소에 닿지 않은 중간 단계는 보지 않는다.
+   */
+  #checkSupply(id: string, to: string, at: string): void {
+    const root = rootOf(this.#place, to);
+    const rootDef = this.#db.defs[this.#instances.get(root) ?? ''];
+    if (rootDef === undefined || !root.startsWith('PLC')) return;
+    const moving = [id, ...[...this.#instances.keys()].filter((x) => x !== id && this.#under(x, id))];
+    for (const m of moving) {
+      const def = this.#db.defs[this.#instances.get(m) ?? ''];
+      for (const r of def?.utility ?? []) {
+        if (!(rootDef.supplies ?? []).includes(r)) {
+          throw new WorldError(`${at}: ${m}는 설비 "${r}"를 쓰는데 ${root}(${rootDef.names.ko})는 그 설비를 공급하지 않는다 (출처 없음)`);
+        }
+      }
+    }
+  }
+
+  #under(x: string, anc: string): boolean {
+    return isUnder(this.#place, x, anc);
   }
 
   #checkKey(key: string, at = key): { slot: string; feature: string } {

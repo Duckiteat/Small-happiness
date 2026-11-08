@@ -166,5 +166,53 @@
   "self-loop-via-kind.json": {
     "stage": "gate",
     "match": "자기 순환"
+  },
+  "stays-missing-place.json": {
+    "stage": "gate",
+    "match": "없는 정의 번호: PLC000099"
+  },
+  "stays-not-place.json": {
+    "stage": "gate",
+    "match": "머무는 곳은 장소여야 한다"
+  },
+  "offer-during-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 상황: nap"
+  },
+  "offer-during-unobserved.json": {
+    "stage": "gate",
+    "match": "플레이어가 함께 보지 않는 상황"
+  },
+  "utility-not-device.json": {
+    "stage": "gate",
+    "match": "기기\\(device\\)여야 한다"
+  },
+  "utility-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 설비: steam"
+  },
+  "role-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 역할: magic"
+  },
+  "holds-gas-free.json": {
+    "stage": "gate",
+    "match": "밀폐 자원"
+  },
+  "holds-electric.json": {
+    "stage": "gate",
+    "match": "담을 수 없는 자원"
+  },
+  "resource-no-sink.json": {
+    "stage": "gate",
+    "match": "값을 낮추는 규칙이나 행동이 없다"
+  },
+  "device-no-off.json": {
+    "stage": "gate",
+    "match": "값을 낮추는 규칙이나 행동이 없다"
+  },
+  "linked-no-other.json": {
+    "stage": "gate",
+    "match": "걸 대상이 없는 범위"
   }
 }

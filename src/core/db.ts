@@ -34,9 +34,9 @@ export const PREFIX_KIND: Readonly<Record<DefPrefix, string>> = {
 
 const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
-  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
-  PLC: [...COMMON_FIELDS, 'environment', 'passages', 'slots', 'meanings', 'rules', 'offers'],
-  CHR: [...COMMON_FIELDS, 'senses'],
+  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
+  PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'rules', 'offers'],
+  CHR: [...COMMON_FIELDS, 'senses', 'stays'],
 };
 
 /** 이 종류의 정의가 가질 수 있는 최상위 필드. 아직 설계되지 않은 종류는 공통 필드만 쓴다. */
@@ -73,6 +73,8 @@ export interface RuleDef {
   readonly on: readonly string[];
   /** 다른 정의를 가리키는 패턴이 그 정의(와 그 종류)의 **모든** 인스턴스에서 맞아야 한다 (없으면 참). */
   readonly on_all?: readonly string[];
+  /** true면 규칙을 선언한 정의가 아닌 다른 정의를 가리키는 패턴은, 이 인스턴스와 이어진(안이나 위에 있는) 것에만 걸린다. 없으면 그 종류 전부 */
+  readonly linked?: boolean;
   readonly emits: readonly string[];
   readonly note?: string;
   /** 지연(초). 게임 시간은 분이므로 60의 배수. 없으면 0 (즉시). */
@@ -94,6 +96,8 @@ export interface OfferDef {
   readonly when_meaning?: string;
   readonly effect: readonly string[]; // 결과 패턴 (=, >=, <=)
   readonly reveals?: boolean;
+  /** 이 상태(사전 presence)일 때만 하는 행동. 없으면 보는 시간 내내 (예: 요리는 식사 준비 시간에만) */
+  readonly during?: readonly string[];
   readonly minutes: number;
   readonly tuned: boolean;
 }
@@ -140,11 +144,21 @@ export interface Definition {
   readonly aliases: readonly string[];
   readonly desc: readonly string[];
   readonly mobility?: string;
+  /** 가구의 역할: 사전 device_role (그냥 가구 / 기기). 설비를 쓰면 기기다 */
+  readonly role?: string;
+  /** 연결된 설비(전기·수도·가스, 사전 resource). 비어 있으면 비전자제품(완전한 아날로그). 그 장소가 공급해야 한다(출처 확인) */
+  readonly utility?: readonly string[];
+  /** 이 물건이 담을 수 있는 자원 (사전 resource). 밀폐 자원(가스)은 그 설비를 쓰는 기기만 담는다 */
+  readonly holds?: readonly string[];
+  /** 장소가 공급하는 설비 (사전 resource) */
+  readonly supplies?: readonly string[];
   readonly slots?: { readonly [key: string]: SlotDef };
   readonly meanings?: readonly MeaningDef[];
   readonly rules?: { readonly [key: string]: RuleDef };
   readonly offers?: { readonly [key: string]: OfferDef };
   readonly senses?: { readonly [sense: string]: SenseDef };
+  /** 인물이 집에 있는 동안 머무는 장소 (번호 또는 이름). 그 장소의 냄새만 맡는다. 없으면 모든 장소 (위치를 아직 안 둔 것) */
+  readonly stays?: string;
   /** 장소의 환경 특성: 사전 env_trait → 사전 env_level */
   readonly environment?: { readonly [trait: string]: string };
   readonly passages?: readonly PassageDef[];
@@ -281,7 +295,7 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ok = false;
       continue;
     }
-    onlyKeys(rule, ['label', 'on', 'on_all', 'emits', 'note', 'delay_s', 'tuned'], at, push);
+    onlyKeys(rule, ['label', 'on', 'on_all', 'emits', 'note', 'delay_s', 'tuned', 'linked'], at, push);
     const onAll = rule['on_all'] ?? [];
     if (!isStrArr(rule['on']) || !isStrArr(onAll) || rule['on'].length + onAll.length === 0 || !isStrArr(rule['emits']) || rule['emits'].length === 0) {
       push(at, 'on(또는 on_all)과 emits(패턴 문자열 목록, 1개 이상)가 필요하다');
@@ -322,6 +336,7 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ...(typeof rule['note'] === 'string' ? { note: rule['note'] } : {}),
       ...(typeof delay === 'number' ? { delay_s: delay } : {}),
       ...(typeof rule['tuned'] === 'boolean' ? { tuned: rule['tuned'] } : {}),
+      ...(rule['linked'] === true ? { linked: true } : {}),
     };
     out[key] = r;
   }
@@ -347,7 +362,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
       bad(at, '제공 행동은 객체여야 한다');
       continue;
     }
-    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'minutes', 'tuned'], at, push);
+    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'minutes', 'tuned'], at, push);
     const needs = o['needs'];
     const needsOk = Array.isArray(needs) && needs.every((n) => isObj(n) && typeof n['aware'] === 'string' && typeof n['at_least'] === 'string' && Object.keys(n).length === 2);
     if (typeof o['verb'] !== 'string') bad(at, 'verb(사전 action 키)가 필요하다');
@@ -356,6 +371,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
     else if (o['when'] !== undefined && !isStrArr(o['when'])) bad(at, 'when은 상태 패턴 목록이어야 한다');
     else if (o['when_meaning'] !== undefined && (typeof o['when_meaning'] !== 'string' || !TOKEN_RE.test(o['when_meaning']))) bad(at, 'when_meaning은 상태 의미(means) 토큰이어야 한다');
     else if (o['reveals'] !== undefined && typeof o['reveals'] !== 'boolean') bad(at, 'reveals는 true/false여야 한다');
+    else if (o['during'] !== undefined && !(isStrArr(o['during']) && o['during'].length > 0)) bad(at, 'during은 상태(사전 presence) 키의 비어 있지 않은 목록이어야 한다');
     else if (typeof o['minutes'] !== 'number' || !Number.isInteger(o['minutes']) || o['minutes'] <= 0) bad(at, 'minutes(걸리는 시간, 분)는 양의 정수여야 한다');
     else if (typeof o['tuned'] !== 'boolean') bad(at, 'tuned(걸리는 시간이 조정된 값인지)를 true/false로 적어야 한다');
     else if (o['label'] !== undefined && typeof o['label'] !== 'string') bad(at, 'label은 문자열이어야 한다');
@@ -368,6 +384,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
         ...(typeof o['when_meaning'] === 'string' ? { when_meaning: o['when_meaning'] } : {}),
         effect: (o['effect'] as string[]).map((s) => s.trim()),
         ...(o['reveals'] === true ? { reveals: true } : {}),
+        ...(isStrArr(o['during']) ? { during: o['during'].map((s) => s.trim()) } : {}),
         minutes: o['minutes'],
         tuned: o['tuned'],
       };
@@ -491,11 +508,16 @@ export type Fields = Partial<{
   aliases: string[];
   desc: string[];
   mobility: string;
+  role: string;
+  utility: string[];
+  holds: string[];
+  supplies: string[];
   slots: Record<string, SlotDef>;
   meanings: MeaningDef[];
   rules: Record<string, RuleDef>;
   offers: Record<string, OfferDef>;
   senses: Record<string, SenseDef>;
+  stays: string;
   environment: Record<string, string>;
   passages: PassageDef[];
   progress: Record<string, ProgressDef>;
@@ -543,6 +565,17 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (typeof value !== 'string' || value.trim() === '') push(at, 'mobility는 문자열이어야 한다');
         else out.mobility = value.trim();
         break;
+      case 'role':
+        if (typeof value !== 'string' || value.trim() === '') push(at, 'role은 문자열이어야 한다');
+        else out.role = value.trim();
+        break;
+      case 'utility':
+      case 'holds':
+      case 'supplies': {
+        const v = fieldStringList(value, key, at, push);
+        if (v !== undefined) out[key] = v;
+        break;
+      }
       case 'slots': {
         const v = fieldSlots(value, at, push);
         if (v !== undefined) out.slots = v;
@@ -568,6 +601,10 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.senses = v;
         break;
       }
+      case 'stays':
+        if (typeof value !== 'string' || value.trim() === '') push(at, 'stays는 장소 번호나 이름 문자열이어야 한다');
+        else out.stays = value.trim();
+        break;
       case 'environment': {
         const v = fieldEnvironment(value, at, push);
         if (v !== undefined) out.environment = v;
@@ -595,6 +632,16 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
   return out;
 }
 
+/**
+ * 정의의 모든 필드(id 제외)를 필드 묶음으로 되돌린다. 갱신 병합이 "옛 필드 전부 + 바뀐 필드"로 합칠 때 쓴다.
+ * 필드를 이름으로 하나씩 옮기던 목록을 없애서, 새 필드를 더해도 부분 갱신이 그 필드를 지우지 못한다.
+ */
+export function fieldsOf(def: Definition): Fields {
+  const { id, ...rest } = def;
+  void id;
+  return rest as Fields;
+}
+
 /** 필드 묶음을 정규 순서의 정의로 만든다. names가 없으면 undefined. */
 export function buildDefinition(id: string, f: Fields): Definition | undefined {
   if (f.names === undefined) return undefined;
@@ -604,11 +651,16 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
     ...(f.is_a !== undefined ? { is_a: f.is_a } : {}),
     aliases: f.aliases ?? [],
     ...(f.mobility !== undefined ? { mobility: f.mobility } : {}),
+    ...(f.role !== undefined ? { role: f.role } : {}),
+    ...(f.utility !== undefined ? { utility: f.utility } : {}),
+    ...(f.holds !== undefined ? { holds: f.holds } : {}),
+    ...(f.supplies !== undefined ? { supplies: f.supplies } : {}),
     ...(f.slots !== undefined ? { slots: f.slots } : {}),
     ...(f.meanings !== undefined ? { meanings: f.meanings } : {}),
     ...(f.rules !== undefined ? { rules: f.rules } : {}),
     ...(f.offers !== undefined ? { offers: f.offers } : {}),
     ...(f.senses !== undefined ? { senses: f.senses } : {}),
+    ...(f.stays !== undefined ? { stays: f.stays } : {}),
     ...(f.environment !== undefined ? { environment: f.environment } : {}),
     ...(f.passages !== undefined ? { passages: f.passages } : {}),
     ...(f.progress !== undefined ? { progress: f.progress } : {}),

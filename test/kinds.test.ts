@@ -17,8 +17,9 @@ const vocab = loadVocabDir(join(ROOT, 'data', 'vocab'));
 const real: Db = loadDb(ROOT);
 type E = { t: number; type: string; data: Record<string, unknown> };
 
-test('실제 저장소: 음식 종류 하나에 음식 10가지가 속하고, 실제 저장소가 관문을 통과한다', () => {
-  assert.equal(kindMembers(real, 'OBJ000001').size, 11);
+test('실제 저장소: 음식 종류 하나에 음식 13가지(발효 음식 종류 포함)가 속하고, 실제 저장소가 관문을 통과한다', () => {
+  assert.equal(kindMembers(real, 'OBJ000001').size, 15, '음식 · 음식 10가지 · 발효 음식 종류 · 된장 · 양파 · 애호박');
+  assert.deepEqual([...kindMembers(real, 'OBJ000025')].sort(), ['OBJ000025', 'OBJ000026', 'OBJ000005', 'OBJ000008'].sort(), '발효 음식 종류: 김치 · 요거트 · 된장');
   assert.equal(runGate(emptyDb(), real, vocab, []).pass, true);
 });
 
@@ -84,10 +85,14 @@ test('거부: 종류의 규칙이 쓰는 특징이 없는 물건 (물려받을 �
     defs: [{ id: 'OBJ+1', is_a: 'OBJ000001', names: { ko: '돌' }, slots: { body: { features: ['dirt'] } } }] }), /부위 body에 특징 rot가 있어야 한다/);
 });
 
-test('거부: 종류는 한 단계만, 같은 접두만, 있는 정의만', () => {
+test('거부: 있는 정의만 가리키고, 종류가 돌아오면 안 된다 (여러 단계는 가능: kinds-tree.test)', () => {
   assert.match(gateOf({ format: 'small-happiness-patch', version: 1, why: '시험',
     defs: [{ id: 'OBJ+1', is_a: 'OBJ000099', names: { ko: '유령' }, slots: { body: { features: ['rot'] } } }] }), /없는 정의를 가리킨다: OBJ000099/);
+  // 종류가 돌아오는 사슬 (과일 → 사과 → 과일)
   assert.match(gateOf({ format: 'small-happiness-patch', version: 1, why: '시험',
-    defs: [{ id: 'OBJ+1', is_a: 'OBJ000001', names: { ko: '과일' }, slots: { body: { features: ['rot'] } } },
-      { id: 'OBJ+2', is_a: 'OBJ+1', names: { ko: '사과' }, slots: { body: { features: ['rot'] } } }] }), /종류는 한 단계만/);
+    defs: [{ id: 'OBJ+1', is_a: 'OBJ+2', names: { ko: '과일' }, slots: { body: { features: ['rot'] } } },
+      { id: 'OBJ+2', is_a: 'OBJ+1', names: { ko: '사과' }, slots: { body: { features: ['rot'] } } }] }), /종류가 돌아온다/);
+  // 자기 자신은 종류가 아니다
+  assert.match(gateOf({ format: 'small-happiness-patch', version: 1, why: '시험',
+    defs: [{ id: 'OBJ000001', is_a: 'OBJ000001' }] }), /자기 자신의 종류일 수 없다/);
 });

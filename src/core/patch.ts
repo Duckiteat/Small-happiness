@@ -7,7 +7,7 @@
 
 import { DEF_PREFIXES, formatDefId, isDefPrefix, parseId } from './ids.ts';
 import type { DefPrefix } from './ids.ts';
-import { buildDefinition, maxUsedNumber, parseFields, resolveDefRef } from './db.ts';
+import { buildDefinition, fieldsOf, maxUsedNumber, parseFields, resolveDefRef } from './db.ts';
 import type { Db, Definition, Fields, Issue } from './db.ts';
 import type { Vocab } from './vocab.ts';
 
@@ -207,6 +207,17 @@ function mapDefinition(db: Db, vocab: Vocab | undefined, def: Definition, errors
     Object.entries(def.environment).map(([t, l]) => [key('env_trait', t, `${def.id}.environment`), key('env_level', l, `${def.id}.environment.${t}`)]),
   );
 
+  let stays = def.stays;
+  if (stays !== undefined) {
+    const ref = resolveDefRef(db, stays);
+    if ('error' in ref) errors.push({ level: 'error', where: `${def.id}.stays`, msg: ref.error });
+    else if (ref.id !== stays) {
+      notes.push({ where: `${def.id}.stays`, from: stays, to: ref.id });
+      stays = ref.id;
+      changed = true;
+    }
+  }
+
   let mobility = def.mobility;
   if (vocab !== undefined && mobility !== undefined) {
     const k = vocab.resolve('mobility', mobility);
@@ -217,10 +228,33 @@ function mapDefinition(db: Db, vocab: Vocab | undefined, def: Definition, errors
     }
   }
 
+  // 사전 이름(전기·기기 등)으로 쓴 것은 키로 바꾼다
+  const viaVocab = (category: string, v: string | undefined, at: string): string | undefined => {
+    if (vocab === undefined || v === undefined) return v;
+    const k = vocab.resolve(category, v);
+    if (k !== null && k !== v) {
+      notes.push({ where: at, from: v, to: k });
+      changed = true;
+      return k;
+    }
+    return v;
+  };
+  const role = viaVocab('device_role', def.role, `${def.id}.role`);
+  const list = (category: string, field: 'utility' | 'holds' | 'supplies'): readonly string[] | undefined =>
+    def[field]?.map((v, i) => viaVocab(category, v, `${def.id}.${field}[${i}]`) as string);
+  const utility = list('resource', 'utility');
+  const holds = list('resource', 'holds');
+  const supplies = list('resource', 'supplies');
+
   if (!changed) return def;
   return {
     ...def,
+    ...(role !== undefined ? { role } : {}),
+    ...(utility !== undefined ? { utility } : {}),
+    ...(holds !== undefined ? { holds } : {}),
+    ...(supplies !== undefined ? { supplies } : {}),
     ...(mobility !== undefined ? { mobility } : {}),
+    ...(stays !== undefined ? { stays } : {}),
     ...(environment !== undefined ? { environment } : {}),
     ...(passages !== undefined ? { passages } : {}),
     ...(slots !== undefined ? { slots } : {}),
@@ -296,21 +330,8 @@ export function mergePatch(dbIn: Db, patch: Patch, vocab?: Vocab): MergeResult {
     } else {
       const old = defsById[id] as Definition;
       const changedFields = Object.keys(fields).filter((k) => k !== 'id');
-      const merged = buildDefinition(id, {
-        names: old.names,
-        ...(old.is_a !== undefined ? { is_a: old.is_a } : {}),
-        aliases: [...old.aliases],
-        desc: [...old.desc],
-        ...(old.mobility !== undefined ? { mobility: old.mobility } : {}),
-        ...(old.slots !== undefined ? { slots: old.slots as Fields['slots'] } : {}),
-        ...(old.meanings !== undefined ? { meanings: [...old.meanings] } : {}),
-        ...(old.rules !== undefined ? { rules: old.rules as Fields['rules'] } : {}),
-        ...(old.offers !== undefined ? { offers: old.offers as Fields['offers'] } : {}),
-        ...(old.senses !== undefined ? { senses: old.senses as Fields['senses'] } : {}),
-        ...(old.progress !== undefined ? { progress: old.progress as Fields['progress'] } : {}),
-        ...(old.initial !== undefined ? { initial: old.initial as Fields['initial'] } : {}),
-        ...fields,
-      });
+      // 옛 필드 전부 + 바뀐 필드 (필드를 이름으로 하나씩 옮기지 않는다 — 새 필드를 빠뜨려 부분 갱신이 지우는 일을 막는다)
+      const merged = buildDefinition(id, { ...fieldsOf(old), ...fields });
       if (merged === undefined) return;
       if (JSON.stringify(merged) !== JSON.stringify(old)) {
         defsById[id] = merged;

@@ -1,0 +1,18 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: utility-not-device.json",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "나무의자"
+   },
+   "mobility": "portable",
+   "role": "plain",
+   "utility": [
+    "electric"
+   ]
+  }
+ ]
+}

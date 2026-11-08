@@ -19,7 +19,9 @@
 import type { Db } from './db.ts';
 import { effectiveRules, instancesOfKind } from './kinds.ts';
 import { Progress } from './progress.ts';
-import { spreadRules } from './spread.ts';
+import { generatedRules } from './generated.ts';
+import { formatVia } from './via.ts';
+import { latestSeq } from './events.ts';
 import type { GameEvent } from './events.ts';
 import type { EventLog } from './log.ts';
 import { condRange, formatStateKey, parsePattern } from './statekey.ts';
@@ -71,7 +73,7 @@ export class CausalError extends Error {
   }
 }
 
-interface Rule {
+export interface Rule {
   readonly def: string; // 이 규칙이 걸리는 인스턴스의 정의
   readonly owner: string; // 규칙을 선언한 정의 (자기 자신에 묶이는 패턴의 정의)
   readonly key: string; // 규칙 키
@@ -79,6 +81,8 @@ interface Rule {
   readonly onAll: readonly StatePattern[];
   readonly emits: readonly StatePattern[];
   readonly delayMin: number;
+  /** 선언한 정의가 아닌 정의의 패턴은 이 인스턴스와 이어진(안이나 위에 있는) 것에만 건다 */
+  readonly linked?: boolean;
 }
 
 interface Reservation {
@@ -97,10 +101,15 @@ function compileRules(db: Db): Rule[] {
         if (p === null) throw new CausalError(`${owner}.rules.${key}: 패턴 형식이 아니다 (${text}) — 관문을 지난 저장소만 쓴다`);
         return p;
       };
-      rules.push({ def, owner, key, on: r.on.map(parse), onAll: (r.on_all ?? []).map(parse), emits: r.emits.map(parse), delayMin: (r.delay_s ?? 0) / 60 });
+      rules.push({ def, owner, key, on: r.on.map(parse), onAll: (r.on_all ?? []).map(parse), emits: r.emits.map(parse), delayMin: (r.delay_s ?? 0) / 60, ...(r.linked === true ? { linked: true } : {}) });
     }
   }
   return rules;
+}
+
+/** 저장소에서 돌아가는 모든 규칙: 정의의 규칙(종류에서 물려받은 것 포함) + 데이터에서 만든 규칙(장소 그래프의 번짐, 냄새 사슬의 종류). 감사(audit.ts)도 이 목록을 쓴다. */
+export function allRules(db: Db, vocab: Vocab): Rule[] {
+  return [...compileRules(db), ...generatedRules(db, vocab)];
 }
 
 export class Causal {
@@ -118,7 +127,7 @@ export class Causal {
     this.#db = db;
     this.#vocab = vocab;
     this.#log = log;
-    this.#rules = [...compileRules(db), ...spreadRules(db, vocab)]; // 손으로 쓴 규칙 + 장소 그래프에서 만든 번짐 규칙
+    this.#rules = allRules(db, vocab); // 손으로 쓴 규칙 + 장소 그래프에서 만든 번짐 규칙
     this.#progress = new Progress(db, vocab, log);
     this.#now = start;
   }
@@ -145,10 +154,10 @@ export class Causal {
   }
 
   /** 지금 걸려 있는 예약 (발화 시각, 규칙, 인스턴스). 화면의 예고와 시험에 쓴다. */
-  pending(): { readonly due: number; readonly rule: string; readonly at: string }[] {
+  pending(): { readonly due: number; readonly via: string; readonly at: string }[] {
     return [...this.#reservations.values()]
-      .map((r) => ({ due: r.due, rule: `${r.rule.owner}/${r.rule.key}`, at: r.at }))
-      .sort((a, b) => a.due - b.due || a.rule.localeCompare(b.rule) || a.at.localeCompare(b.at));
+      .map((r) => ({ due: r.due, via: formatVia(r.rule.owner, 'rule', r.rule.key), at: r.at }))
+      .sort((a, b) => a.due - b.due || a.via.localeCompare(b.via) || a.at.localeCompare(b.at));
   }
 
   /** 세계를 시각 to까지 진행한다. 그 사이의 발화는 각자의 시각으로 기록된다. */
@@ -169,7 +178,7 @@ export class Causal {
       const decided = batch.map(([id, r]) => ({ id, r, holds: this.#holds(world, r.rule, r.at) }));
       for (const { id, r, holds } of decided) {
         this.#reservations.delete(id);
-        const data = { rule: `${r.rule.owner}/${r.rule.key}`, at: r.at };
+        const data = { via: formatVia(r.rule.owner, 'rule', r.rule.key), at: r.at };
         if (!holds) {
           this.#log.append({ t: due, type: DELAY_CANCELLED, src: CAUSAL_SRC, cause: r.seq, data });
           continue;
@@ -178,6 +187,7 @@ export class Causal {
         this.#emit(world, r.rule, r.at, fired);
         if (++fires > MAX_FIRES_PER_ADVANCE) throw new CausalError(`한 번에 ${MAX_FIRES_PER_ADVANCE}번 넘게 발화했다 — 끝나지 않는 규칙 사슬이 있다`);
       }
+      this.#progress.integrate(world, due); // 규칙이 칸을 내렸으면 시계를 그 칸에서 다시 시작한 뒤에 경계를 본다
       this.#progress.fire(world, due); // 진행 법칙의 경계를 넘은 축
       if (++fires > MAX_FIRES_PER_ADVANCE) throw new CausalError(`한 번에 ${MAX_FIRES_PER_ADVANCE}번 넘게 돌았다 — 끝나지 않는 사슬이 있다`);
       this.#schedule(world, due);
@@ -202,15 +212,29 @@ export class Causal {
         if (this.#reservations.has(id)) continue;
         if (!this.#holds(world, rule, at) || this.#done(world, rule, at)) continue;
         const due = t + rule.delayMin;
-        const e = this.#log.append({ t, type: DELAY_SCHEDULED, src: CAUSAL_SRC, data: { rule: `${rule.owner}/${rule.key}`, at, due } });
+        const e = this.#log.append({ t, type: DELAY_SCHEDULED, src: CAUSAL_SRC, cause: this.#why(world, rule, at), data: { via: formatVia(rule.owner, 'rule', rule.key), at, due } });
         this.#reservations.set(id, { rule, at, due, seq: e.seq });
       }
     }
   }
 
+  /**
+   * 예약의 원인: 조건을 채운 상태 키들(on은 맞는 것, on_all은 걸리는 것 전부) 중 가장 최근에 바뀐 사건.
+   * 조건이 처음부터 맞아서 한 번도 바뀐 적이 없으면 null (원인 사건이 없는 것이 맞다).
+   */
+  #why(world: World, rule: Rule, at: string): string | null {
+    const keys = (p: StatePattern): string[] => this.#targets(world, p, rule, at).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
+    return latestSeq([
+      ...rule.on.flatMap((p) => this.#targets(world, p, rule, at).filter((i) => this.#matches(world, p, i)).map((i) => world.lastChange(formatStateKey({ subject: i, slot: p.slot, feature: p.feature })))),
+      ...rule.onAll.flatMap((p) => keys(p).map((k) => world.lastChange(k))),
+    ]);
+  }
+
   /** 패턴이 걸리는 인스턴스들: 규칙을 선언한 정의면 그 인스턴스 하나, 아니면 그 정의의 종류 전부. */
-  #targets(world: World, p: StatePattern, owner: string, at: string): string[] {
-    return p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def);
+  #targets(world: World, p: StatePattern, rule: { readonly owner: string; readonly linked?: boolean }, at: string): string[] {
+    if (p.def === rule.owner) return [at];
+    const all = instancesOfKind(world, this.#db, p.def);
+    return rule.linked === true ? all.filter((i) => world.linked(i, at)) : all;
   }
 
   #matches(world: World, p: StatePattern, instance: string): boolean {
@@ -220,8 +244,8 @@ export class Causal {
   /** on이 모두 맞는가 (다른 정의의 패턴은 하나라도), on_all도 모두 맞는가 (다른 정의의 패턴은 모두). */
   #holds(world: World, rule: Rule, at: string): boolean {
     return (
-      rule.on.every((p) => this.#targets(world, p, rule.owner, at).some((i) => this.#matches(world, p, i))) &&
-      rule.onAll.every((p) => this.#targets(world, p, rule.owner, at).every((i) => this.#matches(world, p, i)))
+      rule.on.every((p) => this.#targets(world, p, rule, at).some((i) => this.#matches(world, p, i))) &&
+      rule.onAll.every((p) => this.#targets(world, p, rule, at).every((i) => this.#matches(world, p, i)))
     );
   }
 
@@ -231,7 +255,7 @@ export class Causal {
    */
   #done(world: World, rule: Rule, at: string): boolean {
     return rule.emits.every((p) =>
-      this.#targets(world, p, rule.owner, at).every((i) => {
+      this.#targets(world, p, rule, at).every((i) => {
         if (this.#matches(world, p, i)) return true;
         const key = formatStateKey({ subject: i, slot: p.slot, feature: p.feature });
         return p.cond !== null && p.cond.op !== '=' && world.levelIndex(key) === null;
@@ -242,7 +266,7 @@ export class Causal {
   /** 결과를 세계 상태(주인)에 요청한다. */
   #emit(world: World, rule: Rule, at: string, cause: GameEvent): void {
     for (const p of rule.emits) {
-      for (const i of this.#targets(world, p, rule.owner, at)) {
+      for (const i of this.#targets(world, p, rule, at)) {
         const key = formatStateKey({ subject: i, slot: p.slot, feature: p.feature });
         applyLevel(world, this.#vocab, key, p.feature, p.cond, { t: cause.t, cause: cause.seq });
       }

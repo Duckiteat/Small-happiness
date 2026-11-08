@@ -1,0 +1,21 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: holds-electric.json",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "전기통"
+   },
+   "mobility": "portable",
+   "role": "device",
+   "utility": [
+    "electric"
+   ],
+   "holds": [
+    "electric"
+   ]
+  }
+ ]
+}

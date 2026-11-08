@@ -78,7 +78,10 @@ test('자동 생성 부록: 내용, 쓰기, 최신 여부 검사', () => {
   commitPatch(root, sample, vocab, { now: NOW });
   const md = appendixMarkdown(loadDb(root), vocab);
   assert.match(md, /\| OBJ000001 \| object \| 음식 \| portable \|/);
-  assert.match(md, /spoil → odor_reach → bugs → spread/);
+  // 규칙 사슬 표: 규칙마다 바로 다음에 이어지는 규칙 (spoil → odor_reach → bugs → spread)
+  assert.match(md, /\| \S+\/rule\/spoil[^|]*\| [^|]*\bodor_reach\b/);
+  assert.match(md, /\| \S+\/rule\/odor_reach[^|]*\| [^|]*\bbugs\b/);
+  assert.match(md, /\| \S+\/rule\/bugs[^|]*\| [^|]*\bspread\b/);
 
   assert.equal(appendix(root, vocab, 'check').ok, false); // 아직 안 씀
   assert.equal(appendix(root, vocab, 'write').ok, true);
@@ -159,11 +162,11 @@ test('명령줄: status와 validate (쓰지 않음)', () => {
   assert.equal(status.status, 0, status.stderr);
   assert.match(status.stdout, new RegExp(`정의 ${Object.keys(loadDb(ROOT).defs).length}개`));
 
-  // 실제 저장소에 맞는 작은 패치 (2026-11-06부터 실제 저장소에 내용이 있다): 음식 종류에 하나를 더한다
+  // 실제 저장소에 맞는 작은 패치 (2026-11-06부터 실제 저장소에 내용이 있다): 음식 종류에 하나를 더한다 (음식 종류의 버리기가 냄새 종류 칸을 쓰므로 하위 음식도 그 칸을 가진다)
   const dir = mkdtempSync(join(tmpdir(), 'sh-cli-'));
   const file = join(dir, 'p.json');
   writeFileSync(file, JSON.stringify({ format: 'small-happiness-patch', version: 1, why: '시험: validate는 쓰지 않는다',
-    defs: [{ id: 'OBJ+1', is_a: 'OBJ000001', names: { ko: '시험용 반찬' }, mobility: '가변', slots: { body: { features: ['smell', 'decay'] }, cond: { features: ['seal', 'moisture', 'cut', 'temp'] } } }] }));
+    defs: [{ id: 'OBJ+1', is_a: 'OBJ000001', names: { ko: '시험용 반찬' }, mobility: '가변', slots: { body: { features: ['smell', 'odor', 'decay'] }, cond: { features: ['seal', 'moisture', 'cut', 'temp', 'heat'] } } }] })); // 음식 종류의 식는 규칙이 heat를 쓰므로 물려받는 음식은 heat가 있어야 한다
   const validate = run('validate', file);
   rmSync(dir, { recursive: true, force: true });
   assert.equal(validate.status, 0, validate.stderr);

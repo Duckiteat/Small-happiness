@@ -1,0 +1,1 @@
+{"format": "small-happiness-patch", "version": 1, "why": "거부 시험: 플레이어가 함께 보지 않는 상황(외출)에서만 하는 행동", "defs": [{"id": "OBJ000001", "offers": {"cook": {"verb": "cook", "needs": [], "effect": [], "during": ["out"], "minutes": 5, "tuned": false}}}]}
