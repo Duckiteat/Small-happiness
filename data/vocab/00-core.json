@@ -295,7 +295,12 @@
               "key": "rotten",
               "ko": "썩음"
             }
-          ]
+          ],
+          "heat_reset": {
+            "feature": "heat",
+            "from": "hot",
+            "up_to": "turned"
+          }
         }
       },
       {

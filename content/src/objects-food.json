@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "남은 치킨은 데울 수 있다(가열 온도 heat): 데워진 뒤 30분마다 한 칸씩 식어 없음으로 돌아온다. 가열은 부패 속도에 영향을 주지 않는다(임시).",
+  "why": "가열로 시계가 다시 시작된다(상하기 전 음식만): 모든 음식에 가열 온도(heat)를 두고 식는 규칙을 음식 종류로 올린다. 발효 음식 종류와 된장·양파·애호박을 더한다 (된장찌개 재료: 된장, 대파, 양파, 애호박, 두부). 김치와 요거트는 발효 음식이다. 수치(보관 기간)는 일반적인 값의 임시값이다.",
   "defs": [
     {
       "id": "OBJ000001",
@@ -26,11 +26,35 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
-      "rules": {},
+      "rules": {
+        "cool_a": {
+          "label": "뜨거운 음식은 30분 뒤 따뜻함으로 식는다",
+          "on": [
+            "OBJ000001|cond:heat@>=hot"
+          ],
+          "emits": [
+            "OBJ000001|cond:heat@<=warm"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        },
+        "cool_b": {
+          "label": "따뜻한 음식은 30분 뒤 식는다",
+          "on": [
+            "OBJ000001|cond:heat@=warm"
+          ],
+          "emits": [
+            "OBJ000001|cond:heat@<=none"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        }
+      },
       "offers": {
         "discard": {
           "label": "못 먹게 된 음식을 버린다",
@@ -295,7 +319,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -360,7 +385,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -425,7 +451,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -485,7 +512,7 @@
     },
     {
       "id": "OBJ000005",
-      "is_a": "OBJ000001",
+      "is_a": "OBJ000025",
       "names": {
         "ko": "김치",
         "en": "kimchi"
@@ -504,7 +531,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -576,7 +604,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -633,7 +662,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -669,7 +699,7 @@
     },
     {
       "id": "OBJ000008",
-      "is_a": "OBJ000001",
+      "is_a": "OBJ000025",
       "names": {
         "ko": "요거트",
         "en": "yogurt"
@@ -688,7 +718,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -753,7 +784,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -868,30 +900,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "cool_a": {
-          "label": "뜨거운 음식은 30분 뒤 따뜻함으로 식는다",
-          "on": [
-            "OBJ000010|cond:heat@>=hot"
-          ],
-          "emits": [
-            "OBJ000010|cond:heat@<=warm"
-          ],
-          "delay_s": 1800,
-          "tuned": false
-        },
-        "cool_b": {
-          "label": "따뜻한 음식은 30분 뒤 식는다",
-          "on": [
-            "OBJ000010|cond:heat@=warm"
-          ],
-          "emits": [
-            "OBJ000010|cond:heat@<=none"
-          ],
-          "delay_s": 1800,
-          "tuned": false
-        }
-      },
+      "rules": {},
       "progress": {
         "decay": {
           "base_s": 440640
@@ -930,7 +939,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -962,6 +972,219 @@
       },
       "desc": [
         "다듬지 않은 대파"
+      ]
+    },
+    {
+      "id": "OBJ000025",
+      "is_a": "OBJ000001",
+      "names": {
+        "ko": "발효 음식",
+        "en": "fermented food"
+      },
+      "aliases": [
+        "발효식품"
+      ],
+      "mobility": "가변",
+      "desc": [
+        "상하지 않고 익는 음식의 종류 (김치, 요거트, 된장). 규칙은 아직 음식에서 물려받는다"
+      ]
+    },
+    {
+      "id": "OBJ000026",
+      "is_a": "OBJ000025",
+      "names": {
+        "ko": "된장",
+        "en": "soybean paste"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "ripen",
+            "mold",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (곰팡이)",
+          "when": [
+            "body:mold@>=spread"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "못 먹음 (익음)",
+          "when": [
+            "body:ripen@>=mushy"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {
+        "ripen": {
+          "base_s": 15552000
+        },
+        "mold": {
+          "base_s": 7776000
+        }
+      },
+      "initial": {
+        "cond:seal": "half",
+        "cond:moisture": "thick",
+        "cond:cut": "whole",
+        "cond:temp": "fridge"
+      },
+      "desc": [
+        "발효한 콩 장. 오래 두면 더 익는다"
+      ]
+    },
+    {
+      "id": "OBJ000027",
+      "is_a": "OBJ000001",
+      "names": {
+        "ko": "양파",
+        "en": "onion"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "decay",
+            "mold",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "못 먹음 (곰팡이)",
+          "when": [
+            "body:mold@>=spread"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {
+        "decay": {
+          "base_s": 2592000
+        },
+        "mold": {
+          "base_s": 3456000
+        }
+      },
+      "initial": {
+        "cond:seal": "open",
+        "cond:moisture": "dry",
+        "cond:cut": "whole",
+        "cond:temp": "winter_room"
+      },
+      "desc": [
+        "껍질째 실온에 둔 양파"
+      ]
+    },
+    {
+      "id": "OBJ000028",
+      "is_a": "OBJ000001",
+      "names": {
+        "ko": "애호박",
+        "en": "zucchini"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "wilt",
+            "decay",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (시듦)",
+          "when": [
+            "body:wilt@>=shriveled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {
+        "wilt": {
+          "base_s": 1209600
+        },
+        "decay": {
+          "base_s": 1555200
+        }
+      },
+      "initial": {
+        "cond:seal": "open",
+        "cond:moisture": "dry",
+        "cond:cut": "whole",
+        "cond:temp": "fridge"
+      },
+      "desc": [
+        "통째로 냉장한 애호박"
       ]
     }
   ]

@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "규칙이 놓임을 본다(linked): 기기의 망가짐은 그 기기가 있는 장소의 설비 끊김에만, 냉장고가 꺼지거나 열린 것은 그 냉장고 안의 음식에만 걸린다. 전자레인지가 망가졌을 때 하루씨는 남은 치킨을 가스레인지로 튀겨 데운다(가열 온도 튀김). 수치는 임시값.",
+  "why": "데우기·튀기기는 상하지 않은 치킨만 한다 (decay가 turned 이하). 나머지는 그대로다.",
   "defs": [
     {
       "id": "OBJ000022",
@@ -234,7 +234,8 @@
           "when": [
             "OBJ000010|cond:heat@=none",
             "OBJ000016|body:order@=ok",
-            "OBJ000016|chamber:power@=off"
+            "OBJ000016|chamber:power@=off",
+            "OBJ000010|body:decay@<=turned"
           ],
           "during": [
             "meal"
@@ -528,7 +529,8 @@
             "OBJ000010|cond:heat@=none",
             "OBJ000016|body:order@=broken",
             "OBJ000019|body:order@=ok",
-            "OBJ000019|burner:flame@=out"
+            "OBJ000019|burner:flame@=out",
+            "OBJ000010|body:decay@<=turned"
           ],
           "during": [
             "meal"
@@ -547,7 +549,8 @@
             "OBJ000010|cond:heat@=none",
             "OBJ000016|body:order@=broken",
             "OBJ000019|body:order@=ok",
-            "OBJ000019|burner:flame@=lit"
+            "OBJ000019|burner:flame@=lit",
+            "OBJ000010|body:decay@<=turned"
           ],
           "during": [
             "meal"

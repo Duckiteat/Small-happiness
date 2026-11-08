@@ -187,6 +187,7 @@ export class Causal {
         this.#emit(world, r.rule, r.at, fired);
         if (++fires > MAX_FIRES_PER_ADVANCE) throw new CausalError(`한 번에 ${MAX_FIRES_PER_ADVANCE}번 넘게 발화했다 — 끝나지 않는 규칙 사슬이 있다`);
       }
+      this.#progress.integrate(world, due); // 규칙이 칸을 내렸으면 시계를 그 칸에서 다시 시작한 뒤에 경계를 본다
       this.#progress.fire(world, due); // 진행 법칙의 경계를 넘은 축
       if (++fires > MAX_FIRES_PER_ADVANCE) throw new CausalError(`한 번에 ${MAX_FIRES_PER_ADVANCE}번 넘게 돌았다 — 끝나지 않는 사슬이 있다`);
       this.#schedule(world, due);

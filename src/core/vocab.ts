@@ -298,6 +298,22 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
   }
 
   checkOdorKnowledge(grouped, keysByCategory, push);
+  // 가열로 되돌리는 시계: 가열 특징과 두 단계가 실제 사다리의 쓸 수 있는 칸이어야 한다
+  const featureLevels = (feature: unknown): string[] | undefined => {
+    const levels = grouped.get('feature')?.find((x) => x.key === feature)?.attrs?.['levels'];
+    return Array.isArray(levels) ? levels.flatMap((l) => (typeof l === 'object' && l !== null && !Array.isArray(l) && l['locked'] !== true && typeof l['key'] === 'string' ? [l['key']] : [])) : undefined;
+  };
+  for (const e of grouped.get('feature') ?? []) {
+    const r = e.attrs?.['heat_reset'];
+    if (r === undefined) continue;
+    const at = `feature.${e.key}.attrs.heat_reset`;
+    if (typeof r !== 'object' || r === null || Array.isArray(r) || typeof r['feature'] !== 'string' || typeof r['from'] !== 'string' || typeof r['up_to'] !== 'string') {
+      push(at, 'heat_reset은 { feature, from, up_to } 문자열 셋이어야 한다');
+      continue;
+    }
+    if (!(featureLevels(r['feature'])?.includes(r['from']) ?? false)) push(`${at}.from`, `"${r['from']}"는 특징 "${r['feature']}"에서 쓸 수 있는 단계 키가 아니다 (없거나 잠겼다)`);
+    if (!(featureLevels(e.key)?.includes(r['up_to']) ?? false)) push(`${at}.up_to`, `"${r['up_to']}"는 특징 "${e.key}"에서 쓸 수 있는 단계 키가 아니다 (없거나 잠겼다)`);
+  }
   for (const e of grouped.get('resource') ?? []) {
     const sinks = e.attrs?.['sinks'];
     if (Array.isArray(sinks)) for (const x of sinks) if (!(keysByCategory.get('sink')?.has(String(x)) ?? false)) push(`resource.${e.key}.attrs.sinks`, `"${String(x)}"는 sink 분류에 없는 키다`);

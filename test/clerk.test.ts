@@ -166,7 +166,7 @@ test('명령줄: status와 validate (쓰지 않음)', () => {
   const dir = mkdtempSync(join(tmpdir(), 'sh-cli-'));
   const file = join(dir, 'p.json');
   writeFileSync(file, JSON.stringify({ format: 'small-happiness-patch', version: 1, why: '시험: validate는 쓰지 않는다',
-    defs: [{ id: 'OBJ+1', is_a: 'OBJ000001', names: { ko: '시험용 반찬' }, mobility: '가변', slots: { body: { features: ['smell', 'odor', 'decay'] }, cond: { features: ['seal', 'moisture', 'cut', 'temp'] } } }] }));
+    defs: [{ id: 'OBJ+1', is_a: 'OBJ000001', names: { ko: '시험용 반찬' }, mobility: '가변', slots: { body: { features: ['smell', 'odor', 'decay'] }, cond: { features: ['seal', 'moisture', 'cut', 'temp', 'heat'] } } }] })); // 음식 종류의 식는 규칙이 heat를 쓰므로 물려받는 음식은 heat가 있어야 한다
   const validate = run('validate', file);
   rmSync(dir, { recursive: true, force: true });
   assert.equal(validate.status, 0, validate.stderr);

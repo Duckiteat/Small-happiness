@@ -11,7 +11,7 @@
       "FRG": 1,
       "HAB": 1,
       "ITM": 1,
-      "OBJ": 25,
+      "OBJ": 29,
       "PLC": 7,
       "RUL": 1
     }
@@ -62,7 +62,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -73,7 +74,30 @@
           "means": "edible"
         }
       ],
-      "rules": {},
+      "rules": {
+        "cool_a": {
+          "label": "뜨거운 음식은 30분 뒤 따뜻함으로 식는다",
+          "on": [
+            "OBJ000001|cond:heat@>=hot"
+          ],
+          "emits": [
+            "OBJ000001|cond:heat@<=warm"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        },
+        "cool_b": {
+          "label": "따뜻한 음식은 30분 뒤 식는다",
+          "on": [
+            "OBJ000001|cond:heat@=warm"
+          ],
+          "emits": [
+            "OBJ000001|cond:heat@<=none"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        }
+      },
       "offers": {
         "discard": {
           "label": "못 먹게 된 음식을 버린다",
@@ -333,7 +357,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -400,7 +425,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -467,7 +493,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -531,7 +558,7 @@
         "ko": "김치",
         "en": "kimchi"
       },
-      "is_a": "OBJ000001",
+      "is_a": "OBJ000025",
       "aliases": [],
       "mobility": "portable",
       "slots": {
@@ -548,7 +575,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -622,7 +650,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -681,7 +710,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -721,7 +751,7 @@
         "ko": "요거트",
         "en": "yogurt"
       },
-      "is_a": "OBJ000001",
+      "is_a": "OBJ000025",
       "aliases": [],
       "mobility": "portable",
       "slots": {
@@ -738,7 +768,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -805,7 +836,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -922,30 +954,7 @@
           "means": "edible"
         }
       ],
-      "rules": {
-        "cool_a": {
-          "label": "뜨거운 음식은 30분 뒤 따뜻함으로 식는다",
-          "on": [
-            "OBJ000010|cond:heat@>=hot"
-          ],
-          "emits": [
-            "OBJ000010|cond:heat@<=warm"
-          ],
-          "delay_s": 1800,
-          "tuned": false
-        },
-        "cool_b": {
-          "label": "따뜻한 음식은 30분 뒤 식는다",
-          "on": [
-            "OBJ000010|cond:heat@=warm"
-          ],
-          "emits": [
-            "OBJ000010|cond:heat@<=none"
-          ],
-          "delay_s": 1800,
-          "tuned": false
-        }
-      },
+      "rules": {},
       "progress": {
         "decay": {
           "base_s": 440640
@@ -986,7 +995,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -1119,7 +1129,8 @@
           "when": [
             "OBJ000010|cond:heat@=none",
             "OBJ000016|body:order@=ok",
-            "OBJ000016|chamber:power@=off"
+            "OBJ000016|chamber:power@=off",
+            "OBJ000010|body:decay@<=turned"
           ],
           "effect": [
             "OBJ000016|chamber:power@=on",
@@ -1384,7 +1395,8 @@
             "OBJ000010|cond:heat@=none",
             "OBJ000016|body:order@=broken",
             "OBJ000019|body:order@=ok",
-            "OBJ000019|burner:flame@=lit"
+            "OBJ000019|burner:flame@=lit",
+            "OBJ000010|body:decay@<=turned"
           ],
           "effect": [
             "OBJ000010|cond:heat@=fry"
@@ -1403,7 +1415,8 @@
             "OBJ000010|cond:heat@=none",
             "OBJ000016|body:order@=broken",
             "OBJ000019|body:order@=ok",
-            "OBJ000019|burner:flame@=out"
+            "OBJ000019|burner:flame@=out",
+            "OBJ000010|body:decay@<=turned"
           ],
           "effect": [
             "OBJ000019|burner:flame@=lit"
@@ -1772,6 +1785,249 @@
       },
       "desc": [
         "수도을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+      ]
+    },
+    "OBJ000025": {
+      "id": "OBJ000025",
+      "names": {
+        "ko": "발효 음식",
+        "en": "fermented food"
+      },
+      "is_a": "OBJ000001",
+      "aliases": [
+        "발효식품"
+      ],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "desc": [
+        "상하지 않고 익는 음식의 종류 (김치, 요거트, 된장). 규칙은 아직 음식에서 물려받는다"
+      ]
+    },
+    "OBJ000026": {
+      "id": "OBJ000026",
+      "names": {
+        "ko": "된장",
+        "en": "soybean paste"
+      },
+      "is_a": "OBJ000025",
+      "aliases": [],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "ripen",
+            "mold",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (곰팡이)",
+          "when": [
+            "body:mold@>=spread"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "못 먹음 (익음)",
+          "when": [
+            "body:ripen@>=mushy"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {
+        "mold": {
+          "base_s": 7776000
+        },
+        "ripen": {
+          "base_s": 15552000
+        }
+      },
+      "initial": {
+        "cond:cut": "whole",
+        "cond:moisture": "thick",
+        "cond:seal": "half",
+        "cond:temp": "fridge"
+      },
+      "desc": [
+        "발효한 콩 장. 오래 두면 더 익는다"
+      ]
+    },
+    "OBJ000027": {
+      "id": "OBJ000027",
+      "names": {
+        "ko": "양파",
+        "en": "onion"
+      },
+      "is_a": "OBJ000001",
+      "aliases": [],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "decay",
+            "mold",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "못 먹음 (곰팡이)",
+          "when": [
+            "body:mold@>=spread"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {
+        "decay": {
+          "base_s": 2592000
+        },
+        "mold": {
+          "base_s": 3456000
+        }
+      },
+      "initial": {
+        "cond:cut": "whole",
+        "cond:moisture": "dry",
+        "cond:seal": "open",
+        "cond:temp": "winter_room"
+      },
+      "desc": [
+        "껍질째 실온에 둔 양파"
+      ]
+    },
+    "OBJ000028": {
+      "id": "OBJ000028",
+      "names": {
+        "ko": "애호박",
+        "en": "zucchini"
+      },
+      "is_a": "OBJ000001",
+      "aliases": [],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "wilt",
+            "decay",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (시듦)",
+          "when": [
+            "body:wilt@>=shriveled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {
+        "decay": {
+          "base_s": 1555200
+        },
+        "wilt": {
+          "base_s": 1209600
+        }
+      },
+      "initial": {
+        "cond:cut": "whole",
+        "cond:moisture": "dry",
+        "cond:seal": "open",
+        "cond:temp": "fridge"
+      },
+      "desc": [
+        "통째로 냉장한 애호박"
       ]
     },
     "PLC000001": {
