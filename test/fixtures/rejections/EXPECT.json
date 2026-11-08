@@ -225,7 +225,7 @@
   },
   "uses-bad-shape.json": {
     "stage": "gate",
-    "match": "uses는 { key, steps } 목록"
+    "match": "steps는 양의 정수"
   },
   "menu-unknown.json": {
     "stage": "gate",
@@ -246,5 +246,9 @@
   "where-person-target.json": {
     "stage": "gate",
     "match": "놓는 곳은 물건이나 장소여야 한다"
+  },
+  "uses-ingredient-false.json": {
+    "stage": "gate",
+    "match": "ingredient는 true이거나 없음"
   }
 }

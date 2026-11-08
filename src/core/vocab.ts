@@ -152,6 +152,15 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
     case 'presence': {
       // observed: 이 상태를 플레이어가 함께 보는가 (집에 있음·식사 준비는 보고, 외출·잠은 보지 않는다). 지각·행동·시계가 읽는다
       if (typeof attrs['observed'] !== 'boolean') push(`${path}.attrs.observed`, 'observed(플레이어가 함께 보는가)를 true/false로 적어야 한다');
+      // plans_menu: 이 구간이 시작되면 인물이 메뉴를 구상한다 (식사 준비)
+      if (attrs['plans_menu'] !== undefined && attrs['plans_menu'] !== true) push(`${path}.attrs.plans_menu`, 'plans_menu는 true이거나 없어야 한다');
+      if (attrs['plans_menu'] === true && attrs['observed'] !== true) push(`${path}.attrs.plans_menu`, '메뉴 구상은 플레이어가 함께 보는 구간에서만 한다');
+      break;
+    }
+    case 'menu': {
+      // rank: 구상할 때 먼저 보는 순서 (작을수록 먼저, 남은 음식이 앞선다)
+      const r = attrs['rank'];
+      if (!isInt(r) || r < 1) push(`${path}.attrs.rank`, '메뉴의 순서(rank)는 1 이상의 정수여야 한다');
       break;
     }
     case 'odor_kind': {

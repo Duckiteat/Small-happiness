@@ -124,8 +124,11 @@ export interface OfferDef {
    * 쓰는 양: 그 상태를 지금 단계에서 steps칸 내린다 (된장 한 숟갈). 패턴은 단계 조건 없이 쓴다.
    * 그만큼 남아 있지 않으면 하지 않는다. 남은 양은 몸이 보는 것이라 세계로 본다 (요리-설계 3장).
    */
-  readonly uses?: readonly { readonly key: string; readonly steps: number }[];
-  /** 일정의 이 메뉴(사전 menu)를 만드는 때에만 하는 행동 (요리법의 한 단계). 없으면 메뉴와 상관없다. */
+  readonly uses?: readonly { readonly key: string; readonly steps: number; readonly ingredient?: boolean }[];
+  /**
+   * 하루씨가 구상한 이 메뉴(사전 menu)를 만드는 끼니에만 하는 행동 (요리법의 한 단계). 없으면 메뉴와 상관없다.
+   * 요리법은 이 메뉴를 가진 행동들이다. 그 행동의 uses 중 ingredient인 것이 구상할 때 있어야 하는 재료다 (요리-설계 10장).
+   */
   readonly menu?: string;
   /** 놓임 조건 (몸이 놓은 곳이라 세계로 본다). */
   readonly where?: readonly WhereSpec[];
@@ -405,7 +408,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
     const placesOk = refsOk(o['places'], ['what', 'in', 'on', 'out'], (x) => (typeof x['what'] === 'string' ? relCount(x) : 0));
     const createsOk = refsOk(o['creates'], ['def', 'in', 'on'], (x) => (typeof x['def'] === 'string' && relCount(x) <= 1 ? 1 : 0));
     const uses = o['uses'];
-    const usesOk = uses === undefined || (Array.isArray(uses) && uses.length > 0 && uses.every((u) => isObj(u) && typeof u['key'] === 'string' && typeof u['steps'] === 'number' && Number.isInteger(u['steps']) && u['steps'] > 0 && Object.keys(u).length === 2));
+    const usesOk = uses === undefined || (Array.isArray(uses) && uses.length > 0 && uses.every((u) => isObj(u) && typeof u['key'] === 'string' && typeof u['steps'] === 'number' && Number.isInteger(u['steps']) && u['steps'] > 0 && (u['ingredient'] === undefined || u['ingredient'] === true) && Object.keys(u).every((k) => ['key', 'steps', 'ingredient'].includes(k))));
     const needs = o['needs'];
     const needsOk = Array.isArray(needs) && needs.every((n) => isObj(n) && typeof n['aware'] === 'string' && typeof n['at_least'] === 'string' && Object.keys(n).length === 2);
     if (typeof o['verb'] !== 'string') bad(at, 'verb(사전 action 키)가 필요하다');
@@ -415,7 +418,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
     else if (o['when_meaning'] !== undefined && (typeof o['when_meaning'] !== 'string' || !TOKEN_RE.test(o['when_meaning']))) bad(at, 'when_meaning은 상태 의미(means) 토큰이어야 한다');
     else if (o['reveals'] !== undefined && typeof o['reveals'] !== 'boolean') bad(at, 'reveals는 true/false여야 한다');
     else if (o['during'] !== undefined && !(isStrArr(o['during']) && o['during'].length > 0)) bad(at, 'during은 상태(사전 presence) 키의 비어 있지 않은 목록이어야 한다');
-    else if (!usesOk) bad(at, 'uses는 { key, steps } 목록이어야 한다 (steps는 양의 정수, 비우려면 쓰지 않는다)');
+    else if (!usesOk) bad(at, 'uses는 { key, steps, ingredient? } 목록이어야 한다 (steps는 양의 정수, ingredient는 true이거나 없음)');
     else if (o['menu'] !== undefined && (typeof o['menu'] !== 'string' || !TOKEN_RE.test(o['menu']))) bad(at, 'menu는 사전 menu 키여야 한다');
     else if (!whereOk) bad(at, 'where는 { what, in 또는 on } 목록이어야 한다 (관계는 하나만)');
     else if (!placesOk) bad(at, 'places는 { what, in 또는 on 또는 out: true } 목록이어야 한다 (관계는 하나만)');
@@ -433,7 +436,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
         effect: (o['effect'] as string[]).map((s) => s.trim()),
         ...(o['reveals'] === true ? { reveals: true } : {}),
         ...(isStrArr(o['during']) ? { during: o['during'].map((s) => s.trim()) } : {}),
-        ...(Array.isArray(uses) ? { uses: (uses as { key: string; steps: number }[]).map((u) => ({ key: u.key.trim(), steps: u.steps })) } : {}),
+        ...(Array.isArray(uses) ? { uses: (uses as { key: string; steps: number; ingredient?: boolean }[]).map((u) => ({ key: u.key.trim(), steps: u.steps, ...(u.ingredient === true ? { ingredient: true } : {}) })) } : {}),
         ...(typeof o['menu'] === 'string' ? { menu: o['menu'] } : {}),
         ...(Array.isArray(o['where']) ? { where: o['where'] as WhereSpec[] } : {}),
         ...(Array.isArray(o['creates']) ? { creates: o['creates'] as CreateSpec[] } : {}),

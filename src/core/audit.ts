@@ -9,6 +9,7 @@
 // 코어는 입출력이 없다. 시나리오를 읽는 일은 서기(clerk.ts)가 한다.
 
 import { stepDown } from './amount.ts';
+import { conceive } from './conceive.ts';
 import { pointerChanges, refInstance, relationOf, targetPointers } from './moves.ts';
 import type { Db } from './db.ts';
 import { latestSeq } from './events.ts';
@@ -145,6 +146,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const chosen = new Map<string, Chosen>();
   const mealSteps = new Set<string>(); // 요리법 단계 × 끼니
   const moveQueue = new Map<string, MoveExpected[]>(); // action_done seq → 따라올 만들기·놓임
+  const knowSeq = new Map<string, string>(); // `${who}|${key}` → 그 앎을 정한 사건
+  const planned = new Map<string, string>(); // `${who}|${끼니}` → 구상한 메뉴
   const inspected = new Set<string>(); // `${who}|${via}`: 끝난 행동
   const knows = new Map<string, { aw: string; level: string }>(); // `${who}|${key}`
   let pending: Pending | null = null;
@@ -344,6 +347,29 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         else pending = { cause: e.seq, what: `${key}의 진행`, expect: [{ key, to }] };
         break;
       }
+      case 'menu_planned': {
+        // 구상: 그때 하루씨가 알던 것으로 다시 구상하면 같은 메뉴가 나와야 하고, 한 끼에 한 번이다 (conceive.ts)
+        bump('action');
+        const who = str(e.data['who']), menu = str(e.data['menu']), meal = String(e.data['meal']);
+        if (!who.startsWith('CHR') || !instances.has(who)) bad(e.seq, 'action', `구상한 이가 인물이 아니다: ${who}`);
+        if (planned.has(`${who}|${meal}`)) bad(e.seq, 'action', `같은 끼니(${meal}분 구간)에 메뉴를 두 번 구상했다`);
+        planned.set(`${who}|${meal}`, menu);
+        const knownIds = new Set([...knows.keys()].filter((k) => k.startsWith(`${who}|`)).map((k) => k.slice(who.length + 1, k.indexOf('|', who.length + 1))));
+        const believe = (key: string): string => {
+          const seen = knows.get(`${who}|${key}`);
+          if (seen !== undefined) return seen.level;
+          const k = parseStateKey(key);
+          const def = k === null ? undefined : instances.get(k.subject);
+          return (k === null || def === undefined ? undefined : effectiveInitial(db, def)[`${k.slot}:${k.feature}`]) ?? (k === null ? '' : (ladder(k.feature)[0] ?? ''));
+        };
+        const pick = conceive(db, vocab, {
+          known: (d) => [...instances.keys()].sort().filter((i) => kindOf(d).has(instances.get(i) ?? '') && knownIds.has(i)),
+          level: believe,
+        });
+        if (pick?.menu !== menu) bad(e.seq, 'action', `알던 것으로 구상하면 ${pick?.menu ?? '만들 것이 없다'}인데 ${menu}를 골랐다`);
+        else expectCause(e.seq, 'cause', e.cause, latestSeq(pick.keys.map((k) => knowSeq.get(`${who}|${k}`))), `${menu} 구상`);
+        break;
+      }
       case 'action_chosen': {
         bump('action');
         const who = str(e.data['who']), at = str(e.data['at']), verb = str(e.data['verb']);
@@ -395,6 +421,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           for (const ch of pointerChanges(id, placeMap.get(id), targetPointers(p, to))) moves.push({ kind: 'place', id: ch.id, rel: ch.rel, to: ch.to });
         }
         const menu = e.data['menu'];
+        if (typeof menu === 'string' && planned.get(`${who}|${String(e.data['meal'])}`) !== menu) bad(e.seq, 'action', `${menu}의 단계인데 그 끼니에 구상한 메뉴는 ${planned.get(`${who}|${String(e.data['meal'])}`) ?? '없다'}`);
         if (typeof menu === 'string') {
           // 요리법의 단계는 한 끼에 한 번
           const once = `${via}@${at}|${String(e.data['meal'])}`;
@@ -469,6 +496,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           if (!inspected.has(`${who}|${via}`)) bad(e.seq, 'awareness', `${via} 행동이 끝난 기록이 없는데 살펴서 알았다고 적었다`);
         }
         knows.set(`${who}|${key}`, { aw: rose ? aw : (prev?.aw ?? aw), level });
+        knowSeq.set(`${who}|${key}`, e.seq);
         break;
       }
       default:

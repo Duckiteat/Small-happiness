@@ -23,7 +23,7 @@ import { HEAT_FEATURE, readTemperature, STORAGE_FEATURE } from './temperature.ts
 import type { Db } from './db.ts';
 import { EventLog } from './log.ts';
 import { Rng } from './rng.ts';
-import { menuAt, parsePlan, presenceAt } from './schedule.ts';
+import { mealAt, parsePlan, presenceAt } from './schedule.ts';
 import type { PlanBlock } from './schedule.ts';
 import { runDay } from './step.ts';
 import type { Layer } from './step.ts';
@@ -194,7 +194,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       id: '4a',
       run: (c) => {
         c.write('ext', { cards: [] });
-        c.write('plan', { blocks: routine.map((b) => ({ kind: b.kind, from: b.from, to: b.to, ...(b.menu !== undefined ? { menu: b.menu } : {}) })) });
+        c.write('plan', { blocks: routine.map((b) => ({ kind: b.kind, from: b.from, to: b.to })) });
       },
     },
     {
@@ -217,7 +217,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       id: '6',
       run: (c) => {
         const plan = parsePlan(c.read('plan'), vocab);
-        const chosen = agency.step(world, c.t, presenceAt(plan, c.t), parseAware(c.read('aware')), menuAt(plan, c.t));
+        const chosen = agency.step(world, c.t, presenceAt(plan, c.t), parseAware(c.read('aware')), mealAt(plan, c.t, vocab));
         c.write('recent', chosen.map((a) => ({
           ...a,
           effects: a.effects.map((e) => ({ ...e })),

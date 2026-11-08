@@ -1,0 +1,40 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 재료 표시(ingredient)가 true가 아님 (재료가 아니면 쓰지 않는다)",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "시험 재료"
+   },
+   "mobility": "portable",
+   "slots": {
+    "cond": {
+     "features": [
+      "amount"
+     ]
+    }
+   },
+   "offers": {
+    "put": {
+     "label": "넣는다",
+     "verb": "add",
+     "needs": [],
+     "effect": [
+      "OBJ+1|cond:amount@=none"
+     ],
+     "minutes": 1,
+     "tuned": false,
+     "uses": [
+      {
+       "key": "OBJ+1|cond:amount",
+       "steps": 1,
+       "ingredient": false
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

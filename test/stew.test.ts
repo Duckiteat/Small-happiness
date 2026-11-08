@@ -8,7 +8,8 @@ import { openLadder, stepDown } from '../src/core/amount.ts';
 import { auditLog } from '../src/core/audit.ts';
 import { parseEvent } from '../src/core/events.ts';
 import type { GameEvent } from '../src/core/events.ts';
-import { menuAt, parsePlan, ScheduleError } from '../src/core/schedule.ts';
+import { conceive, recipeNeeds } from '../src/core/conceive.ts';
+import { mealAt, parsePlan, ScheduleError } from '../src/core/schedule.ts';
 import { parseScenario, runScenario } from '../src/core/skeleton.ts';
 import { loadDb } from '../src/node/clerk.ts';
 import { loadVocabDir } from '../src/node/vocab-files.ts';
@@ -40,12 +41,28 @@ test('쓰는 양: 열린 칸으로 steps칸 내리고, 잠긴 칸은 건너뛰�
   assert.equal(stepDown(vocab, 'amount', 'gone', 1), null, '소멸은 사다리 밖이다');
 });
 
-test('일정의 메뉴: 구간에 적은 메뉴만 그 구간의 메뉴이고, 사전에 없는 메뉴는 거부한다', () => {
+test('끼니: 일정에는 메뉴가 없고(적으면 거부), 메뉴를 구상하는 구간(식사 준비)만 끼니다', () => {
   const plan = parsePlan(sc.routine, vocab);
-  assert.deepEqual(menuAt(plan, 1100), { menu: 'doenjang_jjigae', from: 1100 });
-  assert.deepEqual(menuAt(plan, 2170), { menu: 'leftover_stew', from: 2160 }, '둘째 날 점심은 남은 찌개');
-  assert.equal(menuAt(plan, 1300), undefined, '구간 밖');
-  assert.throws(() => parsePlan({ blocks: [{ kind: 'meal', from: 0, to: 10, menu: 'pizza' }] }, vocab), ScheduleError);
+  assert.deepEqual(mealAt(plan, 1100, vocab), { from: 1100 });
+  assert.deepEqual(mealAt(plan, 2170, vocab), { from: 2160 });
+  assert.equal(mealAt(plan, 1300, vocab), undefined, '구간 밖');
+  assert.equal(mealAt(plan, 1400, vocab), undefined, '잠은 끼니가 아니다');
+  assert.throws(() => parsePlan({ blocks: [{ kind: 'meal', from: 0, to: 10, menu: 'doenjang_jjigae' }] }, vocab), ScheduleError);
+});
+
+test('요리법의 재료: 같은 메뉴의 행동들이 재료로 쓰는 칸을 모은다 (요리법을 따로 적지 않는다)', () => {
+  const needs = recipeNeeds(db, 'doenjang_jjigae').map((n) => `${db.defs[n.def]?.names.ko}:${n.steps}`);
+  assert.deepEqual(needs.sort(), ['국물용 멸치:1', '대파:1', '된장:1', '두부:2', '애호박:2', '양파:2'].sort());
+  assert.deepEqual(recipeNeeds(db, 'leftover_stew').map((n) => `${db.defs[n.def]?.names.ko}:${n.steps}`), ['된장찌개:2']);
+  // 아는 것으로만 구상한다: 아무것도 모르면 만들 것이 없고, 남은 찌개를 알면 그것이 먼저다
+  const none = conceive(db, vocab, { known: () => [], level: () => 'full' });
+  assert.equal(none, null);
+  const all = conceive(db, vocab, { known: (d) => [`${d}#1`], level: () => 'full' });
+  assert.equal(all?.menu, 'leftover_stew', '남은 음식이 앞선다 (rank)');
+  const noStew = conceive(db, vocab, { known: (d) => (d === byName('된장찌개') ? [] : [`${d}#1`]), level: () => 'full' });
+  assert.equal(noStew?.menu, 'doenjang_jjigae');
+  const littleOnion = conceive(db, vocab, { known: (d) => (d === byName('된장찌개') ? [] : [`${d}#1`]), level: (k) => (k.startsWith(byName('양파')) ? 'little' : 'full') });
+  assert.equal(littleOnion, null, '양파가 조금이면 (반이 필요) 시작하지 않는다');
 });
 
 test('된장찌개: 썰기 → 물 받아 붓기 → 불 → 멸치 육수(10분) → 된장 → 채소·두부·대파 → 끓음(5분) → 불 끄기 → 먹기 → 설거지', () => {
@@ -77,20 +94,30 @@ test('된장찌개: 썰기 → 물 받아 붓기 → 불 → 멸치 육수(10분
   assert.ok(eaten > stewAt && washed > eaten);
 });
 
-test('된장찌개: 한 끼에 한 번만 끓이고, 남은 찌개 끼니에는 끓이지 않고 꺼내 데워 먹기만 한다', () => {
+test('구상: 하루씨가 끼니마다 아는 재료로 메뉴를 정하고, 남은 찌개를 먼저 먹으며, 만들 수 없으면 시작하지 않는다', () => {
+  const plans = events().filter((e) => e.type === 'menu_planned').map((e) => `${String(e.data['meal'])}:${str(e.data['menu'])}`);
+  assert.deepEqual(plans, ['1100:doenjang_jjigae', '2160:leftover_stew', '2540:doenjang_jjigae']);
   const stews = changes.filter((c) => c.key === `${inst('냄비')}|pot:soup` && c.to === 'stew').map((c) => c.t);
   assert.equal(stews.length, 2, '첫날 저녁 한 번 · 둘째 날 저녁 한 번 (첫날 끼니에 시간이 남아도 다시 끓이지 않는다)');
   assert.ok((stews[0] as number) < 1220 && (stews[1] as number) >= 2540);
   const lunch = chosen.filter((c) => c.t >= 2160 && c.t < 2220).map((c) => c.via.split('/').at(-1));
   assert.deepEqual(lunch, ['take_out', 'reheat', 'eat_leftover'], '남은 찌개 점심');
-  // 메뉴를 지우면 하루 종일 요리법의 어떤 단계도 고르지 않는다
+  // 셋째 날: 점심은 둘째 날 남은 찌개, 저녁은 양파·애호박·두부가 없어 구상하지 못하고 아무것도 시작하지 않는다
   const r = raw();
-  const routine = r['routine'] as { blocks: Record<string, unknown>[] };
-  for (const b of routine.blocks) delete b['menu'];
-  const plain = runScenario(db, vocab, parseScenario(r)).log.map(parseEvent);
-  const recipe = plain.filter((e) => e.type === 'action_chosen' && db.defs[str(e.data['at']).split('#')[0] ?? '']?.offers?.[str(e.data['via']).split('/').at(-1) ?? '']?.menu !== undefined);
-  assert.deepEqual(recipe, []);
-  assert.equal(plain.filter((e) => e.type === 'action_chosen').length, 0, '이 시나리오의 행동은 모두 된장찌개의 단계다');
+  r['end'] = 4400;
+  (r['routine'] as { blocks: unknown[] }).blocks.push({ kind: 'asleep', from: 2820, to: 3300 }, { kind: 'meal', from: 3600, to: 3660 }, { kind: 'meal', from: 3980, to: 4100 });
+  const sc3 = parseScenario(r);
+  const three = runScenario(db, vocab, sc3).log.map(parseEvent);
+  assert.deepEqual(three.filter((e) => e.type === 'menu_planned' && Number(e.data['meal']) >= 3600).map((e) => str(e.data['menu'])), ['leftover_stew']);
+  assert.deepEqual(three.filter((e) => e.type === 'action_chosen' && e.t >= 3980), [], '못 끝낼 요리는 시작하지 않는다');
+  assert.deepEqual(auditLog(three, db, vocab, { externalUntil: sc3.start }).findings, []);
+  // 재료가 냉장고 안에 있어 본 적이 없으면 (있는 줄 모르면) 구상하지 못한다
+  const hidden = raw();
+  const food = ['OBJ000026', 'OBJ000027', 'OBJ000028', 'OBJ000003', 'OBJ000011', 'OBJ000032'];
+  hidden['layout'] = (hidden['layout'] as string[]).filter((l) => !food.some((f) => l.endsWith(`^${f}#1`)));
+  hidden['contain'] = food.map((f) => ({ id: `${f}#1`, in: 'OBJ000021#1' }));
+  const blind = runScenario(db, vocab, parseScenario(hidden)).log.map(parseEvent);
+  assert.equal(blind.filter((e) => e.type === 'menu_planned').length, 0);
 });
 
 test('된장찌개: 재료는 남은 양에서 칸씩 쓰이고, 이미 썬 재료는 다시 썰지 않는다', () => {
@@ -125,6 +152,16 @@ test('된장찌개: 감사가 기록을 정의에서 다시 계산해 위반이 
         const { menu: _menu, ...data } = e.data;
         return { ...e, data };
       }),
+      check: 'action',
+    },
+    {
+      name: '첫 끼니의 구상을 남은 찌개로 고침 (그때는 남은 찌개를 몰랐다)',
+      mutate: (es) => es.map((e) => (e.type === 'menu_planned' && e.data['meal'] === 1100 ? { ...e, data: { ...e.data, menu: 'leftover_stew' } } : e)),
+      check: 'action',
+    },
+    {
+      name: '구상 기록을 지움 (요리법 단계가 구상 없이 골라짐)',
+      mutate: (es) => es.filter((e) => e.type !== 'menu_planned'),
       check: 'action',
     },
     {

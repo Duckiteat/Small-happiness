@@ -2361,7 +2361,8 @@
           "uses": [
             {
               "key": "OBJ000032|cond:amount",
-              "steps": 1
+              "steps": 1,
+              "ingredient": true
             }
           ],
           "menu": "doenjang_jjigae",
@@ -2384,7 +2385,8 @@
           "uses": [
             {
               "key": "OBJ000026|cond:amount",
-              "steps": 1
+              "steps": 1,
+              "ingredient": true
             }
           ],
           "menu": "doenjang_jjigae",
@@ -2408,7 +2410,8 @@
           "uses": [
             {
               "key": "OBJ000011|cond:amount",
-              "steps": 1
+              "steps": 1,
+              "ingredient": true
             }
           ],
           "menu": "doenjang_jjigae",
@@ -2432,7 +2435,8 @@
           "uses": [
             {
               "key": "OBJ000003|cond:amount",
-              "steps": 2
+              "steps": 2,
+              "ingredient": true
             }
           ],
           "menu": "doenjang_jjigae",
@@ -2458,11 +2462,13 @@
           "uses": [
             {
               "key": "OBJ000027|cond:amount",
-              "steps": 2
+              "steps": 2,
+              "ingredient": true
             },
             {
               "key": "OBJ000028|cond:amount",
-              "steps": 2
+              "steps": 2,
+              "ingredient": true
             }
           ],
           "menu": "doenjang_jjigae",
@@ -2753,6 +2759,13 @@
           ],
           "during": [
             "meal"
+          ],
+          "uses": [
+            {
+              "key": "OBJ000034|cond:amount",
+              "steps": 2,
+              "ingredient": true
+            }
           ],
           "menu": "leftover_stew",
           "where": [

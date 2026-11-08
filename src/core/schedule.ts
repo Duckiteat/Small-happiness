@@ -31,8 +31,6 @@ export interface PlanBlock {
   readonly from: number;
   /** 끝 시각(분, 제외) */
   readonly to: number;
-  /** 이 구간에 만드는 메뉴 (사전 menu). 식사 준비처럼 요리하는 구간에만 적는다 (요리-설계 4장 결정 1). */
-  readonly menu?: string;
 }
 
 export class ScheduleError extends Error {
@@ -58,15 +56,16 @@ export function parsePlan(value: BoardValue | unknown, vocab: Vocab): PlanBlock[
   const blocks = raw.map((b: unknown, i): PlanBlock => {
     const at = `plan.blocks[${i}]`;
     if (!isObj(b)) throw new ScheduleError(`${at}: { kind, from, to }이어야 한다`);
-    const { kind, from, to, menu } = b;
+    const { kind, from, to } = b;
     if (typeof kind !== 'string' || !vocab.has('presence', kind)) throw new ScheduleError(`${at}: 사전 presence에 없는 종류다 (${String(kind)})`);
     if (kind === OBSERVED) throw new ScheduleError(`${at}: ${OBSERVED}는 구간으로 쓰지 않는다 (구간 밖이 곧 ${OBSERVED})`);
     if (typeof from !== 'number' || typeof to !== 'number' || !Number.isInteger(from) || !Number.isInteger(to) || from < 0) {
       throw new ScheduleError(`${at}: from과 to는 0 이상의 정수(분)여야 한다`);
     }
     if (from >= to) throw new ScheduleError(`${at}: 끝(${to})이 시작(${from})보다 뒤여야 한다`);
-    if (menu !== undefined && (typeof menu !== 'string' || !vocab.has('menu', menu))) throw new ScheduleError(`${at}: 사전 menu에 없는 메뉴다 (${String(menu)})`);
-    return { kind, from, to, ...(typeof menu === 'string' ? { menu } : {}) };
+    // 일정에는 메뉴를 적지 않는다: 무엇을 해 먹을지는 하루씨가 아는 재료로 구상한다 (작가 2026-11-08, 요리-설계 10장)
+    if (b['menu'] !== undefined) throw new ScheduleError(`${at}: 일정에는 메뉴를 적지 않는다 (하루씨가 구상한다)`);
+    return { kind, from, to };
   });
   for (let i = 1; i < blocks.length; i++) {
     const a = blocks.at(i - 1) as PlanBlock;
@@ -76,16 +75,15 @@ export function parsePlan(value: BoardValue | unknown, vocab: Vocab): PlanBlock[
   return blocks;
 }
 
-/** 끼니의 메뉴: 무엇을 만드는지와 그 구간이 시작한 시각 (요리법의 단계는 한 끼에 한 번). */
-export interface MealMenu {
-  readonly menu: string;
+/** 끼니: 메뉴를 구상하는 구간(사전 presence의 plans_menu)과 그 시작 시각. 요리법의 단계는 한 끼에 한 번이다. */
+export interface Meal {
   readonly from: number;
 }
 
-/** 시각 t의 구간이 만드는 메뉴. 메뉴가 없는 구간이나 구간 밖이면 undefined. */
-export function menuAt(blocks: readonly PlanBlock[], t: number): MealMenu | undefined {
+/** 시각 t가 메뉴를 구상하는 구간 안이면 그 끼니. 아니면 undefined. */
+export function mealAt(blocks: readonly PlanBlock[], t: number, vocab: Vocab): Meal | undefined {
   const b = blocks.find((x) => x.from <= t && t < x.to);
-  return b?.menu === undefined ? undefined : { menu: b.menu, from: b.from };
+  return b !== undefined && vocab.entry('presence', b.kind)?.attrs['plans_menu'] === true ? { from: b.from } : undefined;
 }
 
 /** 시각 t에 하루씨는 어떤 상태인가 (presence 키). */

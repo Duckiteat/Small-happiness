@@ -204,16 +204,22 @@
     "category": "menu",
     "entries": [
       {
-        "key": "doenjang_jjigae",
-        "ko": "된장찌개",
-        "en": "doenjang stew",
-        "desc": "첫 끓임 요리 (요리-설계). 멸치 육수 → 된장 풀기 → 채소 → 두부 → 대파. 일반적인 순서이며 시간은 임시값"
-      },
-      {
         "key": "leftover_stew",
         "ko": "남은 찌개",
         "en": "leftover stew",
-        "desc": "냉장고에 넣어 둔 찌개를 꺼내 데워 먹는 끼니"
+        "desc": "냉장고에 넣어 둔 찌개를 꺼내 데워 먹는 끼니. 남은 것을 먼저 먹는다 (rank 1)",
+        "attrs": {
+          "rank": 1
+        }
+      },
+      {
+        "key": "doenjang_jjigae",
+        "ko": "된장찌개",
+        "en": "doenjang stew",
+        "desc": "첫 끓임 요리 (요리-설계). 멸치 육수 → 된장 풀기 → 채소 → 두부 → 대파. 일반적인 순서이며 시간은 임시값. 남은 음식이 없을 때 (rank 2)",
+        "attrs": {
+          "rank": 2
+        }
       }
     ]
   }

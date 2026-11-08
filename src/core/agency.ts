@@ -10,7 +10,7 @@
 // 본 적 없는 상태는 살 때의 상태(initial)로, 그것도 없으면 사다리 0칸으로 믿는다. 앎이 낡으면 판단도 낡는다.
 // 다만 결과가 이미 세계에서 이루어졌는지(버린 것을 또 버리지 않기)는 몸이 하는 일이라 세계로 본다.
 //
-// 요리법의 단계(offer.menu)는 그 구간의 일정이 그 메뉴를 만들 때에만 후보가 된다. 쓰는 양(offer.uses)은 세계의 남은 양에서 칸을 내린다.
+// 끼니가 시작되면 아는 재료로 메뉴를 구상하고(conceive.ts), 요리법의 단계(offer.menu)는 그 메뉴일 때만 후보가 된다. 쓰는 양(offer.uses)은 세계의 남은 양에서 칸을 내린다.
 //
 // 고르는 방식 (기본안, 18번 점수 매기기 전까지): 할 수 있는 후보 중 정의 번호·행동 키 순서로 첫 번째. 난수 없음.
 
@@ -29,7 +29,8 @@ import { meaningOf } from './meaning.ts';
 import type { EventLog } from './log.ts';
 import type { AwareMap } from './perception.ts';
 import { isObserved } from './schedule.ts';
-import type { MealMenu } from './schedule.ts';
+import type { Meal } from './schedule.ts';
+import { conceive } from './conceive.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
@@ -37,6 +38,7 @@ import type { World } from './world.ts';
 
 export const AGENCY_SRC = 'agency';
 export const ACTION_CHOSEN = 'action_chosen';
+export const MENU_PLANNED = 'menu_planned';
 
 export interface Effect {
   readonly key: string;
@@ -98,6 +100,8 @@ export class Agency {
   readonly #log: EventLog;
   readonly #tried = new Set<string>();
   #busyUntil = -1;
+  /** 끼니(구간 시작 시각) → 구상한 메뉴. 한 끼에 한 번 정하면 그 끼니 동안 바꾸지 않는다. */
+  readonly #menus = new Map<number, string>();
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -106,7 +110,7 @@ export class Agency {
   }
 
   /** 한 단계의 행동 선택. 고르지 않으면 빈 목록. */
-  step(world: World, t: number, presence: string, aware: AwareMap, meal?: MealMenu): RecentAction[] {
+  step(world: World, t: number, presence: string, aware: AwareMap, meal?: Meal): RecentAction[] {
     if (!isObserved(this.#vocab, presence) || t < this.#busyUntil) return [];
     const instances = world.instances();
     const who = instances.find((i) => i.startsWith('CHR'));
@@ -137,11 +141,24 @@ export class Agency {
       const r = this.#vocab.entry('awareness', k)?.attrs['rank'];
       return typeof r === 'number' ? r : 0;
     };
+    // 끼니가 시작되면 메뉴를 구상한다: 있는 줄 아는 재료(앎이 하나라도 있는 개체)와 믿는 남은 양으로. 못 정하면 다음 단계에 다시 본다
+    if (meal !== undefined && !this.#menus.has(meal.from)) {
+      const knownIds = new Set(Object.keys(knows).map((k) => k.slice(0, k.indexOf('|'))));
+      const pick = conceive(this.#db, this.#vocab, {
+        known: (d) => instancesOfKind(world, this.#db, d).filter((i) => knownIds.has(i)).sort(),
+        level: believed,
+      });
+      if (pick !== null) {
+        this.#menus.set(meal.from, pick.menu);
+        this.#log.append({ t, type: MENU_PLANNED, src: AGENCY_SRC, cause: latestSeq(pick.keys.map((k) => knows[k]?.seq)), data: { who, menu: pick.menu, meal: meal.from } });
+      }
+    }
+    const menu = meal === undefined ? undefined : this.#menus.get(meal.from);
     for (const def of Object.keys(this.#db.defs).sort()) {
       for (const { owner, key, item: offer } of effectiveOffers(this.#db, def)) {
         for (const at of instances.filter((i) => world.defOfInstance(i) === def)) {
           if (offer.during !== undefined && !offer.during.includes(presence)) continue; // 정해진 시간에만 하는 행동 (요리는 식사 준비 시간)
-          if (offer.menu !== undefined && offer.menu !== meal?.menu) continue; // 요리법의 단계는 일정이 그 메뉴를 만들 때에만
+          if (offer.menu !== undefined && offer.menu !== menu) continue; // 요리법의 단계는 하루씨가 그 끼니에 구상한 메뉴일 때만
           const targets = (p: StatePattern): string[] =>
             (p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def)).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
           const needs = offer.needs.map((n) => ({ keys: targets(pattern(n.aware)), min: rank(n.at_least) }));
