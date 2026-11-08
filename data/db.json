@@ -492,7 +492,8 @@
           "verb": "cook",
           "needs": [],
           "when": [
-            "OBJ000004|cond:seal@>=open"
+            "OBJ000004|cond:seal@>=open",
+            "OBJ000019|burner:flame@=lit"
           ],
           "when_meaning": "edible",
           "effect": [
@@ -836,7 +837,8 @@
           "verb": "cook",
           "needs": [],
           "when": [
-            "OBJ000009|cond:seal@>=open"
+            "OBJ000009|cond:seal@>=open",
+            "OBJ000019|burner:flame@=lit"
           ],
           "when_meaning": "edible",
           "effect": [
@@ -1220,6 +1222,65 @@
       "holds": [
         "gas"
       ],
+      "slots": {
+        "burner": {
+          "features": [
+            "flame"
+          ]
+        }
+      },
+      "rules": {
+        "burn_out": {
+          "label": "불은 한 시간 뒤 꺼진다 (가스가 연소해 사라진다)",
+          "on": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "emits": [
+            "OBJ000019|burner:flame@<=out"
+          ],
+          "delay_s": 3600,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "ignite_egg": {
+          "label": "요리하려고 가스레인지에 불을 붙인다 (계란)",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000004|cond:seal@>=open",
+            "OBJ000019|burner:flame@=out"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 1,
+          "tuned": false
+        },
+        "ignite_ham": {
+          "label": "요리하려고 가스레인지에 불을 붙인다 (햄)",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000009|cond:seal@>=open",
+            "OBJ000019|burner:flame@=out"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 1,
+          "tuned": false
+        }
+      },
+      "initial": {
+        "burner:flame": "out"
+      },
       "desc": []
     },
     "OBJ000020": {

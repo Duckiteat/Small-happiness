@@ -13,6 +13,7 @@
 // 세계 상태는 값이 정의와 사전에 맞는지만 본다.
 
 import type { Db } from './db.ts';
+import { latestSeq } from './events.ts';
 import type { GameEvent, JsonValue } from './events.ts';
 import { defOf, IdAllocator, parseId } from './ids.ts';
 import { effectiveInitial } from './kinds.ts';
@@ -108,7 +109,9 @@ export class World {
     this.#checkPlace(id, rel, to, 'place');
     const from = this.#place.get(id)?.[rel] ?? null;
     if (from === to) return null;
-    return this.#write(PLACED, { id, rel, from, to }, meta);
+    // 원인: 따로 주지 않으면 이 놓임을 가능하게 한 가장 최근 사건 (두 개체가 생긴 사건 중 나중 것)
+    const cause = meta.cause ?? latestSeq([this.#born.get(id), to === null ? undefined : this.#born.get(to)]);
+    return this.#write(PLACED, { id, rel, from, to }, { ...meta, cause });
   }
 
   /** 개체의 받치는 것·담긴 곳. 없으면 undefined. */

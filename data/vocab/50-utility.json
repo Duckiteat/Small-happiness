@@ -209,6 +209,42 @@
             }
           ]
         }
+      },
+      {
+        "key": "flame",
+        "ko": "불꽃",
+        "en": "flame",
+        "desc": "가스레인지의 불이 붙어 있는가. 가스는 기기 안에서만 있다가 불이 붙으면 연소로 열이 되어 사라진다",
+        "attrs": {
+          "sense": "sight",
+          "resource": "gas",
+          "levels": [
+            {
+              "key": "out",
+              "ko": "꺼짐"
+            },
+            {
+              "key": "lit",
+              "ko": "불 켜짐"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
       }
     ]
   },

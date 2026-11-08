@@ -14,6 +14,7 @@ import type { GameEvent, JsonValue } from './events.ts';
 import { allRules, levelMatches } from './causal.ts';
 import type { Rule } from './causal.ts';
 import { defOf } from './ids.ts';
+import { rootOf } from './placement.ts';
 import { effectiveInitial, effectiveOffers, effectiveProgress, kindMembers } from './kinds.ts';
 import { formatStateKey, parsePattern, parseStateKey } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
@@ -78,6 +79,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const rules = new Map<string, Rule>();
   for (const r of allRules(db, vocab)) rules.set(`${r.def}|${r.owner}/${r.key}`, r);
   const instances = new Map<string, string>(); // 인스턴스 → 정의
+  const placeMap = new Map<string, { on?: string; in?: string }>(); // 개체 → 받치는 것·담긴 곳 (placed 사건을 따라간다)
   const levels = new Map<string, string>(); // 상태 키 → 단계 (기본값은 사다리 0칸)
   const bySeq = new Map<string, GameEvent>();
   const members = new Map<string, Set<string>>();
@@ -174,6 +176,17 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     const pv = via === '' ? null : parseVia(via);
 
     switch (e.type) {
+      case 'placed': {
+        // 놓임을 따라간다 (저절로 느낀 물건이 머무는 곳에 있는지 보는 데 쓴다)
+        const id = str(e.data['id']), rel = str(e.data['rel']), to = str(e.data['to']);
+        if (rel === 'on' || rel === 'in') {
+          const cur = { ...(placeMap.get(id) ?? {}) };
+          if (to === '') delete cur[rel];
+          else cur[rel] = to;
+          placeMap.set(id, cur);
+        }
+        break;
+      }
       case 'instance_created': {
         const id = str(e.data['id']), def = str(e.data['def']);
         if (defOf(id) !== def || db.defs[def] === undefined) {
@@ -367,6 +380,9 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           else {
             const stays = db.defs[defOf(who) ?? '']?.stays;
             if (stays !== undefined && k.subject.startsWith('PLC') && defOf(k.subject) !== stays) bad(e.seq, 'awareness', `${who}는 ${stays}에 머무는데 ${k.subject}의 ${k.feature}를 느꼈다`);
+            if (stays !== undefined && k.subject.startsWith('OBJ') && defOf(rootOf(placeMap, k.subject)) !== stays) {
+              bad(e.seq, 'awareness', `${who}는 ${stays}에 머무는데 ${k.subject}는 그곳에 놓여 있지 않은데 ${k.feature}를 저절로 느꼈다`);
+            }
             const felt = ladder(k.feature).indexOf(now) >= notice;
             if (felt && level !== now) bad(e.seq, 'awareness', `느낀 단계(${level})가 세계의 단계(${now})와 다르다`);
             if (!felt && level !== ladder(k.feature)[0]) bad(e.seq, 'awareness', `알아채는 칸(${notice}) 아래인데 ${level}를 느꼈다고 적었다 (없어진 것은 0칸이어야 한다)`);

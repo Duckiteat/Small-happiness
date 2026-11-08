@@ -32,11 +32,14 @@ test('식사 준비는 플레이어가 함께 보는 시간이다: 사전이 정
 test('첫 주의 요리: 식사 시간에만 하고, 계란과 햄을 한 번씩 쓰고, 재료는 소멸하며, 다시 요리하지 않는다', () => {
   const chosen = events.filter((e) => e.type === 'action_chosen' && e.data['verb'] === 'cook');
   assert.deepEqual(chosen.map((e) => [e.t, e.data['at'], e.data['via'], e.data['ends']]), [
-    [440, 'OBJ000004#1', 'OBJ000004/offer/cook', 480],
-    [1180, 'OBJ000009#1', 'OBJ000009/offer/cook', 1220],
+    [441, 'OBJ000004#1', 'OBJ000004/offer/cook', 481], // 440에 가스레인지 불을 붙이고(1분) 요리한다
+    [1181, 'OBJ000009#1', 'OBJ000009/offer/cook', 1221], // 불은 한 시간 뒤 꺼졌고 하루씨도 안다(보이는 상태): 다시 불을 붙인다
   ]);
+  // 요리는 불이 켜져 있어야 한다: 요리 직전에 가스레인지에 불을 붙였다 (가스가 연소해 열이 된다)
+  const ignites = events.filter((e) => e.type === 'action_chosen' && e.data['verb'] === 'switch').map((e) => [e.t, e.data['via']]);
+  assert.deepEqual(ignites, [[440, 'OBJ000019/offer/ignite_egg'], [1180, 'OBJ000019/offer/ignite_ham']]);
   for (const c of chosen) assert.equal(presenceAt(blocks, c.t), 'meal', `${c.t}분은 식사 준비 시간이다`);
-  const outside = events.filter((e) => e.type === 'action_chosen' && e.data['verb'] !== 'cook' && presenceAt(blocks, e.t) === 'meal');
+  const outside = events.filter((e) => e.type === 'action_chosen' && e.data['verb'] !== 'cook' && e.data['verb'] !== 'switch' && presenceAt(blocks, e.t) === 'meal');
   assert.deepEqual(outside, [], '식사 시간에도 다른 행동은 그대로 한다(여기서는 없다)');
   // 재료는 쓰여서 소멸로 바뀐다 (버리기와 같은 표시)
   const gone = (key: string) => events.filter((e) => e.type === 'state_changed' && e.data['key'] === key && e.data['to'] === 'gone').length;

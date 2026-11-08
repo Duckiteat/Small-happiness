@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "음식의 냄새 세기 규칙을 지식으로 옮긴다 (점검 2026-11-07): 음식마다 복사해 있던 smell_* 규칙 28개(9가지 표가 모든 음식에서 같았다)를 냄새 원인의 지식(사전 odor_cause의 단계별 strength)에서 코드가 만드는 규칙으로 바꾼다. 새 음식은 부위·진행표·처음 상태만 적으면 된다. 같은 시나리오 201개에서 상태 변화 11,075건이 하나도 다르지 않음을 확인했다.",
+  "why": "요리(계란·햄)는 가스레인지 불이 켜져 있어야 한다. 이전에는 불 없이 요리했다.",
   "defs": [
     {
       "id": "OBJ000001",
@@ -450,7 +450,8 @@
           "verb": "cook",
           "needs": [],
           "when": [
-            "OBJ000004|cond:seal@>=open"
+            "OBJ000004|cond:seal@>=open",
+            "OBJ000019|burner:flame@=lit"
           ],
           "when_meaning": "edible",
           "during": [
@@ -784,7 +785,8 @@
           "verb": "cook",
           "needs": [],
           "when": [
-            "OBJ000009|cond:seal@>=open"
+            "OBJ000009|cond:seal@>=open",
+            "OBJ000019|burner:flame@=lit"
           ],
           "when_meaning": "edible",
           "during": [

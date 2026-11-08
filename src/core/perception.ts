@@ -115,7 +115,10 @@ export class Perception {
           return notice !== undefined && idx !== null && idx >= notice;
         };
         // 저절로: 장소에 퍼진 것. 느끼면 알아챔, 알던 것이 임계 아래로 내려가면 없어졌다고 안다
-        for (const key of places.flatMap((p) => world.keysOf(p))) {
+        // 그 장소에 놓인 물건(받치는 것·담긴 곳을 따라 닿는 곳)의 눈에 보이는 상태도 저절로 안다: 켜진 불, 담긴 물.
+        // 놓임이 없는 물건(냉장고 속 음식처럼 어디에 있는지 모르는 것)은 살펴야만 안다.
+        const here = instances.filter((i) => i.startsWith('OBJ') && places.includes(world.whereIs(i)));
+        for (const key of [...places, ...here].flatMap((p) => world.keysOf(p))) {
           if (felt(key)) {
             perceived.push({ who, key, level: world.level(key) });
             this.#observe(who, key, NOTICED, world.level(key), t, senseVia(key), world.lastChange(key));

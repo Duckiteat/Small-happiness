@@ -135,3 +135,26 @@ test('후드: 요리로 주방 냄새가 짙어지면 켜고, 10분 뒤 냄새�
   const last = trace.steps.at(-1)?.values['world.state'] as Record<string, string>;
   assert.equal(last[`${hood}|fan:power`], undefined, '끝에 꺼져 있다 (기본값 = 꺼짐)');
 });
+
+test('가스레인지: 불을 붙이면(점화) 요리하고, 한 시간 뒤 꺼진다 (가스는 연소로 사라진다). 불 없이는 요리하지 않는다', () => {
+  const sc = parseScenario(JSON.parse(readFileSync(join(ROOT, 'content', 'scenarios', 'kitchen-furniture.json'), 'utf8')));
+  const trace = runScenario(db, vocab, sc);
+  type E = { type: string; t: number; data: { key?: string; to?: string; verb?: string; via?: string } };
+  const log = trace.log as E[];
+  const stove = `${byName('가스레인지')}#1`;
+  const lit = log.find((e) => e.type === 'state_changed' && e.data.key === `${stove}|burner:flame` && e.data.to === 'lit');
+  const out = log.find((e) => e.type === 'state_changed' && e.data.key === `${stove}|burner:flame` && e.data.to === 'out');
+  const cook = log.find((e) => e.type === 'action_chosen' && e.data.verb === 'cook');
+  assert.ok(lit && out && cook);
+  assert.ok(cook.t >= lit.t, '요리는 불이 붙은 뒤에 한다');
+  assert.equal(out.t - lit.t, 60, '불은 한 시간 뒤 꺼진다 (임시값)');
+});
+
+test('보이는 상태: 하루씨가 머무는 장소에 놓인 물건의 눈에 보이는 상태는 저절로 알고, 놓임이 없는 물건은 살펴야만 안다', () => {
+  const sc = parseScenario(JSON.parse(readFileSync(join(ROOT, 'content', 'scenarios', 'kitchen-furniture.json'), 'utf8')));
+  const trace = runScenario(db, vocab, sc);
+  type E = { type: string; data: { key?: string; via?: string } };
+  const sensed = new Set((trace.log as E[]).filter((e) => (e.type === 'awareness_up' || e.type === 'awareness_changed') && String(e.data.via).includes('/sense/')).map((e) => String(e.data.key).split('|')[0]));
+  assert.ok(sensed.has(`${byName('가스레인지')}#1`), '주방에 놓인 가스레인지의 불은 저절로 안다');
+  assert.equal(sensed.has(`${byName('계란')}#1`), false, '놓임이 없는 계란은 저절로 알지 못한다');
+});

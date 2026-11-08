@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "후드가 냄새 모델에 이어진다: 요리로 주방 냄새가 짙어지면 하루씨가 후드를 켜고, 켜 둔 동안 주방 냄새가 옅어지며(전기가 환기라는 효과가 됨), 한 시간 뒤 스스로 꺼진다. 수치는 임시값.",
+  "why": "가스레인지: 불을 붙이면(점화) 가스가 연소해 열이 되고, 한 시간 뒤 불이 꺼진다. 요리(계란·햄)는 불이 켜져 있어야 한다.",
   "defs": [
     {
       "id": "OBJ000012",
@@ -213,7 +213,66 @@
       ],
       "holds": [
         "gas"
-      ]
+      ],
+      "slots": {
+        "burner": {
+          "features": [
+            "flame"
+          ]
+        }
+      },
+      "initial": {
+        "burner:flame": "out"
+      },
+      "rules": {
+        "burn_out": {
+          "label": "불은 한 시간 뒤 꺼진다 (가스가 연소해 사라진다)",
+          "on": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "emits": [
+            "OBJ000019|burner:flame@<=out"
+          ],
+          "delay_s": 3600,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "ignite_egg": {
+          "label": "요리하려고 가스레인지에 불을 붙인다 (계란)",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000004|cond:seal@>=open",
+            "OBJ000019|burner:flame@=out"
+          ],
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "minutes": 1,
+          "tuned": false
+        },
+        "ignite_ham": {
+          "label": "요리하려고 가스레인지에 불을 붙인다 (햄)",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000009|cond:seal@>=open",
+            "OBJ000019|burner:flame@=out"
+          ],
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "minutes": 1,
+          "tuned": false
+        }
+      }
     },
     {
       "id": "OBJ000020",
