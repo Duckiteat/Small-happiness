@@ -8,6 +8,7 @@
       { "key": "week_close", "ko": "주 마감" },
       { "key": "absence", "ko": "부재", "desc": "비운 날 수만큼 한꺼번에 흐른 시간" },
       { "key": "state_changed", "ko": "상태 변화" },
+      { "key": "placed", "ko": "놓임 바뀜", "desc": "물건의 받치는 것(on)이나 담긴 곳(in)이 바뀜" },
       { "key": "instance_created", "ko": "개체 생김", "desc": "정의의 인스턴스가 세계에 처음 생김" },
       { "key": "effect_request", "ko": "효과 요청", "desc": "소유자에게 상태 변경을 요청" },
       { "key": "stage_advanced", "ko": "단계 진행", "attrs": { "via_kinds": ["progress"] } },

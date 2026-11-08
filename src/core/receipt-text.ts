@@ -92,6 +92,11 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
   switch (it.type) {
     case 'instance_created':
       return `${typeKo}: ${n.thing(s(d['id']))}`;
+    case 'placed': {
+      const rel = s(d['rel']) === 'in' ? '담긴 곳' : '받치는 것';
+      const to = s(d['to']);
+      return `${typeKo}: ${n.thing(s(d['id']))}의 ${rel} → ${to === '' ? '없음' : n.thing(to)}`;
+    }
     case 'state_changed': {
       const k = n.key(s(d['key']));
       return `${k.what}: ${n.level(k.feature, s(d['from']))} → ${n.level(k.feature, s(d['to']))}`;

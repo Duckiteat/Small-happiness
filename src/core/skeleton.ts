@@ -15,6 +15,7 @@ import type { RecentAction } from './agency.ts';
 import { applyLevel, Causal } from './causal.ts';
 import { parseAware, Perception } from './perception.ts';
 import { defOf } from './ids.ts';
+import { chainPairs, parseChain } from './placement.ts';
 import { viaCheck } from './via.ts';
 import { effectiveInitial } from './kinds.ts';
 import { parseStateKey } from './statekey.ts';
@@ -113,7 +114,12 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
     },
     {
       id: '1',
-      run: (c) => c.write('world.place', { places: Object.keys(db.defs).filter((id) => id.startsWith('PLC')).sort() }),
+      run: (c) => {
+        const places = Object.keys(db.defs).filter((id) => id.startsWith('PLC')).sort();
+        // 놓임(받치는 것·담긴 곳)이 하나라도 있을 때만 칸을 더한다: 놓임이 없는 세계의 판은 그대로다
+        const layout = world.places();
+        c.write('world.place', Object.keys(layout).length === 0 ? { places } : { places, layout });
+      },
     },
     {
       id: '2',
@@ -213,6 +219,10 @@ export interface Scenario {
   readonly seed: number;
   readonly spawn: readonly string[];
   readonly set: readonly { readonly t: number; readonly key: string; readonly level: string }[];
+  /** 처음 놓임: 개체 번호를 `^`로 이은 줄들. 왼쪽이 아래, 오른쪽이 위 (예: `PLC000002#1^OBJ000012#1^OBJ000013#1`). 시작 전에 놓인다. */
+  readonly layout: readonly string[];
+  /** 처음 담김: 개체 `id`가 `in`에 담겨 있다. */
+  readonly contain: readonly { readonly id: string; readonly in: string }[];
   /** 하루의 시작과 끝(분). 단계 시각은 일정에서 정해진다 (schedule.ts). */
   readonly start: number;
   readonly end: number;
@@ -227,7 +237,7 @@ function isObj(v: unknown): v is Record<string, unknown> {
 /** 시나리오 파일을 해석한다. 모양이 틀리면 던진다. */
 export function parseScenario(raw: unknown): Scenario {
   if (!isObj(raw)) throw new TypeError('시나리오는 객체여야 한다');
-  const { why, patches, use_db, seed, spawn, set, start, end, routine } = raw;
+  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain } = raw;
   if (typeof why !== 'string' || why.trim() === '') throw new TypeError('why(이 시나리오를 두는 이유)가 필요하다');
   if (use_db !== undefined && typeof use_db !== 'boolean') throw new TypeError('use_db는 true/false여야 한다');
   const fromDb = use_db === true;
@@ -247,7 +257,16 @@ export function parseScenario(raw: unknown): Scenario {
     if (s['t'] > start) throw new TypeError(`set[${i}]의 시각 ${s['t']}가 하루의 시작(${start})보다 뒤다 (set은 시작 전의 처음 상태다)`);
     return { t: s['t'], key: s['key'], level: s['level'] };
   });
-  return { why, patches: fromDb ? [] : ([...(patches as string[])] as string[]), use_db: fromDb, seed, spawn: [...spawn] as string[], set: sets, start, end, routine };
+  if (layout !== undefined && (!Array.isArray(layout) || !layout.every((x) => typeof x === 'string' && parseChain(x) !== null))) {
+    throw new TypeError('layout은 개체 번호를 ^로 이은 줄의 목록이어야 한다');
+  }
+  if (contain !== undefined && (!Array.isArray(contain) || !contain.every((x) => isObj(x) && typeof x['id'] === 'string' && typeof x['in'] === 'string'))) {
+    throw new TypeError('contain은 { id, in } 목록이어야 한다');
+  }
+  return {
+    layout: [...((layout as string[] | undefined) ?? [])],
+    contain: ((contain as { id: string; in: string }[] | undefined) ?? []).map((x) => ({ id: x.id, in: x.in })),
+    why, patches: fromDb ? [] : ([...(patches as string[])] as string[]), use_db: fromDb, seed, spawn: [...spawn] as string[], set: sets, start, end, routine };
 }
 
 export interface DayTrace {
@@ -260,6 +279,11 @@ export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: 
   const log = new EventLog({ isKnownType: (type) => vocab.has('event_type', type), checkData: viaCheck(vocab) });
   const world = new World(db, vocab, log);
   for (const def of scenario.spawn) world.spawn(def, { t: 0 });
+  for (const line of scenario.layout) {
+    const ids = parseChain(line) ?? [];
+    for (const { below, above } of chainPairs(ids)) world.place(above, 'on', below, { t: 0 });
+  }
+  for (const c of scenario.contain) world.place(c.id, 'in', c.in, { t: 0 });
   for (const s of scenario.set) world.set(s.key, s.level, { t: s.t });
   const setupEnd = Math.max(0, ...scenario.set.map((s) => s.t));
   const engine: Engine = {
