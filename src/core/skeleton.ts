@@ -163,8 +163,17 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
               applyLevel(world, vocab, e.key, k.feature, { op: e.op, level: e.level }, { t: a.ends, cause: done.seq });
             }
           }
-          // 자기가 한 일이 바꾼 상태는 안다
+          // 만들고 옮기기 (요리-설계 8장): 결과를 기록한 뒤 새 개체를 만들어 놓고, 물건을 옮긴다. 원인은 모두 행동의 끝
+          const made: string[] = [];
+          for (const cr of a.creates ?? []) {
+            const { id } = world.spawn(cr.def, { t: a.ends, cause: done.seq });
+            made.push(id);
+            if (cr.rel !== undefined && cr.to !== undefined) world.place(id, cr.rel, cr.to, { t: a.ends, cause: done.seq });
+          }
+          for (const m of a.moves ?? []) world.place(m.id, m.rel, m.to, { t: a.ends, cause: done.seq });
+          // 자기가 한 일이 바꾼 상태는 안다 (만든 것의 상태도)
           for (const e of a.effects) perception.learn(a.who, e.key, world.level(e.key), a.ends, a.via, done.seq);
+          for (const key of made.flatMap((id) => world.keysOf(id))) perception.learn(a.who, key, world.level(key), a.ends, a.via, done.seq);
         }
         causal.advance(world, c.t);
         c.write('world.state', world.snapshot().states);
@@ -209,7 +218,12 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       run: (c) => {
         const plan = parsePlan(c.read('plan'), vocab);
         const chosen = agency.step(world, c.t, presenceAt(plan, c.t), parseAware(c.read('aware')), menuAt(plan, c.t));
-        c.write('recent', chosen.map((a) => ({ ...a, effects: a.effects.map((e) => ({ ...e })) })));
+        c.write('recent', chosen.map((a) => ({
+          ...a,
+          effects: a.effects.map((e) => ({ ...e })),
+          ...(a.creates !== undefined ? { creates: a.creates.map((x) => ({ ...x })) } : {}),
+          ...(a.moves !== undefined ? { moves: a.moves.map((x) => ({ id: x.id, rel: x.rel, ...(x.to !== null ? { to: x.to } : {}) })) } : {}), // 푸는 변화는 to를 적지 않는다 (판은 null을 받지 않는다)
+        })));
       },
     },
     {

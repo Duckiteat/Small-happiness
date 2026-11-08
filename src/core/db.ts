@@ -82,6 +82,28 @@ export interface RuleDef {
   readonly tuned?: boolean;
 }
 
+/** 행동이 물건을 놓는 요청: what을 in(안에)·on(위에) 두거나 out(꺼내 놓임을 푼다). 셋 중 하나만. 참조는 정의 번호. */
+export interface PlaceSpec {
+  readonly what: string;
+  readonly in?: string;
+  readonly on?: string;
+  readonly out?: boolean;
+}
+
+/** 행동이 새 개체를 만드는 요청: 그 정의의 인스턴스 하나, in·on을 주면 그곳에 놓는다. */
+export interface CreateSpec {
+  readonly def: string;
+  readonly in?: string;
+  readonly on?: string;
+}
+
+/** 놓임 조건: what이 in(안에)·on(위에) 바로 놓여 있을 때. 둘 중 하나만. */
+export interface WhereSpec {
+  readonly what: string;
+  readonly in?: string;
+  readonly on?: string;
+}
+
 /**
  * 제공 행동 (상호작용-명세 3장): 물건·장소가 자기가 줄 수 있는 행동을 선언한다. 인물은 앎(needs)이 갖춰진 것만 고른다.
  * `effect`는 효과 요청(세계 상태의 주인이 행동이 끝날 때 기록), `reveals`는 살피기(다음 단계 지각에서 그 장소의 물건까지 본다).
@@ -105,6 +127,12 @@ export interface OfferDef {
   readonly uses?: readonly { readonly key: string; readonly steps: number }[];
   /** 일정의 이 메뉴(사전 menu)를 만드는 때에만 하는 행동 (요리법의 한 단계). 없으면 메뉴와 상관없다. */
   readonly menu?: string;
+  /** 놓임 조건 (몸이 놓은 곳이라 세계로 본다). */
+  readonly where?: readonly WhereSpec[];
+  /** 새 개체를 만든다 (덜어 담은 찌개). */
+  readonly creates?: readonly CreateSpec[];
+  /** 물건을 옮긴다 (반찬통을 냉장고에). */
+  readonly places?: readonly PlaceSpec[];
   readonly minutes: number;
   readonly tuned: boolean;
 }
@@ -369,7 +397,13 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
       bad(at, '제공 행동은 객체여야 한다');
       continue;
     }
-    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'uses', 'menu', 'minutes', 'tuned'], at, push);
+    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'uses', 'menu', 'where', 'creates', 'places', 'minutes', 'tuned'], at, push);
+    const refsOk = (v: unknown, keys: readonly string[], pick: (x: { readonly [k: string]: unknown }) => number): boolean =>
+      v === undefined || (Array.isArray(v) && v.length > 0 && v.every((x) => isObj(x) && Object.keys(x).every((k) => keys.includes(k)) && Object.entries(x).every(([k, y]) => (k === 'out' ? y === true : typeof y === 'string')) && pick(x) === 1));
+    const relCount = (x: { readonly [k: string]: unknown }): number => ['in', 'on', 'out'].filter((k) => x[k] !== undefined).length;
+    const whereOk = refsOk(o['where'], ['what', 'in', 'on'], (x) => (typeof x['what'] === 'string' ? relCount(x) : 0));
+    const placesOk = refsOk(o['places'], ['what', 'in', 'on', 'out'], (x) => (typeof x['what'] === 'string' ? relCount(x) : 0));
+    const createsOk = refsOk(o['creates'], ['def', 'in', 'on'], (x) => (typeof x['def'] === 'string' && relCount(x) <= 1 ? 1 : 0));
     const uses = o['uses'];
     const usesOk = uses === undefined || (Array.isArray(uses) && uses.length > 0 && uses.every((u) => isObj(u) && typeof u['key'] === 'string' && typeof u['steps'] === 'number' && Number.isInteger(u['steps']) && u['steps'] > 0 && Object.keys(u).length === 2));
     const needs = o['needs'];
@@ -383,6 +417,9 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
     else if (o['during'] !== undefined && !(isStrArr(o['during']) && o['during'].length > 0)) bad(at, 'during은 상태(사전 presence) 키의 비어 있지 않은 목록이어야 한다');
     else if (!usesOk) bad(at, 'uses는 { key, steps } 목록이어야 한다 (steps는 양의 정수, 비우려면 쓰지 않는다)');
     else if (o['menu'] !== undefined && (typeof o['menu'] !== 'string' || !TOKEN_RE.test(o['menu']))) bad(at, 'menu는 사전 menu 키여야 한다');
+    else if (!whereOk) bad(at, 'where는 { what, in 또는 on } 목록이어야 한다 (관계는 하나만)');
+    else if (!placesOk) bad(at, 'places는 { what, in 또는 on 또는 out: true } 목록이어야 한다 (관계는 하나만)');
+    else if (!createsOk) bad(at, 'creates는 { def, in 또는 on (없어도 됨) } 목록이어야 한다');
     else if (typeof o['minutes'] !== 'number' || !Number.isInteger(o['minutes']) || o['minutes'] <= 0) bad(at, 'minutes(걸리는 시간, 분)는 양의 정수여야 한다');
     else if (typeof o['tuned'] !== 'boolean') bad(at, 'tuned(걸리는 시간이 조정된 값인지)를 true/false로 적어야 한다');
     else if (o['label'] !== undefined && typeof o['label'] !== 'string') bad(at, 'label은 문자열이어야 한다');
@@ -398,6 +435,9 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
         ...(isStrArr(o['during']) ? { during: o['during'].map((s) => s.trim()) } : {}),
         ...(Array.isArray(uses) ? { uses: (uses as { key: string; steps: number }[]).map((u) => ({ key: u.key.trim(), steps: u.steps })) } : {}),
         ...(typeof o['menu'] === 'string' ? { menu: o['menu'] } : {}),
+        ...(Array.isArray(o['where']) ? { where: o['where'] as WhereSpec[] } : {}),
+        ...(Array.isArray(o['creates']) ? { creates: o['creates'] as CreateSpec[] } : {}),
+        ...(Array.isArray(o['places']) ? { places: o['places'] as PlaceSpec[] } : {}),
         minutes: o['minutes'],
         tuned: o['tuned'],
       };

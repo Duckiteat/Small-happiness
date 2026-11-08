@@ -1,0 +1,37 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 물건을 자기 자신 안에 넣는 옮기기",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "시험 그릇"
+   },
+   "mobility": "portable",
+   "slots": {
+    "box": {
+     "features": [
+      "contents"
+     ]
+    }
+   },
+   "offers": {
+    "move": {
+     "label": "옮긴다",
+     "verb": "store",
+     "needs": [],
+     "effect": [],
+     "minutes": 1,
+     "tuned": false,
+     "places": [
+      {
+       "what": "OBJ+1",
+       "in": "OBJ+1"
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

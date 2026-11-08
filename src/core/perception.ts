@@ -127,7 +127,10 @@ export class Perception {
           const known = this.#aware.get(who)?.get(key);
           const k = parseStateKey(key);
           const zero = k === null ? undefined : this.#vocab.levelOrder(k.feature)?.at(0);
-          if (known !== undefined && zero !== undefined && known.level !== zero) this.#observe(who, key, known.aw, zero, t, senseVia(key), world.lastChange(key));
+          // 없어졌다고 아는 것은 그 감각이 있을 때뿐이다 (촉각이 없으면 살펴서 안 온도를 '없음'으로 바꾸지 않는다)
+          const sense = k === null ? undefined : this.#vocab.entry('feature', k.feature)?.attrs['sense'];
+          const hasSense = typeof sense === 'string' && senses[sense]?.notice !== undefined;
+          if (hasSense && known !== undefined && zero !== undefined && known.level !== zero) this.#observe(who, key, known.aw, zero, t, senseVia(key), world.lastChange(key));
         }
         // 살펴서: 가까이 본 물건은 임계와 상관없이 모든 상태를 안다 (냄새가 없어도 곰팡이·보관 상태가 보인다)
         for (const key of objects.flatMap((o) => world.keysOf(o))) {

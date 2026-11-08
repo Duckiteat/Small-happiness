@@ -230,5 +230,21 @@
   "menu-unknown.json": {
     "stage": "gate",
     "match": "사전에 없는 메뉴"
+  },
+  "places-two-relations.json": {
+    "stage": "gate",
+    "match": "관계는 하나만"
+  },
+  "places-self.json": {
+    "stage": "gate",
+    "match": "자기 자신에 놓는다"
+  },
+  "creates-unknown-def.json": {
+    "stage": "gate",
+    "match": "없는 정의를 가리킨다: OBJ999999"
+  },
+  "where-person-target.json": {
+    "stage": "gate",
+    "match": "놓는 곳은 물건이나 장소여야 한다"
   }
 }

@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "된장찌개 재료 (작가 2026-11-08): 된장·양파·애호박·두부·대파에 남은 양(amount)을 두고, 된장찌개를 만드는 날에만 칼과 도마로 썬다. 썰면 칼과 도마가 더러워진다. 수치는 임시값(tuned:false).",
+  "why": "된장찌개의 보관 기간을 늘린다: 4일 기준이면 담는 동안의 실온과 국물·토막의 속도 때문에 냉장고에서 하룻밤 만에 쉬었다(시나리오로 확인). 8일 기준(냉장에서 사흘쯤 상함)으로 둔다. 일반적인 대략값의 임시값.",
   "defs": [
     {
       "id": "OBJ000001",
@@ -1354,6 +1354,129 @@
       },
       "desc": [
         "말린 국물용 멸치 한 봉지. 냉장 보관 기간은 일반적인 대략값의 임시값"
+      ]
+    },
+    {
+      "id": "OBJ000034",
+      "is_a": "OBJ000001",
+      "names": {
+        "ko": "된장찌개",
+        "en": "doenjang stew"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "decay",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat",
+            "amount"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {
+        "decay": {
+          "base_s": 691200
+        }
+      },
+      "initial": {
+        "cond:seal": "half",
+        "cond:moisture": "liquid",
+        "cond:cut": "chunk",
+        "cond:temp": "mild_room",
+        "cond:heat": "hot",
+        "cond:amount": "half"
+      },
+      "offers": {
+        "reheat": {
+          "label": "남은 찌개를 전자레인지로 데운다",
+          "verb": "reheat",
+          "needs": [],
+          "when": [
+            "OBJ000034|cond:heat@=none",
+            "OBJ000034|body:decay@<=turned",
+            "OBJ000016|body:order@=ok",
+            "OBJ000016|chamber:power@=off"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "leftover_stew",
+          "effect": [
+            "OBJ000016|chamber:power@=on",
+            "OBJ000034|cond:heat@=hot"
+          ],
+          "minutes": 3,
+          "tuned": false,
+          "where": [
+            {
+              "what": "OBJ000034",
+              "in": "OBJ000033"
+            },
+            {
+              "what": "OBJ000033",
+              "in": "OBJ000016"
+            }
+          ]
+        },
+        "eat_leftover": {
+          "label": "데운 남은 찌개를 먹는다. 반찬통이 빈다",
+          "verb": "eat",
+          "needs": [],
+          "when": [
+            "OBJ000034|cond:heat@>=hot"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "leftover_stew",
+          "effect": [
+            "OBJ000034|body:smell@=gone",
+            "OBJ000034|body:odor@=gone",
+            "OBJ000034|cond:seal@=gone",
+            "OBJ000033|box:contents@=none"
+          ],
+          "minutes": 15,
+          "tuned": false,
+          "where": [
+            {
+              "what": "OBJ000034",
+              "in": "OBJ000033"
+            }
+          ],
+          "places": [
+            {
+              "what": "OBJ000034",
+              "out": true
+            }
+          ]
+        }
+      },
+      "desc": [
+        "냄비에서 반찬통으로 옮겨 담은 된장찌개. 냉장 보관 기간은 일반적인 대략값의 임시값"
       ]
     }
   ]

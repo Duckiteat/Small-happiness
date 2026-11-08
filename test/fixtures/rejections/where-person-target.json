@@ -1,0 +1,43 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 사람 안에 놓여 있는지 묻는 놓임 조건",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "시험 그릇"
+   },
+   "mobility": "portable",
+   "slots": {
+    "box": {
+     "features": [
+      "contents"
+     ]
+    }
+   },
+   "offers": {
+    "move": {
+     "label": "옮긴다",
+     "verb": "store",
+     "needs": [],
+     "effect": [],
+     "minutes": 1,
+     "tuned": false,
+     "where": [
+      {
+       "what": "OBJ+1",
+       "in": "CHR+1"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "CHR+1",
+   "names": {
+    "ko": "시험 사람"
+   }
+  }
+ ]
+}

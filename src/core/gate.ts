@@ -322,6 +322,26 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
         slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
       });
       if (offer.menu !== undefined && !vocab.has('menu', offer.menu)) error(`${at}.menu`, `사전에 없는 메뉴: ${offer.menu}`);
+      // 놓임 조건·옮기기·만들기: 가리키는 정의가 있어야 하고, 놓이는 것은 물건, 놓는 곳은 물건이나 장소다
+      const ref = (w: string, r: string, what: boolean): void => {
+        const d = db.defs[r];
+        if (d === undefined) error(w, `없는 정의를 가리킨다: ${r}`);
+        else if (what && !r.startsWith('OBJ')) error(w, `놓이는 것은 물건(OBJ)이어야 한다: ${r}`);
+        else if (!what && !r.startsWith('OBJ') && !r.startsWith('PLC')) error(w, `놓는 곳은 물건이나 장소여야 한다: ${r}`);
+      };
+      (offer.where ?? []).forEach((x, i) => {
+        ref(`${at}.where[${i}].what`, x.what, true);
+        ref(`${at}.where[${i}]`, x.in ?? x.on ?? '', false);
+      });
+      (offer.places ?? []).forEach((x, i) => {
+        ref(`${at}.places[${i}].what`, x.what, true);
+        if (x.out !== true) ref(`${at}.places[${i}]`, x.in ?? x.on ?? '', false);
+        if (x.what === (x.in ?? x.on)) error(`${at}.places[${i}]`, `물건을 자기 자신에 놓는다: ${x.what}`);
+      });
+      (offer.creates ?? []).forEach((x, i) => {
+        ref(`${at}.creates[${i}].def`, x.def, true);
+        if (x.in !== undefined || x.on !== undefined) ref(`${at}.creates[${i}]`, x.in ?? x.on ?? '', false);
+      });
       (offer.uses ?? []).forEach((u, i) => {
         const w = `${at}.uses[${i}]`;
         const p = parsePattern(u.key);

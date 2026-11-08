@@ -43,7 +43,7 @@ test('쓰는 양: 열린 칸으로 steps칸 내리고, 잠긴 칸은 건너뛰�
 test('일정의 메뉴: 구간에 적은 메뉴만 그 구간의 메뉴이고, 사전에 없는 메뉴는 거부한다', () => {
   const plan = parsePlan(sc.routine, vocab);
   assert.deepEqual(menuAt(plan, 1100), { menu: 'doenjang_jjigae', from: 1100 });
-  assert.equal(menuAt(plan, 2170), undefined, '둘째 날 점심은 메뉴가 없다');
+  assert.deepEqual(menuAt(plan, 2170), { menu: 'leftover_stew', from: 2160 }, '둘째 날 점심은 남은 찌개');
   assert.equal(menuAt(plan, 1300), undefined, '구간 밖');
   assert.throws(() => parsePlan({ blocks: [{ kind: 'meal', from: 0, to: 10, menu: 'pizza' }] }, vocab), ScheduleError);
 });
@@ -77,12 +77,12 @@ test('된장찌개: 썰기 → 물 받아 붓기 → 불 → 멸치 육수(10분
   assert.ok(eaten > stewAt && washed > eaten);
 });
 
-test('된장찌개: 한 끼에 한 번만 끓이고, 메뉴가 없는 끼니에는 썰지도 끓이지도 않는다', () => {
+test('된장찌개: 한 끼에 한 번만 끓이고, 남은 찌개 끼니에는 끓이지 않고 꺼내 데워 먹기만 한다', () => {
   const stews = changes.filter((c) => c.key === `${inst('냄비')}|pot:soup` && c.to === 'stew').map((c) => c.t);
   assert.equal(stews.length, 2, '첫날 저녁 한 번 · 둘째 날 저녁 한 번 (첫날 끼니에 시간이 남아도 다시 끓이지 않는다)');
   assert.ok((stews[0] as number) < 1220 && (stews[1] as number) >= 2540);
-  const lunch = chosen.filter((c) => c.t >= 2160 && c.t < 2220);
-  assert.deepEqual(lunch, [], '메뉴 없는 점심');
+  const lunch = chosen.filter((c) => c.t >= 2160 && c.t < 2220).map((c) => c.via.split('/').at(-1));
+  assert.deepEqual(lunch, ['take_out', 'reheat', 'eat_leftover'], '남은 찌개 점심');
   // 메뉴를 지우면 하루 종일 요리법의 어떤 단계도 고르지 않는다
   const r = raw();
   const routine = r['routine'] as { blocks: Record<string, unknown>[] };
@@ -136,5 +136,52 @@ test('된장찌개: 감사가 기록을 정의에서 다시 계산해 위반이 
   for (const c of cases) {
     const r = auditLog(c.mutate(structuredClone(events())), db, vocab, opts);
     assert.ok(r.findings.some((f) => f.check === c.check), `${c.name}: ${c.check} 위반을 잡아야 한다 (잡은 것: ${r.findings.map((f) => f.check).join(', ') || '없음'})`);
+  }
+});
+
+test('남은 찌개: 반쯤 덜어 먹고 반찬통에 옮겨 담으면 새 음식이 되어 냉장고에서 차가워지고, 다음 끼니에 꺼내 데워 먹는다', () => {
+  const box = inst('반찬통'), fridge = inst('냉장고'), microwave = inst('전자레인지');
+  const stewDef = byName('된장찌개');
+  const made = events().filter((e) => e.type === 'instance_created' && e.data['def'] === stewDef);
+  assert.equal(made.length, 2, '끓인 두 번 모두 남은 것을 옮겨 담는다');
+  const first = str(made[0]?.data['id']);
+  const cause = events().find((e) => e.seq === made[0]?.cause);
+  assert.equal(cause?.type, 'action_done', '찌개 개체는 옮겨 담기가 끝나 생긴다');
+  assert.equal(str(cause?.data['via']).split('/').at(-1), 'transfer');
+  const placed = events().filter((e) => e.type === 'placed');
+  const put = (id: string, rel: string, to: string): number => placed.find((e) => e.data['id'] === id && e.data['rel'] === rel && e.data['to'] === to)?.t ?? -1;
+  assert.ok(put(first, 'in', box) > 0, '찌개는 반찬통 안에');
+  const stored = put(box, 'in', fridge);
+  assert.ok(stored > 0 && stored < 1220, '첫날 저녁에 냉장고에 넣는다');
+  // 냉장고 안에서 한 시간 뒤 차가워진다 (냉장고의 rechill 규칙이 안에 든 것에 걸린다)
+  const chilled = changes.find((c) => c.key === `${first}|cond:temp` && c.to === 'fridge')?.t ?? -1;
+  assert.equal(chilled - stored, 60, '넣은 뒤 한 시간 (임시값)');
+  // 둘째 날 점심: 꺼내 전자레인지에 넣고(본다), 식은 것을 데워(뜨거움) 먹는다
+  assert.ok(put(box, 'in', microwave) >= 2160);
+  const hot = changes.filter((c) => c.key === `${first}|cond:heat` && c.to === 'hot').map((c) => c.t);
+  assert.equal(hot.length, 2, '만들 때 한 번 · 데울 때 한 번');
+  assert.ok((hot[1] as number) >= 2160 && (hot[1] as number) < 2220);
+  assert.equal(last(`${first}|cond:seal`), 'gone', '먹었다');
+  assert.equal(placed.some((e) => e.data['id'] === first && e.data['rel'] === 'in' && e.data['to'] === null), true, '먹은 찌개는 반찬통에서 빠진다');
+  // 끝: 둘째 날 끓인 찌개가 반찬통에 담겨 냉장고 안에 있다
+  const second = str(made[1]?.data['id']);
+  assert.equal(last(`${box}|box:contents`), 'full');
+  assert.ok(put(second, 'in', box) >= 2540);
+  assert.deepEqual(placed.filter((e) => e.data['id'] === box && e.data['rel'] === 'in' && e.data['to'] === fridge).map((e) => e.t < 1220 || e.t >= 2540), [true, true], '두 번 다 그 끼니에 냉장고에 넣는다');
+  // 하루씨에게 없는 감각(촉각)으로 아는 것을 바꾸지 않는다: 살펴서 안 온도가 '없음'으로 돌아가지 않는다
+  assert.equal(events().some((e) => e.type.startsWith('awareness') && str(e.data['via']).endsWith('/sense/touch')), false);
+});
+
+test('남은 찌개: 감사가 만들기·옮기기를 행동에서 다시 계산하고, 고친 기록을 잡는다', () => {
+  const opts = { externalUntil: sc.start };
+  const fridge = inst('냉장고'), box = inst('반찬통');
+  const cases: { name: string; mutate: (es: GameEvent[]) => GameEvent[] }[] = [
+    { name: '반찬통을 냉장고가 아니라 식탁에 넣은 것으로 고침', mutate: (es) => es.map((e) => (e.type === 'placed' && e.data['id'] === box && e.data['to'] === fridge ? { ...e, data: { ...e.data, to: inst('식탁') } } : e)) },
+    { name: '옮겨 담기가 다른 음식을 만든 것으로 고침', mutate: (es) => es.map((e) => (e.type === 'instance_created' && e.data['def'] === byName('된장찌개') ? { ...e, data: { ...e.data, def: byName('된장') } } : e)) },
+    { name: '냉장고에 넣은 기록을 지움', mutate: (es) => es.filter((e) => !(e.type === 'placed' && e.data['id'] === box && e.data['to'] === fridge)) },
+  ];
+  for (const c of cases) {
+    const r = auditLog(c.mutate(structuredClone(events())), db, vocab, opts);
+    assert.ok(r.findings.some((f) => f.check === 'effects'), `${c.name}: 결과(effects) 위반을 잡아야 한다 (잡은 것: ${r.findings.map((f) => f.check).join(', ') || '없음'})`);
   }
 });

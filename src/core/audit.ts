@@ -9,6 +9,7 @@
 // 코어는 입출력이 없다. 시나리오를 읽는 일은 서기(clerk.ts)가 한다.
 
 import { stepDown } from './amount.ts';
+import { pointerChanges, refInstance, relationOf, targetPointers } from './moves.ts';
 import type { Db } from './db.ts';
 import { latestSeq } from './events.ts';
 import type { GameEvent, JsonValue } from './events.ts';
@@ -69,7 +70,11 @@ interface Chosen {
   readonly at: string;
   readonly ends: number;
   readonly effects: readonly { readonly key: string; readonly feature: string; readonly cond: StatePattern['cond'] }[];
+  readonly moves: MoveExpected[];
 }
+
+/** 행동이 끝난 뒤 따라와야 할 만들기·놓임 사건 (차례대로). */
+type MoveExpected = { readonly kind: 'create'; readonly def: string; readonly rel?: string; readonly to?: string } | { readonly kind: 'place'; readonly id: string; readonly rel: string; readonly to: string | null };
 
 export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, options: AuditOptions = {}): AuditResult {
   const findings: AuditFinding[] = [];
@@ -139,6 +144,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const openIds = new Set<string>(); // 같은 규칙 × 인스턴스의 예약은 하나
   const chosen = new Map<string, Chosen>();
   const mealSteps = new Set<string>(); // 요리법 단계 × 끼니
+  const moveQueue = new Map<string, MoveExpected[]>(); // action_done seq → 따라올 만들기·놓임
   const inspected = new Set<string>(); // `${who}|${via}`: 끝난 행동
   const knows = new Map<string, { aw: string; level: string }>(); // `${who}|${key}`
   let pending: Pending | null = null;
@@ -189,6 +195,13 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
       case 'placed': {
         // 놓임을 따라간다 (저절로 느낀 물건이 머무는 곳에 있는지 보는 데 쓴다)
         const id = str(e.data['id']), rel = str(e.data['rel']), to = str(e.data['to']);
+        if (e.cause !== null && doneBy.has(e.cause)) {
+          // 행동이 옮긴 것: 그 행동이 요구한 놓임 변화여야 한다 (차례대로)
+          const q = moveQueue.get(e.cause) ?? [];
+          const head = q[0];
+          if (head === undefined || head.kind !== 'place' || head.id !== id || head.rel !== rel || (head.to ?? '') !== to) bad(e.seq, 'effects', `행동이 요구하지 않는 놓임이다: ${id} ${rel} → ${to || '없음'}`);
+          else q.shift();
+        }
         if (rel === 'on' || rel === 'in') {
           const cur = { ...(placeMap.get(id) ?? {}) };
           if (to === '') delete cur[rel];
@@ -203,6 +216,16 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           bad(e.seq, 'state', `개체 ${id}가 정의 ${def}의 것이 아니다`);
           break;
         }
+        if (e.cause !== null && doneBy.has(e.cause)) {
+          // 행동이 만든 것: 그 행동이 요구한 정의여야 하고, 놓을 곳이 있으면 바로 뒤에 놓임이 따른다
+          const q = moveQueue.get(e.cause) ?? [];
+          const head = q[0];
+          if (head === undefined || head.kind !== 'create' || head.def !== def) bad(e.seq, 'effects', `행동이 만들지 않는 개체다: ${id}`);
+          else {
+            q.shift();
+            if (head.rel !== undefined && head.to !== undefined) q.unshift({ kind: 'place', id, rel: head.rel, to: head.to });
+          }
+        } else if (e.cause !== null) bad(e.seq, 'cause', `개체가 생긴 원인이 행동의 끝이 아니다: ${e.cause}`);
         instances.set(id, def);
         born.set(id, e.seq);
         const slots = db.defs[def]?.slots ?? {};
@@ -349,6 +372,28 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
             else effects.push({ key, feature: p.feature, cond: { op: '=', level: to } });
           }
         }
+        // 놓임 조건·옮기기·만들기: 행동 층과 같은 참조 계산 (인스턴스가 하나여야 한다)
+        const membersOf = (d: string): string[] => [...instances.keys()].sort().filter((i) => kindOf(d).has(instances.get(i) ?? ''));
+        const one = (ref: string): string | null => refInstance(ref, pv.owner, at, membersOf);
+        for (const w of offer.item.where ?? []) {
+          const a = one(w.what), b = one(w.in ?? w.on ?? '');
+          if (a === null || b === null || placeMap.get(a)?.[w.in !== undefined ? 'in' : 'on'] !== b) bad(e.seq, 'action', `놓임 조건이 맞지 않는데 골랐다: ${w.what} ${w.in !== undefined ? 'in' : 'on'} ${w.in ?? w.on ?? ''}`);
+        }
+        const moves: MoveExpected[] = [];
+        for (const c of offer.item.creates ?? []) {
+          const to = c.in ?? c.on;
+          const target = to === undefined ? undefined : one(to);
+          if (target === null) bad(e.seq, 'action', `만든 것을 놓을 곳이 하나로 정해지지 않는다: ${to ?? ''}`);
+          moves.push({ kind: 'create', def: c.def, ...(target !== undefined && target !== null ? { rel: c.in !== undefined ? 'in' : 'on', to: target } : {}) });
+        }
+        for (const p of offer.item.places ?? []) {
+          const id = one(p.what), to = p.out === true ? null : one(p.in ?? p.on ?? '');
+          if (id === null || (p.out !== true && to === null)) {
+            bad(e.seq, 'action', `옮길 것이나 옮길 곳이 하나로 정해지지 않는다: ${relationOf(p)}`);
+            continue;
+          }
+          for (const ch of pointerChanges(id, placeMap.get(id), targetPointers(p, to))) moves.push({ kind: 'place', id: ch.id, rel: ch.rel, to: ch.to });
+        }
         const menu = e.data['menu'];
         if (typeof menu === 'string') {
           // 요리법의 단계는 한 끼에 한 번
@@ -357,7 +402,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           mealSteps.add(once);
         }
         if ((offer.item.menu ?? null) !== (typeof menu === 'string' ? menu : null)) bad(e.seq, 'action', `행동의 메뉴(${offer.item.menu ?? '없음'})와 고른 때의 메뉴(${typeof menu === 'string' ? menu : '없음'})가 다르다`);
-        chosen.set(e.seq, { via, who, verb, at, ends, effects });
+        chosen.set(e.seq, { via, who, verb, at, ends, effects, moves });
         // 원인: 이 행동의 조건을 채운 하루씨의 앎(awareness 사건). 어느 앎인지까지는 행동을 고른 이유를 다시 계산해야 안다 (LIM014)
         // 앎이 필요 없는 행동(needs가 빈 요리 등)은 시간(일정)이 이끈 것이라 원인 사건이 없을 수 있다 (한계 LIM020)
         bump('cause');
@@ -375,6 +420,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (e.t !== c.ends) bad(e.seq, 'action', `끝나는 시각 ${c.ends}분이 아닌 ${e.t}분에 기록됐다`);
         inspected.add(`${c.who}|${via}`);
         doneBy.set(e.seq, { who: c.who, via });
+        if (c.moves.length > 0) moveQueue.set(e.seq, [...c.moves]);
         const expect = expectChanges(levels, c.effects);
         if (expect.length > 0) pending = { cause: e.seq, what: `${via} 끝`, expect };
         break;
@@ -432,6 +478,9 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   closePending();
   const last = events.at(-1)?.t ?? 0;
   for (const [seq, r] of open) if (r.due <= last) bad(seq, 'timing', `예약 시각 ${r.due}분이 지났는데 발화·취소가 없다 (${r.via}@${r.at})`);
+  for (const [seq, q] of moveQueue) {
+    for (const m of q) bad(seq, 'effects', m.kind === 'create' ? `행동이 만들기로 한 개체가 생기지 않았다: ${m.def}` : `행동이 옮기기로 한 놓임이 없다: ${m.id} ${m.rel} → ${m.to ?? '없음'}`);
+  }
   return { findings, checked, events: events.length };
 }
 

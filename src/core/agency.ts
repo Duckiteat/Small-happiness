@@ -15,6 +15,10 @@
 // 고르는 방식 (기본안, 18번 점수 매기기 전까지): 할 수 있는 후보 중 정의 번호·행동 키 순서로 첫 번째. 난수 없음.
 
 import { stepDown } from './amount.ts';
+import { pointerChanges, refInstance, targetPointers } from './moves.ts';
+import type { PointerChange } from './moves.ts';
+import { isRelation } from './placement.ts';
+import type { Relation } from './placement.ts';
 import { levelMatches, stateMatches } from './causal.ts';
 import type { BoardValue } from './board.ts';
 import { formatVia } from './via.ts';
@@ -51,6 +55,10 @@ export interface RecentAction {
   readonly ends: number;
   readonly effects: readonly Effect[];
   readonly reveals?: string;
+  /** 만들 개체: 정의와 놓을 곳(포인터 하나). */
+  readonly creates?: readonly { readonly def: string; readonly rel?: Relation; readonly to?: string }[];
+  /** 놓임의 변화 (포인터 하나씩). */
+  readonly moves?: readonly PointerChange[];
 }
 
 function isObj(v: unknown): v is { readonly [key: string]: unknown } {
@@ -69,6 +77,12 @@ export function parseRecent(value: BoardValue | undefined): RecentAction[] {
     ends: Number(r['ends']),
     effects: (Array.isArray(r['effects']) ? r['effects'] : []).filter(isObj).map((e) => ({ key: String(e['key']), op: String(e['op']), level: String(e['level']) })),
     ...(typeof r['reveals'] === 'string' ? { reveals: r['reveals'] } : {}),
+    ...(Array.isArray(r['creates'])
+      ? { creates: r['creates'].filter(isObj).map((c) => ({ def: String(c['def']), ...(isRelation(c['rel']) && typeof c['to'] === 'string' ? { rel: c['rel'], to: c['to'] } : {}) })) }
+      : {}),
+    ...(Array.isArray(r['moves'])
+      ? { moves: r['moves'].filter(isObj).flatMap((m) => (isRelation(m['rel']) ? [{ id: String(m['id']), rel: m['rel'], to: typeof m['to'] === 'string' ? m['to'] : null }] : [])) }
+      : {}),
   }));
 }
 
@@ -147,13 +161,28 @@ export class Agency {
             const p = pattern(text);
             return targets(p).map((k) => ({ key: k, feature: p.feature, cond: p.cond }));
           });
-          if (effects.length > 0 && effects.every((e) => stateMatches(world, this.#vocab, e.key, e.feature, e.cond))) continue;
+          if (effects.length > 0 && (offer.places ?? []).length === 0 && (offer.creates ?? []).length === 0 && effects.every((e) => stateMatches(world, this.#vocab, e.key, e.feature, e.cond))) continue;
           // 쓰는 양: 남은 양은 몸이 보는 것이라 세계로 본다. 모자라면 하지 않고, 있으면 steps칸 내린 단계가 결과에 더해진다
           const used = (offer.uses ?? []).flatMap((u) => {
             const p = pattern(u.key);
             return targets(p).map((k) => ({ key: k, to: stepDown(this.#vocab, p.feature, world.level(k), u.steps) }));
           });
           if (used.some((u) => u.to === null)) continue;
+          // 놓임: 조건·옮기기·만들기의 참조는 인스턴스 하나여야 한다. 어디에 두었는지는 몸이 아는 것이라 세계로 본다
+          const one = (ref: string): string | null => refInstance(ref, owner, at, (d) => instancesOfKind(world, this.#db, d));
+          const whereOk = (offer.where ?? []).every((w) => {
+            const a = one(w.what), b = one(w.in ?? w.on ?? '');
+            return a !== null && b !== null && world.placeOf(a)?.[w.in !== undefined ? 'in' : 'on'] === b;
+          });
+          if (!whereOk) continue;
+          const moveSpecs = (offer.places ?? []).map((p) => ({ id: one(p.what), to: p.out === true ? null : one(p.in ?? p.on ?? ''), p }));
+          if (moveSpecs.some((m) => m.id === null || (m.p.out !== true && m.to === null))) continue;
+          const moves = moveSpecs.flatMap((m) => pointerChanges(m.id ?? '', world.placeOf(m.id ?? ''), targetPointers(m.p, m.to)));
+          const creates = (offer.creates ?? []).map((c) => ({ def: c.def, rel: c.in !== undefined ? ('in' as const) : c.on !== undefined ? ('on' as const) : undefined, to: c.in ?? c.on }));
+          const createTo = creates.map((c) => (c.to === undefined ? undefined : one(c.to)));
+          if (createTo.some((x) => x === null)) continue;
+          // 이미 이루어졌으면 하지 않는다: 결과가 다 맞고, 옮길 것이 이미 그곳에 있고, 만들 것이 없을 때
+          if (creates.length === 0 && moveSpecs.length > 0 && moves.length === 0 && (effects.length === 0 || effects.every((e) => stateMatches(world, this.#vocab, e.key, e.feature, e.cond)))) continue;
           // 같은 앎에서는 되풀이하지 않는다: 필요한 앎과 그 물건에 대한 앎(본 단계)이 바뀌면 다시 할 수 있다
           const knowing = (k: string): string => `${knows[k]?.aw ?? 'unknown'}:${knows[k]?.level ?? ''}`;
           // 요리법의 단계는 한 끼(일정 구간)에 한 번: 끝나고 시간이 남아도 같은 메뉴를 다시 만들지 않는다
@@ -185,6 +214,8 @@ export class Agency {
                 ...used.map((u) => ({ key: u.key, op: '=', level: u.to ?? '' })),
               ],
               ...(offer.reveals === true ? { reveals: at } : {}),
+              ...(creates.length > 0 ? { creates: creates.map((c, i) => ({ def: c.def, ...(c.rel !== undefined && typeof createTo[i] === 'string' ? { rel: c.rel, to: createTo[i] } : {}) })) } : {}),
+              ...(moves.length > 0 ? { moves } : {}),
             },
           ];
         }

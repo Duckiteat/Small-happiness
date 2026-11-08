@@ -17,8 +17,8 @@ const vocab = loadVocabDir(join(ROOT, 'data', 'vocab'));
 const real: Db = loadDb(ROOT);
 type E = { t: number; type: string; data: Record<string, unknown> };
 
-test('실제 저장소: 음식 종류 하나에 음식 14가지(발효 음식 종류 포함)가 속하고, 실제 저장소가 관문을 통과한다', () => {
-  assert.equal(kindMembers(real, 'OBJ000001').size, 16, '음식 · 음식 10가지 · 발효 음식 종류 · 된장 · 양파 · 애호박 · 국물용 멸치');
+test('실제 저장소: 음식 종류 하나에 음식 15가지(발효 음식 종류 포함)가 속하고, 실제 저장소가 관문을 통과한다', () => {
+  assert.equal(kindMembers(real, 'OBJ000001').size, 17, '음식 · 음식 10가지 · 발효 음식 종류 · 된장 · 양파 · 애호박 · 국물용 멸치 · 된장찌개');
   assert.deepEqual([...kindMembers(real, 'OBJ000025')].sort(), ['OBJ000025', 'OBJ000026', 'OBJ000005', 'OBJ000008'].sort(), '발효 음식 종류: 김치 · 요거트 · 된장');
   assert.equal(runGate(emptyDb(), real, vocab, []).pass, true);
 });

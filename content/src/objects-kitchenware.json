@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "불 끄기·먹기·설거지도 된장찌개를 만드는 끼니의 단계로 둔다 (한 끼에 한 번). 메뉴가 없으면 같은 앎에서 되풀이하지 않는 규칙 때문에 이튿날 같은 상황에서 불을 끄지 않고 설거지하지 않았다 (시나리오로 확인).",
+  "why": "꺼내면서 본다: 냉장고 안의 물건은 보이지 않아서, 하루씨는 만들 때의 '뜨거움'을 그대로 믿고 식은 찌개를 데우지 않고 먹었다 (시나리오로 확인). 꺼내는 행동이 살피기(reveals)를 겸하게 한다.",
   "defs": [
     {
       "id": "OBJ000029",
@@ -63,7 +63,8 @@
           "features": [
             "water",
             "soup",
-            "filling"
+            "filling",
+            "amount"
           ]
         },
         "body": {
@@ -76,7 +77,8 @@
         "pot:water": "none",
         "pot:soup": "none",
         "pot:filling": "none",
-        "body:dirt": "clean"
+        "body:dirt": "clean",
+        "pot:amount": "none"
       },
       "rules": {
         "make_broth": {
@@ -101,6 +103,7 @@
           ],
           "emits": [
             "OBJ000031|pot:soup@>=stew",
+            "OBJ000031|pot:amount@>=full",
             "PLC000002|space:smell@>=distinct",
             "PLC000002|space:odor@>=savory"
           ],
@@ -258,29 +261,138 @@
           "menu": "doenjang_jjigae"
         },
         "eat": {
-          "label": "다 된 찌개를 먹는다. 냄비가 비고 더러워진다",
+          "label": "다 된 찌개를 반쯤 덜어 먹는다. 냄비가 더러워진다",
           "verb": "eat",
           "needs": [],
           "when": [
             "OBJ000031|pot:soup@=stew",
             "OBJ000019|burner:flame@=out"
           ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
           "effect": [
-            "OBJ000031|pot:soup@=none",
-            "OBJ000031|pot:filling@=none",
-            "OBJ000031|pot:water@=none",
             "OBJ000031|body:dirt@>=dirty"
           ],
           "minutes": 20,
           "tuned": false,
-          "during": [
-            "meal"
-          ],
-          "menu": "doenjang_jjigae"
+          "uses": [
+            {
+              "key": "OBJ000031|pot:amount",
+              "steps": 2
+            }
+          ]
         }
       },
       "desc": [
         "국·찌개를 끓이는 냄비. 가스레인지 위에 놓여야 불이 국물을 끓인다 (규칙의 linked)"
+      ]
+    },
+    {
+      "id": "OBJ000033",
+      "names": {
+        "ko": "반찬통",
+        "en": "food container"
+      },
+      "aliases": [
+        "밀폐용기"
+      ],
+      "mobility": "portable",
+      "role": "plain",
+      "slots": {
+        "box": {
+          "features": [
+            "contents"
+          ]
+        }
+      },
+      "initial": {
+        "box:contents": "none"
+      },
+      "offers": {
+        "transfer": {
+          "label": "먹고 남은 찌개를 빈 반찬통에 옮겨 담는다",
+          "verb": "transfer",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=stew",
+            "OBJ000031|pot:amount@>=little",
+            "OBJ000019|burner:flame@=out",
+            "OBJ000033|box:contents@=none"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "effect": [
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|pot:filling@=none",
+            "OBJ000031|pot:water@=none",
+            "OBJ000031|pot:amount@=none",
+            "OBJ000033|box:contents@=full"
+          ],
+          "minutes": 2,
+          "tuned": false,
+          "creates": [
+            {
+              "def": "OBJ000034",
+              "in": "OBJ000033"
+            }
+          ]
+        },
+        "store": {
+          "label": "찌개를 담은 반찬통을 냉장고에 넣는다",
+          "verb": "store",
+          "needs": [],
+          "when": [
+            "OBJ000033|box:contents@=full"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "effect": [],
+          "minutes": 1,
+          "tuned": false,
+          "places": [
+            {
+              "what": "OBJ000033",
+              "in": "OBJ000021"
+            }
+          ]
+        },
+        "take_out": {
+          "label": "남은 찌개를 담은 반찬통을 냉장고에서 꺼내 전자레인지에 넣는다 (꺼내면서 본다)",
+          "verb": "take_out",
+          "needs": [],
+          "when": [
+            "OBJ000033|box:contents@=full"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "leftover_stew",
+          "effect": [],
+          "minutes": 1,
+          "tuned": false,
+          "where": [
+            {
+              "what": "OBJ000033",
+              "in": "OBJ000021"
+            }
+          ],
+          "places": [
+            {
+              "what": "OBJ000033",
+              "in": "OBJ000016"
+            }
+          ],
+          "reveals": true
+        }
+      },
+      "desc": [
+        "남은 음식을 담아 두는 그릇. 담긴 음식은 그릇 안에 놓인 따로인 개체다"
       ]
     }
   ]
