@@ -15,3 +15,22 @@ export function stepDown(vocab: Vocab, feature: string, level: string, steps: nu
   if (i < 0 || i - steps < 0) return null;
   return ladder[i - steps] ?? null;
 }
+
+/**
+ * 같은 종류가 여럿일 때 쓰는 양은 **하나**에서만 덜어 낸다: 남은 양이 넉넉한 것 중, 그 행동의 조건(같은 정의의 when)에 맞는 것을 먼저,
+ * 같으면 번호 순으로 첫 번째. 모두 모자라면 null. 행동 층과 감사가 같은 계산을 쓴다.
+ */
+export function pickUse(
+  vocab: Vocab,
+  keys: readonly string[],
+  feature: string,
+  steps: number,
+  levelOf: (key: string) => string,
+  preferred: (key: string) => boolean,
+): { readonly key: string; readonly to: string } | null {
+  const ok = [...keys].sort().flatMap((key) => {
+    const to = stepDown(vocab, feature, levelOf(key), steps);
+    return to === null ? [] : [{ key, to }];
+  });
+  return ok.find((u) => preferred(u.key)) ?? ok[0] ?? null;
+}

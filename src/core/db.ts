@@ -88,6 +88,14 @@ export function menusOf(offer: { readonly menu?: string | readonly string[] }): 
   return m === undefined ? [] : typeof m === 'string' ? [m] : m;
 }
 
+/** 장보기 (shopping.ts): 파는 재료, 산 것을 놓을 곳, 여는 시간(하루 중 분 [시작, 끝)), 온라인이면 배송 시각(하루 중 분). */
+export interface BuysSpec {
+  readonly sells: readonly string[];
+  readonly on: string;
+  readonly opens?: readonly [number, number];
+  readonly arrives_at?: number;
+}
+
 /** 행동이 물건을 놓는 요청: what을 in(안에)·on(위에) 두거나 out(꺼내 놓임을 푼다). 셋 중 하나만. 참조는 정의 번호. */
 export interface PlaceSpec {
   readonly what: string;
@@ -140,6 +148,10 @@ export interface OfferDef {
   readonly trains?: readonly string[];
   /** 걸리는 시간이 이 숙련(내면 특징의 minutes_pct)에 따라 줄어든다. */
   readonly minutes_by?: string;
+  /** 장보기: 이 가게에서 장보기 목록을 산다 (산 것은 새 개체로 생긴다). */
+  readonly buys?: BuysSpec;
+  /** 이 행동을 하는 동안 집을 비운다 (지각하지 않는다). */
+  readonly away?: boolean;
   /** 놓임 조건 (몸이 놓은 곳이라 세계로 본다). */
   readonly where?: readonly WhereSpec[];
   /** 새 개체를 만든다 (덜어 담은 찌개). */
@@ -410,7 +422,12 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
       bad(at, '제공 행동은 객체여야 한다');
       continue;
     }
-    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'uses', 'menu', 'trains', 'minutes_by', 'where', 'creates', 'places', 'minutes', 'tuned'], at, push);
+    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'uses', 'menu', 'trains', 'minutes_by', 'where', 'creates', 'places', 'buys', 'away', 'minutes', 'tuned'], at, push);
+    const bu = o['buys'];
+    const minuteOfDay = (x: unknown): boolean => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= 1440;
+    const buysOk = bu === undefined || (isObj(bu) && Object.keys(bu).every((k) => ['sells', 'on', 'opens', 'arrives_at'].includes(k)) && isStrArr(bu['sells']) && bu['sells'].length > 0 && typeof bu['on'] === 'string'
+      && (bu['opens'] === undefined || (Array.isArray(bu['opens']) && bu['opens'].length === 2 && bu['opens'].every(minuteOfDay) && (bu['opens'][0] as number) < (bu['opens'][1] as number)))
+      && (bu['arrives_at'] === undefined || (minuteOfDay(bu['arrives_at']) && (bu['arrives_at'] as number) < 1440)));
     const refsOk = (v: unknown, keys: readonly string[], pick: (x: { readonly [k: string]: unknown }) => number): boolean =>
       v === undefined || (Array.isArray(v) && v.length > 0 && v.every((x) => isObj(x) && Object.keys(x).every((k) => keys.includes(k)) && Object.entries(x).every(([k, y]) => (k === 'out' ? y === true : typeof y === 'string')) && pick(x) === 1));
     const relCount = (x: { readonly [k: string]: unknown }): number => ['in', 'on', 'out'].filter((k) => x[k] !== undefined).length;
@@ -432,6 +449,8 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
     else if (o['menu'] !== undefined && !(typeof o['menu'] === 'string' ? TOKEN_RE.test(o['menu']) : isStrArr(o['menu']) && o['menu'].length > 0 && o['menu'].every((m) => TOKEN_RE.test(m)))) bad(at, 'menu는 사전 menu 키나 그 목록이어야 한다');
     else if (o['trains'] !== undefined && !(isStrArr(o['trains']) && o['trains'].length > 0)) bad(at, 'trains는 내면 특징 키의 비어 있지 않은 목록이어야 한다');
     else if (o['minutes_by'] !== undefined && typeof o['minutes_by'] !== 'string') bad(at, 'minutes_by는 내면 특징 키여야 한다');
+    else if (!buysOk) bad(at, 'buys는 { sells: 정의 목록, on: 놓을 곳, opens?: [시작, 끝](하루 중 분), arrives_at?: 하루 중 분 }이어야 한다');
+    else if (o['away'] !== undefined && o['away'] !== true) bad(at, 'away는 true이거나 없어야 한다');
     else if (!whereOk) bad(at, 'where는 { what, in 또는 on } 목록이어야 한다 (관계는 하나만)');
     else if (!placesOk) bad(at, 'places는 { what, in 또는 on 또는 out: true } 목록이어야 한다 (관계는 하나만)');
     else if (!createsOk) bad(at, 'creates는 { def, in 또는 on (없어도 됨) } 목록이어야 한다');
@@ -451,6 +470,17 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
         ...(Array.isArray(uses) ? { uses: (uses as { key: string; steps: number; ingredient?: boolean }[]).map((u) => ({ key: u.key.trim(), steps: u.steps, ...(u.ingredient === true ? { ingredient: true } : {}) })) } : {}),
         ...(typeof o['menu'] === 'string' || isStrArr(o['menu']) ? { menu: o['menu'] } : {}),
         ...(isStrArr(o['trains']) ? { trains: o['trains'] } : {}),
+        ...(isObj(bu) && isStrArr(bu['sells']) && typeof bu['on'] === 'string'
+          ? {
+              buys: {
+                sells: bu['sells'],
+                on: bu['on'],
+                ...(Array.isArray(bu['opens']) ? { opens: [Number(bu['opens'][0]), Number(bu['opens'][1])] as const } : {}),
+                ...(typeof bu['arrives_at'] === 'number' ? { arrives_at: bu['arrives_at'] } : {}),
+              },
+            }
+          : {}),
+        ...(o['away'] === true ? { away: true } : {}),
         ...(typeof o['minutes_by'] === 'string' ? { minutes_by: o['minutes_by'] } : {}),
         ...(Array.isArray(o['where']) ? { where: o['where'] as WhereSpec[] } : {}),
         ...(Array.isArray(o['creates']) ? { creates: o['creates'] as CreateSpec[] } : {}),

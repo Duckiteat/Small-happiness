@@ -258,5 +258,17 @@
   "minutes-by-no-table.json": {
     "stage": "gate",
     "match": "시간 표\\(minutes_pct\\)가 없는 숙련"
+  },
+  "buys-opens-reversed.json": {
+    "stage": "gate",
+    "match": "buys는 \\{ sells"
+  },
+  "buys-sells-unknown.json": {
+    "stage": "gate",
+    "match": "buys.sells\\[0\\]: 없는 정의를 가리킨다"
+  },
+  "away-not-true.json": {
+    "stage": "gate",
+    "match": "away는 true이거나 없어야 한다"
   }
 }

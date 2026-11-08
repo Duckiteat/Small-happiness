@@ -70,6 +70,11 @@ export interface Belief {
   readonly lastPlanned?: (menu: string) => number;
 }
 
+/** 그 재료를 아는 것 중 넉넉한 첫 상태 키 (없으면 undefined). */
+export function haveFor(vocab: Vocab, belief: Belief, n: Need): string | undefined {
+  return belief.known(n.def).map((i) => `${i}|${n.slot}:${n.feature}`).find((k) => stepDown(vocab, n.feature, belief.level(k), n.steps) !== null);
+}
+
 /** 아는 것으로 만들 수 있는 첫 메뉴와, 그 판단에 쓴 상태 키들. 없으면 null. 재료가 없는 메뉴는 고르지 않는다. */
 export function conceive(db: Db, vocab: Vocab, belief: Belief): { readonly menu: string; readonly keys: readonly string[] } | null {
   for (const menu of menuOrder(vocab, belief.lastPlanned)) {
@@ -78,7 +83,7 @@ export function conceive(db: Db, vocab: Vocab, belief: Belief): { readonly menu:
     if (needs.length === 0) continue;
     const keys: string[] = [];
     const ok = needs.every((n) => {
-      const hit = belief.known(n.def).map((i) => `${i}|${n.slot}:${n.feature}`).find((k) => stepDown(vocab, n.feature, belief.level(k), n.steps) !== null);
+      const hit = haveFor(vocab, belief, n);
       if (hit !== undefined) keys.push(hit);
       return hit !== undefined;
     });

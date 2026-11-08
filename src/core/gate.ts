@@ -344,6 +344,10 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
         if (x.out !== true) ref(`${at}.places[${i}]`, x.in ?? x.on ?? '', false);
         if (x.what === (x.in ?? x.on)) error(`${at}.places[${i}]`, `물건을 자기 자신에 놓는다: ${x.what}`);
       });
+      if (offer.buys !== undefined) {
+        offer.buys.sells.forEach((d, i) => ref(`${at}.buys.sells[${i}]`, d, true));
+        ref(`${at}.buys.on`, offer.buys.on, false);
+      }
       (offer.creates ?? []).forEach((x, i) => {
         ref(`${at}.creates[${i}].def`, x.def, true);
         if (x.in !== undefined || x.on !== undefined) ref(`${at}.creates[${i}]`, x.in ?? x.on ?? '', false);

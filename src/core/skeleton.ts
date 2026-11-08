@@ -91,6 +91,20 @@ function perceivedText(perceived: BoardValue, aware: BoardValue, db: Db, vocab: 
 }
 
 /** 하루씨가 이 단계에 고른 행동. */
+/** 집을 비우는 동안의 상황 (사전 presence). */
+const AWAY = 'out';
+
+/** 오는 중인 주문 하나 (shopping.ts). */
+interface Delivery {
+  readonly t: number;
+  readonly def: string;
+  readonly rel?: 'on' | 'in';
+  readonly to?: string;
+  readonly cause: string;
+  readonly who: string;
+  readonly via: string;
+}
+
 function actionText(recent: BoardValue, db: Db, vocab: Vocab): string {
   const acts = parseRecent(recent);
   if (acts.length === 0) return '';
@@ -115,6 +129,8 @@ export interface Engine {
 export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlock[], vocab: Vocab, scripted: readonly ScriptedChange[] = []): Layer[] {
   const { world, causal, perception, agency, log } = engine;
   const pending: RecentAction[] = []; // 끝나기를 기다리는 행동의 효과 요청 (2층)
+  let awayUntil = -1; // 집을 비우는 행동이 끝나는 시각
+  const deliveries: Delivery[] = []; // 주문해 오는 중인 것 (온라인 장보기)
   const practice = new Map<string, number>(); // 숙련 상태 키 → 해 본 횟수 (기록의 행동 끝에서 다시 셀 수 있다)
   const script = [...scripted].sort((a, b) => a.t - b.t); // 아직 일어나지 않은 외부 사건 (정전·문 열림 같은, 시나리오가 정한 것)
   return [
@@ -136,16 +152,33 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       run: (c) => {
         // 끝난 행동의 효과 요청을 끝난 시각에 기록하고(F1), 그 사이 규칙이 만든 변화는 각자의 시각으로 기록한다
         pending.push(...parseRecent(c.prev('recent')));
+        for (const a of parseRecent(c.prev('recent'))) if (a.away === true) awayUntil = Math.max(awayUntil, a.ends);
         const due = pending.filter((a) => a.ends <= c.t).sort((a, b) => a.ends - b.ends || a.event.localeCompare(b.event));
         pending.splice(0, pending.length, ...pending.filter((a) => a.ends > c.t));
         const scriptDue = script.filter((x) => x.t <= c.t);
         script.splice(0, script.length, ...script.filter((x) => x.t > c.t));
         // 끝난 행동과 외부 사건을 일어난 시각 순서로 기록한다 (같은 시각이면 외부 사건이 먼저: 정전 때 끝나는 행동은 정전 뒤에 일어난다)
-        const timeline = [
+        type Item = { t: number; order: number; x: (typeof script)[number] } | { t: number; order: number; a: RecentAction } | { t: number; order: number; d: Delivery };
+        const timeline: Item[] = [
           ...scriptDue.map((x) => ({ t: x.t, order: 0, x })),
           ...due.map((a) => ({ t: a.ends, order: 1, a })),
-        ].sort((p, q) => p.t - q.t || p.order - q.order);
-        for (const item of timeline) {
+          ...deliveries.filter((d) => d.t <= c.t).map((d) => ({ t: d.t, order: 2, d })),
+        ];
+        deliveries.splice(0, deliveries.length, ...deliveries.filter((d) => d.t > c.t));
+        // 시각 순서로 하나씩 꺼낸다 (행동이 끝나며 생긴 배송이 이 단계 안에 오면 그 시각에 끼워 넣는다)
+        for (;;) {
+          timeline.sort((p, q) => p.t - q.t || p.order - q.order);
+          const item = timeline.shift();
+          if (item === undefined) break;
+          if ('d' in item) {
+            // 주문한 것이 온다 (원인은 주문이 끝난 사건): 새 개체로 생겨 놓이고, 주문한 사람은 무엇이 왔는지 안다
+            const d = item.d;
+            causal.advance(world, d.t);
+            const { id } = world.spawn(d.def, { t: d.t, cause: d.cause });
+            if (d.rel !== undefined && d.to !== undefined) world.place(id, d.rel, d.to, { t: d.t, cause: d.cause });
+            for (const key of world.keysOf(id)) perception.learn(d.who, key, world.level(key), d.t, d.via, d.cause);
+            continue;
+          }
           if ('x' in item) {
             const x = item.x;
             causal.advance(world, x.t);
@@ -175,6 +208,12 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
           // 만들고 옮기기 (요리-설계 8장): 결과를 기록한 뒤 새 개체를 만들어 놓고, 물건을 옮긴다. 원인은 모두 행동의 끝
           const made: string[] = [];
           for (const cr of a.creates ?? []) {
+            if (cr.at !== undefined && cr.at > a.ends) {
+              const dl: Delivery = { t: cr.at, def: cr.def, ...(cr.rel !== undefined && cr.to !== undefined ? { rel: cr.rel, to: cr.to } : {}), cause: done.seq, who: a.who, via: a.via };
+              if (dl.t <= c.t) timeline.push({ t: dl.t, order: 2, d: dl });
+              else deliveries.push(dl);
+              continue;
+            }
             const { id } = world.spawn(cr.def, { t: a.ends, cause: done.seq });
             made.push(id);
             if (cr.rel !== undefined && cr.to !== undefined) world.place(id, cr.rel, cr.to, { t: a.ends, cause: done.seq });
@@ -194,7 +233,8 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       // 자극의 원천은 아직 계산하지 않는다. 세계가 다음에 스스로 바뀔 시각만 올린다 (집에 있을 때 시계가 깨어나는 시각, F7)
       run: (c) => {
         const own = causal.nextChange(world);
-        const coming = script[0]?.t;
+        const soon = [...(script[0] !== undefined ? [script[0].t] : []), ...deliveries.map((d) => d.t)];
+        const coming = soon.length === 0 ? undefined : Math.min(...soon);
         const next = own === null ? (coming ?? null) : coming === undefined ? own : Math.min(own, coming);
         c.write('world.stimulus_source', next === null ? {} : { next_change: next });
       },
@@ -213,7 +253,8 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
     {
       id: '5',
       run: (c) => {
-        const where = presenceAt(parsePlan(c.read('plan'), vocab), c.t);
+        // 집을 비우는 행동(장보러 나감) 중에는 외출이다: 집을 지각하지 않는다
+        const where = awayUntil > c.t ? AWAY : presenceAt(parsePlan(c.read('plan'), vocab), c.t);
         const r = perception.step(world, c.t, where, c.prev('recent'));
         const perceived = r.perceived.map((p) => ({ who: p.who, key: p.key, level: p.level }));
         c.write('perceived', perceived);

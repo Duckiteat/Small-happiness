@@ -9,8 +9,10 @@
 // 코어는 입출력이 없다. 시나리오를 읽는 일은 서기(clerk.ts)가 한다.
 
 import { menusOf } from './db.ts';
-import { stepDown } from './amount.ts';
+import { pickUse } from './amount.ts';
 import { conceive } from './conceive.ts';
+import { canBuy, readyAt, shoppingList } from './shopping.ts';
+import type { ShoppingBelief } from './shopping.ts';
 import { practicedLevel, practiceGain, SKILL_SLOT, skilledMinutes, skillKey } from './skill.ts';
 import { pointerChanges, refInstance, relationOf, targetPointers } from './moves.ts';
 import type { Db } from './db.ts';
@@ -78,7 +80,7 @@ interface Chosen {
 }
 
 /** 행동이 끝난 뒤 따라와야 할 만들기·놓임 사건 (차례대로). */
-type MoveExpected = { readonly kind: 'create'; readonly def: string; readonly rel?: string; readonly to?: string } | { readonly kind: 'place'; readonly id: string; readonly rel: string; readonly to: string | null };
+type MoveExpected = { readonly kind: 'create'; readonly def: string; readonly rel?: string; readonly to?: string; readonly at?: number } | { readonly kind: 'place'; readonly id: string; readonly rel: string; readonly to: string | null };
 
 export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, options: AuditOptions = {}): AuditResult {
   const findings: AuditFinding[] = [];
@@ -152,6 +154,25 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const knowSeq = new Map<string, string>(); // `${who}|${key}` → 그 앎을 정한 사건
   const planned = new Map<string, string>(); // `${who}|${끼니}` → 구상한 메뉴
   const practiced = new Map<string, number>(); // 숙련 상태 키 → 해 본 횟수
+  const ordered = new Map<string, number>(); // `${who}|${정의}` → 주문해 오는 시각
+  const awayUntil = new Map<string, { from: number; to: number }>(); // 집을 비운 동안
+  /** 그때 그 사람이 알던 것 (행동 층의 구상·장보기와 같은 믿음). */
+  const beliefOf = (who: string): ShoppingBelief => {
+    const knownIds = new Set([...knows.keys()].filter((k) => k.startsWith(`${who}|`)).map((k) => k.slice(who.length + 1, k.indexOf('|', who.length + 1))));
+    return {
+      known: (d) => [...instances.keys()].sort().filter((i) => kindOf(d).has(instances.get(i) ?? '') && knownIds.has(i)),
+      level: (key) => {
+        const seen = knows.get(`${who}|${key}`);
+        if (seen !== undefined) return seen.level;
+        const k = parseStateKey(key);
+        const def = k === null ? undefined : instances.get(k.subject);
+        return (k === null || def === undefined ? undefined : effectiveInitial(db, def)[`${k.slot}:${k.feature}`]) ?? (k === null ? '' : (ladder(k.feature)[0] ?? ''));
+      },
+      skill: (f) => levelIn(levels, skillKey(who, f)),
+      lastPlanned: (m) => Math.max(-1, ...[...planned].filter(([k, x]) => k.startsWith(`${who}|`) && x === m).map(([k]) => Number(k.slice(who.length + 1)))),
+      ordered: (d) => ordered.has(`${who}|${d}`),
+    };
+  };
   const inspected = new Set<string>(); // `${who}|${via}`: 끝난 행동
   const knows = new Map<string, { aw: string; level: string }>(); // `${who}|${key}`
   let pending: Pending | null = null;
@@ -228,6 +249,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           const q = moveQueue.get(e.cause) ?? [];
           const head = q[0];
           if (head === undefined || head.kind !== 'create' || head.def !== def) bad(e.seq, 'effects', `행동이 만들지 않는 개체다: ${id}`);
+          else if (head.at !== undefined && head.at !== e.t) bad(e.seq, 'effects', `${id}는 ${head.at}분에 와야 하는데 ${e.t}분에 생겼다`);
           else {
             q.shift();
             if (head.rel !== undefined && head.to !== undefined) q.unshift({ kind: 'place', id, rel: head.rel, to: head.to });
@@ -352,25 +374,13 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         break;
       }
       case 'menu_planned': {
+        // (beliefOf: 감사가 따라간 그 사람의 앎 · 믿는 단계 · 자기 숙련 · 구상한 끼니)
         // 구상: 그때 하루씨가 알던 것으로 다시 구상하면 같은 메뉴가 나와야 하고, 한 끼에 한 번이다 (conceive.ts)
         bump('action');
         const who = str(e.data['who']), menu = str(e.data['menu']), meal = String(e.data['meal']);
         if (!who.startsWith('CHR') || !instances.has(who)) bad(e.seq, 'action', `구상한 이가 인물이 아니다: ${who}`);
         if (planned.has(`${who}|${meal}`)) bad(e.seq, 'action', `같은 끼니(${meal}분 구간)에 메뉴를 두 번 구상했다`);
-        const knownIds = new Set([...knows.keys()].filter((k) => k.startsWith(`${who}|`)).map((k) => k.slice(who.length + 1, k.indexOf('|', who.length + 1))));
-        const believe = (key: string): string => {
-          const seen = knows.get(`${who}|${key}`);
-          if (seen !== undefined) return seen.level;
-          const k = parseStateKey(key);
-          const def = k === null ? undefined : instances.get(k.subject);
-          return (k === null || def === undefined ? undefined : effectiveInitial(db, def)[`${k.slot}:${k.feature}`]) ?? (k === null ? '' : (ladder(k.feature)[0] ?? ''));
-        };
-        const pick = conceive(db, vocab, {
-          known: (d) => [...instances.keys()].sort().filter((i) => kindOf(d).has(instances.get(i) ?? '') && knownIds.has(i)),
-          level: believe,
-          skill: (f) => levelIn(levels, skillKey(who, f)),
-          lastPlanned: (m) => Math.max(-1, ...[...planned].filter(([k, x]) => k.startsWith(`${who}|`) && x === m).map(([k]) => Number(k.slice(who.length + 1)))),
-        });
+        const pick = conceive(db, vocab, beliefOf(who));
         planned.set(`${who}|${meal}`, menu);
         if (pick?.menu !== menu) bad(e.seq, 'action', `알던 것으로 구상하면 ${pick?.menu ?? '만들 것이 없다'}인데 ${menu}를 골랐다`);
         else expectCause(e.seq, 'cause', e.cause, latestSeq(pick.keys.map((k) => knowSeq.get(`${who}|${k}`))), `${menu} 구상`);
@@ -395,15 +405,19 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           return p === null ? [] : targets(p, { owner: pv.owner }, at).map((i) => ({ key: keyOf(p, i), feature: p.feature, cond: p.cond }));
         });
         // 쓰는 양: 고른 때의 세계에서 steps칸 내린 단계가 결과에 더해진다 (행동 층과 같은 계산). 모자랐다면 고를 수 없었다
+        const whenPats = (offer.item.when ?? []).flatMap((w) => {
+          const q = parsePattern(w);
+          return q === null ? [] : [q];
+        });
         for (const u of offer.item.uses ?? []) {
           const p = parsePattern(u.key);
           if (p === null) continue;
-          for (const i of targets(p, { owner: pv.owner }, at)) {
-            const key = keyOf(p, i);
-            const to = stepDown(vocab, p.feature, levelIn(levels, key), u.steps);
-            if (to === null) bad(e.seq, 'action', `${key}가 ${levelIn(levels, key)}라 ${u.steps}칸을 쓸 수 없는데 행동을 골랐다`);
-            else effects.push({ key, feature: p.feature, cond: { op: '=', level: to } });
-          }
+          const keys = targets(p, { owner: pv.owner }, at).map((i) => keyOf(p, i));
+          const sameDef = whenPats.filter((w) => w.def === p.def);
+          const fits = (k: string): boolean => sameDef.every((w) => levelMatches(vocab, w.feature, levelIn(levels, `${k.slice(0, k.indexOf('|'))}|${w.slot}:${w.feature}`), w.cond));
+          const pick = pickUse(vocab, keys, p.feature, u.steps, (k) => levelIn(levels, k), fits);
+          if (pick === null) bad(e.seq, 'action', `${u.key}에서 ${u.steps}칸을 덜어 낼 것이 없는데 행동을 골랐다`);
+          else effects.push({ key: pick.key, feature: p.feature, cond: { op: '=', level: pick.to } });
         }
         // 놓임 조건·옮기기·만들기: 행동 층과 같은 참조 계산 (인스턴스가 하나여야 한다)
         const membersOf = (d: string): string[] => [...instances.keys()].sort().filter((i) => kindOf(d).has(instances.get(i) ?? ''));
@@ -426,6 +440,34 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
             continue;
           }
           for (const ch of pointerChanges(id, placeMap.get(id), targetPointers(p, to))) moves.push({ kind: 'place', id: ch.id, rel: ch.rel, to: ch.to });
+        }
+        if (offer.item.away === true) awayUntil.set(who, { from: e.t, to: ends });
+        if (offer.item.buys !== undefined) {
+          // 장보기: 그때의 앎으로 다시 만든 목록, 다 팔고 열린 가게 중 가장 빨리 오는 곳 (shopping.ts와 같은 계산)
+          for (const [k, due] of [...ordered]) if (due <= e.t) ordered.delete(k);
+          const list = shoppingList(db, vocab, beliefOf(who));
+          const got = Array.isArray(e.data['buys']) ? e.data['buys'].map(String) : [];
+          if (list === null || JSON.stringify(list.items) !== JSON.stringify(got)) bad(e.seq, 'action', `그때 알던 것으로는 장보기 목록이 ${list === null ? '없다' : list.items.join('·')}인데 ${got.join('·') || '없음'}을 샀다`);
+          else {
+            let best: { id: string; ready: number } | null = null;
+            for (const d of Object.keys(db.defs).sort()) {
+              for (const o of effectiveOffers(db, d)) {
+                if (o.item.buys === undefined || !canBuy(o.item, list.items, e.t)) continue;
+                for (const i of [...instances.keys()].sort().filter((x) => instances.get(x) === d)) {
+                  const ready = readyAt(o.item, e.t + skilledMinutes(vocab, o.item, (f) => levelIn(levels, skillKey(who, f))));
+                  if (best === null || ready < best.ready) best = { id: `${o.owner}/${o.key}@${i}`, ready };
+                }
+              }
+            }
+            if (best?.id !== `${pv.owner}/${pv.key}@${at}`) bad(e.seq, 'action', `더 빨리 살 수 있는 곳이 있다 (${best?.id ?? '없음'})`);
+            const ready = readyAt(offer.item, ends);
+            if (num(e.data['ready']) !== ready) bad(e.seq, 'action', `산 것이 오는 시각이 ${num(e.data['ready'])}분인데 ${ready}분이어야 한다`);
+            const shelf = one(offer.item.buys.on);
+            for (const d of list.items) {
+              moves.push({ kind: 'create', def: d, ...(shelf !== null ? { rel: 'on', to: shelf } : {}), at: ready });
+              if (ready > ends) ordered.set(`${who}|${d}`, ready);
+            }
+          }
         }
         const menu = e.data['menu'];
         if (typeof menu === 'string' && planned.get(`${who}|${String(e.data['meal'])}`) !== menu) bad(e.seq, 'action', `${menu}의 단계인데 그 끼니에 구상한 메뉴는 ${planned.get(`${who}|${String(e.data['meal'])}`) ?? '없다'}`);
@@ -481,6 +523,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           break;
         }
         awarenessBy.set(e.seq, who);
+        const away = awayUntil.get(who);
+        if (pv?.kind === 'sense' && away !== undefined && e.t > away.from && e.t < away.to) bad(e.seq, 'awareness', `${who}는 ${away.from}~${away.to}분에 집을 비웠는데 집의 ${key}를 느꼈다`);
         const now = levelIn(levels, key);
         const prev = knows.get(`${who}|${key}`);
         const rose = prev === undefined || rank(aw) > rank(prev.aw);
@@ -526,7 +570,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const last = events.at(-1)?.t ?? 0;
   for (const [seq, r] of open) if (r.due <= last) bad(seq, 'timing', `예약 시각 ${r.due}분이 지났는데 발화·취소가 없다 (${r.via}@${r.at})`);
   for (const [seq, q] of moveQueue) {
-    for (const m of q) bad(seq, 'effects', m.kind === 'create' ? `행동이 만들기로 한 개체가 생기지 않았다: ${m.def}` : `행동이 옮기기로 한 놓임이 없다: ${m.id} ${m.rel} → ${m.to ?? '없음'}`);
+    const lastT = events.at(-1)?.t ?? 0;
+    for (const m of q) if (!(m.kind === 'create' && m.at !== undefined && m.at > lastT)) bad(seq, 'effects', m.kind === 'create' ? `행동이 만들기로 한 개체가 생기지 않았다: ${m.def}` : `행동이 옮기기로 한 놓임이 없다: ${m.id} ${m.rel} → ${m.to ?? '없음'}`);
   }
   return { findings, checked, events: events.length };
 }

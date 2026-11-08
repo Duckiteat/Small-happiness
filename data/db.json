@@ -11,7 +11,7 @@
       "FRG": 1,
       "HAB": 1,
       "ITM": 1,
-      "OBJ": 37,
+      "OBJ": 42,
       "PLC": 7,
       "RUL": 1
     }
@@ -3131,6 +3131,206 @@
       },
       "desc": [
         "냄비에서 반찬통으로 옮겨 담은 김치찌개"
+      ]
+    },
+    "OBJ000037": {
+      "id": "OBJ000037",
+      "names": {
+        "ko": "가게",
+        "en": "shop"
+      },
+      "aliases": [
+        "상점"
+      ],
+      "mobility": "fixed",
+      "desc": [
+        "장보기를 하는 곳의 종류. 집에 놓이지 않는다 (집의 장소 그래프 밖)"
+      ]
+    },
+    "OBJ000038": {
+      "id": "OBJ000038",
+      "names": {
+        "ko": "편의점",
+        "en": "convenience store"
+      },
+      "is_a": "OBJ000037",
+      "aliases": [],
+      "mobility": "fixed",
+      "offers": {
+        "buy": {
+          "label": "편의점에서 모자란 재료를 산다",
+          "verb": "shop",
+          "needs": [],
+          "effect": [],
+          "during": [
+            "home",
+            "meal"
+          ],
+          "buys": {
+            "sells": [
+              "OBJ000002",
+              "OBJ000003",
+              "OBJ000004",
+              "OBJ000005",
+              "OBJ000008",
+              "OBJ000009"
+            ],
+            "on": "OBJ000012"
+          },
+          "away": true,
+          "minutes": 15,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "가까운 편의점. 24시간, 다녀오는 데 15분. 채소와 국물 재료는 없다"
+      ]
+    },
+    "OBJ000039": {
+      "id": "OBJ000039",
+      "names": {
+        "ko": "시장",
+        "en": "market"
+      },
+      "is_a": "OBJ000037",
+      "aliases": [],
+      "mobility": "fixed",
+      "offers": {
+        "buy": {
+          "label": "시장에서 모자란 재료를 산다",
+          "verb": "shop",
+          "needs": [],
+          "effect": [],
+          "during": [
+            "home",
+            "meal"
+          ],
+          "buys": {
+            "sells": [
+              "OBJ000003",
+              "OBJ000004",
+              "OBJ000005",
+              "OBJ000006",
+              "OBJ000007",
+              "OBJ000011",
+              "OBJ000026",
+              "OBJ000027",
+              "OBJ000028",
+              "OBJ000032"
+            ],
+            "on": "OBJ000012",
+            "opens": [
+              540,
+              1140
+            ]
+          },
+          "away": true,
+          "minutes": 50,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "동네 시장. 09:00~19:00, 다녀오는 데 50분. 채소·두부·장·건어물"
+      ]
+    },
+    "OBJ000040": {
+      "id": "OBJ000040",
+      "names": {
+        "ko": "마트",
+        "en": "supermarket"
+      },
+      "is_a": "OBJ000037",
+      "aliases": [],
+      "mobility": "fixed",
+      "offers": {
+        "buy": {
+          "label": "마트에서 모자란 재료를 산다",
+          "verb": "shop",
+          "needs": [],
+          "effect": [],
+          "during": [
+            "home",
+            "meal"
+          ],
+          "buys": {
+            "sells": [
+              "OBJ000002",
+              "OBJ000003",
+              "OBJ000004",
+              "OBJ000005",
+              "OBJ000006",
+              "OBJ000007",
+              "OBJ000008",
+              "OBJ000009",
+              "OBJ000011",
+              "OBJ000026",
+              "OBJ000027",
+              "OBJ000028",
+              "OBJ000032"
+            ],
+            "on": "OBJ000012",
+            "opens": [
+              600,
+              1320
+            ]
+          },
+          "away": true,
+          "minutes": 60,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "대형 마트. 10:00~22:00, 다녀오는 데 60분. 다 판다"
+      ]
+    },
+    "OBJ000041": {
+      "id": "OBJ000041",
+      "names": {
+        "ko": "온라인 장보기",
+        "en": "online grocery"
+      },
+      "is_a": "OBJ000037",
+      "aliases": [],
+      "mobility": "fixed",
+      "offers": {
+        "buy": {
+          "label": "온라인 장보기에서 모자란 재료를 산다",
+          "verb": "order",
+          "needs": [],
+          "effect": [],
+          "during": [
+            "home",
+            "meal"
+          ],
+          "buys": {
+            "sells": [
+              "OBJ000002",
+              "OBJ000003",
+              "OBJ000004",
+              "OBJ000005",
+              "OBJ000006",
+              "OBJ000007",
+              "OBJ000008",
+              "OBJ000009",
+              "OBJ000011",
+              "OBJ000026",
+              "OBJ000027",
+              "OBJ000028",
+              "OBJ000032"
+            ],
+            "on": "OBJ000012",
+            "opens": [
+              0,
+              1380
+            ],
+            "arrives_at": 420
+          },
+          "minutes": 5,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "온라인 새벽배송. 23:00까지 주문하면 다음 07:00에 온다 (주문 5분, 집을 비우지 않는다)"
       ]
     },
     "PLC000001": {
