@@ -23,6 +23,7 @@ import { levelMatches, stateMatches } from './causal.ts';
 import type { BoardValue } from './board.ts';
 import { formatVia } from './via.ts';
 import { latestSeq } from './events.ts';
+import { menusOf } from './db.ts';
 import type { Db } from './db.ts';
 import { effectiveInitial, effectiveOffers, instancesOfKind } from './kinds.ts';
 import { meaningOf } from './meaning.ts';
@@ -31,6 +32,7 @@ import type { AwareMap } from './perception.ts';
 import { isObserved } from './schedule.ts';
 import type { Meal } from './schedule.ts';
 import { conceive } from './conceive.ts';
+import { practiceGain, skilledMinutes, skillKey } from './skill.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
@@ -61,6 +63,8 @@ export interface RecentAction {
   readonly creates?: readonly { readonly def: string; readonly rel?: Relation; readonly to?: string }[];
   /** 놓임의 변화 (포인터 하나씩). */
   readonly moves?: readonly PointerChange[];
+  /** 끝나면 쌓이는 숙련과 그 양 (skill.ts). */
+  readonly trains?: readonly { readonly feature: string; readonly gain: number }[];
 }
 
 function isObj(v: unknown): v is { readonly [key: string]: unknown } {
@@ -82,6 +86,7 @@ export function parseRecent(value: BoardValue | undefined): RecentAction[] {
     ...(Array.isArray(r['creates'])
       ? { creates: r['creates'].filter(isObj).map((c) => ({ def: String(c['def']), ...(isRelation(c['rel']) && typeof c['to'] === 'string' ? { rel: c['rel'], to: c['to'] } : {}) })) }
       : {}),
+    ...(Array.isArray(r['trains']) ? { trains: r['trains'].filter(isObj).map((x) => ({ feature: String(x['feature']), gain: Number(x['gain']) })) } : {}),
     ...(Array.isArray(r['moves'])
       ? { moves: r['moves'].filter(isObj).flatMap((m) => (isRelation(m['rel']) ? [{ id: String(m['id']), rel: m['rel'], to: typeof m['to'] === 'string' ? m['to'] : null }] : [])) }
       : {}),
@@ -141,12 +146,16 @@ export class Agency {
       const r = this.#vocab.entry('awareness', k)?.attrs['rank'];
       return typeof r === 'number' ? r : 0;
     };
+    /** 자기 숙련 단계 (자기 솜씨는 안다). 숙련 부위가 없는 인물은 빈 값. */
+    const skillOf = (f: string): string => (world.keysOf(who).includes(skillKey(who, f)) ? world.level(skillKey(who, f)) : '');
     // 끼니가 시작되면 메뉴를 구상한다: 있는 줄 아는 재료(앎이 하나라도 있는 개체)와 믿는 남은 양으로. 못 정하면 다음 단계에 다시 본다
     if (meal !== undefined && !this.#menus.has(meal.from)) {
       const knownIds = new Set(Object.keys(knows).map((k) => k.slice(0, k.indexOf('|'))));
       const pick = conceive(this.#db, this.#vocab, {
         known: (d) => instancesOfKind(world, this.#db, d).filter((i) => knownIds.has(i)).sort(),
         level: believed,
+        skill: skillOf,
+        lastPlanned: (m) => Math.max(-1, ...[...this.#menus].filter(([, x]) => x === m).map(([from]) => from)),
       });
       if (pick !== null) {
         this.#menus.set(meal.from, pick.menu);
@@ -158,7 +167,7 @@ export class Agency {
       for (const { owner, key, item: offer } of effectiveOffers(this.#db, def)) {
         for (const at of instances.filter((i) => world.defOfInstance(i) === def)) {
           if (offer.during !== undefined && !offer.during.includes(presence)) continue; // 정해진 시간에만 하는 행동 (요리는 식사 준비 시간)
-          if (offer.menu !== undefined && offer.menu !== menu) continue; // 요리법의 단계는 하루씨가 그 끼니에 구상한 메뉴일 때만
+          if (offer.menu !== undefined && (menu === undefined || !menusOf(offer).includes(menu))) continue; // 요리법의 단계는 하루씨가 그 끼니에 구상한 메뉴일 때만
           const targets = (p: StatePattern): string[] =>
             (p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def)).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
           const needs = offer.needs.map((n) => ({ keys: targets(pattern(n.aware)), min: rank(n.at_least) }));
@@ -209,7 +218,7 @@ export class Agency {
           if (this.#tried.has(signature)) continue;
 
           this.#tried.add(signature);
-          const ends = t + offer.minutes;
+          const ends = t + skilledMinutes(this.#vocab, offer, skillOf);
           this.#busyUntil = ends;
           // 원인: 이 행동의 조건을 채운 앎들 중 가장 최근에 생긴 것 (needs · when · 상태 의미를 만든 앎)
           const why = latestSeq([
@@ -217,7 +226,7 @@ export class Agency {
             ...when.flatMap((p) => targets(p).filter((k) => levelMatches(this.#vocab, p.feature, believed(k), p.cond)).map((k) => knows[k]?.seq)),
             ...(offer.when_meaning !== undefined ? world.keysOf(at).map((k) => knows[k]?.seq) : []),
           ]);
-          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends, ...(offer.menu !== undefined ? { menu: offer.menu, meal: meal?.from ?? null } : {}) } });
+          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends, ...(offer.menu !== undefined && menu !== undefined ? { menu, meal: meal?.from ?? null } : {}) } });
           return [
             {
               event: e.seq,
@@ -233,6 +242,10 @@ export class Agency {
               ...(offer.reveals === true ? { reveals: at } : {}),
               ...(creates.length > 0 ? { creates: creates.map((c, i) => ({ def: c.def, ...(c.rel !== undefined && typeof createTo[i] === 'string' ? { rel: c.rel, to: createTo[i] } : {}) })) } : {}),
               ...(moves.length > 0 ? { moves } : {}),
+              // 숙련 부위가 없는 인물은 쌓지 않는다
+              ...((offer.trains ?? []).some((f) => world.keysOf(who).includes(skillKey(who, f)))
+                ? { trains: (offer.trains ?? []).filter((f) => world.keysOf(who).includes(skillKey(who, f))).map((f) => ({ feature: f, gain: practiceGain(offer) })) }
+                : {}),
             },
           ];
         }

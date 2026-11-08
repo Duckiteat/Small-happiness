@@ -73,7 +73,21 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
   switch (category) {
     case 'feature': {
       // 단계 사다리: 0~5 여섯 칸 고정. 칸 번호가 단계 숫자다. locked 칸은 아직 쓸 수 없다 (작가가 풀면 쓴다).
-      if (typeof attrs['sense'] !== 'string') push(`${path}.attrs.sense`, '이 특징을 느끼는 감각(sense 키)이 필요하다');
+      // 내면 특징(inner: 숙련처럼 인물 자신의 상태)은 감각으로 느끼지 않는다. 나머지는 느끼는 감각이 있어야 한다
+      if (attrs['inner'] === true) {
+        if (attrs['sense'] !== undefined) push(`${path}.attrs.sense`, '내면 특징(inner)은 감각으로 느끼지 않는다 (sense를 쓰지 않는다)');
+        const seq = (k: string, ok: (xs: number[]) => boolean): boolean => {
+          const v = attrs[k];
+          return Array.isArray(v) && v.length === LADDER_SIZE && v.every(isInt) && ok(v as number[]);
+        };
+        if (attrs['practice'] !== undefined && !seq('practice', (xs) => xs[0] === 0 && xs.every((x, i) => i === 0 || x > (xs[i - 1] as number)))) {
+          push(`${path}.attrs.practice`, `practice(그 칸에 오르는 데 필요한 해 본 횟수)는 0에서 시작해 늘어나는 정수 ${LADDER_SIZE}개여야 한다`);
+        }
+        if (attrs['minutes_pct'] !== undefined && !seq('minutes_pct', (xs) => xs[0] === 100 && xs.every((x, i) => x > 0 && (i === 0 || x <= (xs[i - 1] as number))))) {
+          push(`${path}.attrs.minutes_pct`, `minutes_pct(그 칸에서 걸리는 시간 %)는 100에서 시작해 줄어드는 양의 정수 ${LADDER_SIZE}개여야 한다`);
+        }
+        if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '내면 특징의 수치(practice·minutes_pct)가 조정된 값인지 tuned를 적어야 한다');
+      } else if (typeof attrs['sense'] !== 'string') push(`${path}.attrs.sense`, '이 특징을 느끼는 감각(sense 키)이 필요하다');
       const levels = attrs['levels'];
       if (!Array.isArray(levels) || levels.length !== LADDER_SIZE) {
         push(`${path}.attrs.levels`, `단계 목록은 정확히 ${LADDER_SIZE}칸(0~${LADDER_SIZE - 1})이어야 한다`);
@@ -161,6 +175,10 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       // rank: 구상할 때 먼저 보는 순서 (작을수록 먼저, 남은 음식이 앞선다)
       const r = attrs['rank'];
       if (!isInt(r) || r < 1) push(`${path}.attrs.rank`, '메뉴의 순서(rank)는 1 이상의 정수여야 한다');
+      const ns = attrs['needs_skill'];
+      if (ns !== undefined && (typeof ns !== 'object' || ns === null || Array.isArray(ns) || typeof ns['feature'] !== 'string' || typeof ns['at_least'] !== 'string' || Object.keys(ns).length !== 2)) {
+        push(`${path}.attrs.needs_skill`, 'needs_skill은 { feature, at_least } (내면 특징과 그 단계 키)여야 한다');
+      }
       break;
     }
     case 'odor_kind': {
@@ -312,6 +330,14 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
     const levels = grouped.get('feature')?.find((x) => x.key === feature)?.attrs?.['levels'];
     return Array.isArray(levels) ? levels.flatMap((l) => (typeof l === 'object' && l !== null && !Array.isArray(l) && l['locked'] !== true && typeof l['key'] === 'string' ? [l['key']] : [])) : undefined;
   };
+  // 메뉴에 필요한 숙련: 내면 특징의 쓸 수 있는 단계여야 한다
+  for (const e of grouped.get('menu') ?? []) {
+    const ns = e.attrs?.['needs_skill'];
+    if (typeof ns !== 'object' || ns === null || Array.isArray(ns) || typeof ns['feature'] !== 'string' || typeof ns['at_least'] !== 'string') continue;
+    const f = grouped.get('feature')?.find((x) => x.key === ns['feature']);
+    if (f === undefined || f.attrs?.['inner'] !== true) push(`menu.${e.key}.attrs.needs_skill.feature`, `"${ns['feature']}"는 내면 특징(inner)이 아니다`);
+    else if (!(featureLevels(ns['feature'])?.includes(ns['at_least']) ?? false)) push(`menu.${e.key}.attrs.needs_skill.at_least`, `"${ns['at_least']}"는 "${ns['feature']}"에서 쓸 수 있는 단계 키가 아니다`);
+  }
   for (const e of grouped.get('feature') ?? []) {
     const r = e.attrs?.['heat_reset'];
     if (r === undefined) continue;

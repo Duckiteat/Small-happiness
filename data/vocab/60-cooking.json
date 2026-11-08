@@ -41,7 +41,7 @@
         "key": "soup",
         "ko": "국물",
         "en": "soup",
-        "desc": "냄비 속 국물의 단계: 맹물에 국물 재료를 넣어 우리면 육수가 되고, 된장을 풀고 건더기를 넣어 끓이면 찌개가 된다 (요리-설계 3장)",
+        "desc": "냄비 속 국물의 단계: 맹물에 국물 재료를 넣어 우리면 육수가 되고, 된장·김치 같은 양념을 풀고 건더기를 넣어 끓이면 찌개가 된다 (요리-설계 3장)",
         "attrs": {
           "sense": "sight",
           "levels": [
@@ -63,7 +63,7 @@
             },
             {
               "key": "seasoned",
-              "ko": "된장 풂"
+              "ko": "양념 풂"
             },
             {
               "key": "stew",
@@ -140,6 +140,181 @@
               "locked": true
             }
           ]
+        }
+      },
+      {
+        "key": "base",
+        "ko": "국물 바탕",
+        "en": "stew base",
+        "desc": "냄비에 푼 양념이 무엇인지. 옮겨 담을 때 어떤 찌개가 되는지 정한다",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "doenjang",
+              "ko": "된장"
+            },
+            {
+              "key": "kimchi",
+              "ko": "김치"
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "cooking",
+        "ko": "요리 솜씨",
+        "en": "cooking skill",
+        "desc": "재료를 냄비에 넣어 요리할 때마다(재료 하나에 한 번) 쌓인다. 오르면 새 요리를 구상할 수 있다 (요리-설계 11장)",
+        "attrs": {
+          "inner": true,
+          "levels": [
+            {
+              "key": "novice",
+              "ko": "입문"
+            },
+            {
+              "key": "basic",
+              "ko": "기초"
+            },
+            {
+              "key": "familiar",
+              "ko": "익숙"
+            },
+            {
+              "key": "skilled",
+              "ko": "능숙"
+            },
+            {
+              "key": "expert",
+              "ko": "숙달"
+            },
+            {
+              "key": "master",
+              "ko": "달인"
+            }
+          ],
+          "practice": [
+            0,
+            6,
+            20,
+            45,
+            80,
+            130
+          ],
+          "tuned": false
+        }
+      },
+      {
+        "key": "handling",
+        "ko": "손질 솜씨",
+        "en": "handling skill",
+        "desc": "재료를 썰 때마다 쌓인다. 오르면 써는 시간이 줄어든다",
+        "attrs": {
+          "inner": true,
+          "levels": [
+            {
+              "key": "novice",
+              "ko": "입문"
+            },
+            {
+              "key": "basic",
+              "ko": "기초"
+            },
+            {
+              "key": "familiar",
+              "ko": "익숙"
+            },
+            {
+              "key": "skilled",
+              "ko": "능숙"
+            },
+            {
+              "key": "expert",
+              "ko": "숙달"
+            },
+            {
+              "key": "master",
+              "ko": "달인"
+            }
+          ],
+          "practice": [
+            0,
+            4,
+            12,
+            30,
+            60,
+            100
+          ],
+          "minutes_pct": [
+            100,
+            85,
+            70,
+            60,
+            50,
+            40
+          ],
+          "tuned": false
+        }
+      },
+      {
+        "key": "judging",
+        "ko": "감별",
+        "en": "judging",
+        "desc": "재료를 손질하며 상태를 볼 때마다 쌓인다. 신선도를 더 정교하게 알아채는 쪽(심상 사다리 S5)에 쓸 자리이며 지금은 쌓이기만 한다",
+        "attrs": {
+          "inner": true,
+          "levels": [
+            {
+              "key": "novice",
+              "ko": "입문"
+            },
+            {
+              "key": "basic",
+              "ko": "기초"
+            },
+            {
+              "key": "familiar",
+              "ko": "익숙"
+            },
+            {
+              "key": "skilled",
+              "ko": "능숙"
+            },
+            {
+              "key": "expert",
+              "ko": "숙달"
+            },
+            {
+              "key": "master",
+              "ko": "달인"
+            }
+          ],
+          "practice": [
+            0,
+            4,
+            12,
+            30,
+            60,
+            100
+          ],
+          "tuned": false
         }
       }
     ]
@@ -219,6 +394,19 @@
         "desc": "첫 끓임 요리 (요리-설계). 멸치 육수 → 된장 풀기 → 채소 → 두부 → 대파. 일반적인 순서이며 시간은 임시값. 남은 음식이 없을 때 (rank 2)",
         "attrs": {
           "rank": 2
+        }
+      },
+      {
+        "key": "kimchi_jjigae",
+        "ko": "김치찌개",
+        "en": "kimchi stew",
+        "desc": "요리 솜씨가 기초가 되면 도전하는 찌개. 멸치 육수 → 김치 풀기 → 양파 → 두부 → 대파. 일반적인 순서이며 시간은 임시값",
+        "attrs": {
+          "rank": 2,
+          "needs_skill": {
+            "feature": "cooking",
+            "at_least": "basic"
+          }
         }
       }
     ]

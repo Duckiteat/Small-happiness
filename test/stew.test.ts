@@ -53,15 +53,19 @@ test('끼니: 일정에는 메뉴가 없고(적으면 거부), 메뉴를 구상�
 test('요리법의 재료: 같은 메뉴의 행동들이 재료로 쓰는 칸을 모은다 (요리법을 따로 적지 않는다)', () => {
   const needs = recipeNeeds(db, 'doenjang_jjigae').map((n) => `${db.defs[n.def]?.names.ko}:${n.steps}`);
   assert.deepEqual(needs.sort(), ['국물용 멸치:1', '대파:1', '된장:1', '두부:2', '애호박:2', '양파:2'].sort());
-  assert.deepEqual(recipeNeeds(db, 'leftover_stew').map((n) => `${db.defs[n.def]?.names.ko}:${n.steps}`), ['된장찌개:2']);
+  assert.deepEqual(recipeNeeds(db, 'leftover_stew').map((n) => `${db.defs[n.def]?.names.ko}:${n.steps}`), ['찌개:2'], '된장찌개·김치찌개 어느 것이든');
+  assert.deepEqual(recipeNeeds(db, 'kimchi_jjigae').map((n) => `${db.defs[n.def]?.names.ko}:${n.steps}`).sort(), ['국물용 멸치:1', '김치:1', '대파:1', '두부:2', '양파:2'].sort());
   // 아는 것으로만 구상한다: 아무것도 모르면 만들 것이 없고, 남은 찌개를 알면 그것이 먼저다
   const none = conceive(db, vocab, { known: () => [], level: () => 'full' });
   assert.equal(none, null);
-  const all = conceive(db, vocab, { known: (d) => [`${d}#1`], level: () => 'full' });
+  const all = conceive(db, vocab, { known: (d) => [`${d}#1`], level: () => 'full', skill: () => 'novice' });
   assert.equal(all?.menu, 'leftover_stew', '남은 음식이 앞선다 (rank)');
-  const noStew = conceive(db, vocab, { known: (d) => (d === byName('된장찌개') ? [] : [`${d}#1`]), level: () => 'full' });
-  assert.equal(noStew?.menu, 'doenjang_jjigae');
-  const littleOnion = conceive(db, vocab, { known: (d) => (d === byName('된장찌개') ? [] : [`${d}#1`]), level: (k) => (k.startsWith(byName('양파')) ? 'little' : 'full') });
+  const noStew = (skill: string, last: (m: string) => number = () => -1): string | undefined =>
+    conceive(db, vocab, { known: (d) => (d === byName('찌개') ? [] : [`${d}#1`]), level: () => 'full', skill: () => skill, lastPlanned: last })?.menu;
+  assert.equal(noStew('novice'), 'doenjang_jjigae', '입문이면 김치찌개는 아직');
+  assert.equal(noStew('basic', (m) => (m === 'doenjang_jjigae' ? 1100 : -1)), 'kimchi_jjigae', '기초가 되면 해 본 적 없는 김치찌개에 먼저 도전한다');
+  assert.equal(noStew('basic', (m) => (m === 'kimchi_jjigae' ? 2540 : 1100)), 'doenjang_jjigae', '같은 순위면 번갈아 (오래된 것 먼저)');
+  const littleOnion = conceive(db, vocab, { known: (d) => (d === byName('찌개') ? [] : [`${d}#1`]), skill: () => 'basic', level: (k) => (k.startsWith(byName('양파')) ? 'little' : 'full') });
   assert.equal(littleOnion, null, '양파가 조금이면 (반이 필요) 시작하지 않는다');
 });
 
@@ -96,7 +100,7 @@ test('된장찌개: 썰기 → 물 받아 붓기 → 불 → 멸치 육수(10분
 
 test('구상: 하루씨가 끼니마다 아는 재료로 메뉴를 정하고, 남은 찌개를 먼저 먹으며, 만들 수 없으면 시작하지 않는다', () => {
   const plans = events().filter((e) => e.type === 'menu_planned').map((e) => `${String(e.data['meal'])}:${str(e.data['menu'])}`);
-  assert.deepEqual(plans, ['1100:doenjang_jjigae', '2160:leftover_stew', '2540:doenjang_jjigae']);
+  assert.deepEqual(plans, ['1100:doenjang_jjigae', '2160:leftover_stew', '2540:kimchi_jjigae'], '첫날 요리로 솜씨가 올라 둘째 날 저녁에 김치찌개에 도전한다');
   const stews = changes.filter((c) => c.key === `${inst('냄비')}|pot:soup` && c.to === 'stew').map((c) => c.t);
   assert.equal(stews.length, 2, '첫날 저녁 한 번 · 둘째 날 저녁 한 번 (첫날 끼니에 시간이 남아도 다시 끓이지 않는다)');
   assert.ok((stews[0] as number) < 1220 && (stews[1] as number) >= 2540);
@@ -121,11 +125,13 @@ test('구상: 하루씨가 끼니마다 아는 재료로 메뉴를 정하고, �
 });
 
 test('된장찌개: 재료는 남은 양에서 칸씩 쓰이고, 이미 썬 재료는 다시 썰지 않는다', () => {
-  // 하루에 된장·멸치·대파 1칸, 양파·애호박·두부 2칸(반) → 이틀이면 된장 반, 양파는 다 씀
-  assert.equal(last(`${inst('된장')}|cond:amount`), 'half');
+  // 첫날 된장찌개(된장·멸치·대파 1칸, 양파·애호박·두부 2칸), 둘째 날 김치찌개(김치·멸치·대파 1칸, 양파·두부 2칸)
+  assert.equal(last(`${inst('된장')}|cond:amount`), 'plenty');
+  assert.equal(last(`${inst('김치')}|cond:amount`), 'plenty');
   assert.equal(last(`${inst('국물용 멸치')}|cond:amount`), 'half');
   assert.equal(last(`${inst('대파')}|cond:amount`), 'half');
-  for (const ko of ['양파', '애호박', '두부']) assert.equal(last(`${inst(ko)}|cond:amount`), 'none', `${ko}: 반씩 두 번`);
+  assert.equal(last(`${inst('애호박')}|cond:amount`), 'half', '김치찌개에는 애호박을 넣지 않는다');
+  for (const ko of ['양파', '두부']) assert.equal(last(`${inst(ko)}|cond:amount`), 'none', `${ko}: 반씩 두 번`);
   const slices = chosen.filter((c) => c.via.endsWith('/offer/slice_for_stew'));
   assert.equal(slices.length, 4, '두부·대파·양파·애호박을 첫날에만 썬다');
   assert.ok(slices.every((s) => s.t < 1220));
@@ -178,13 +184,12 @@ test('된장찌개: 감사가 기록을 정의에서 다시 계산해 위반이 
 
 test('남은 찌개: 반쯤 덜어 먹고 반찬통에 옮겨 담으면 새 음식이 되어 냉장고에서 차가워지고, 다음 끼니에 꺼내 데워 먹는다', () => {
   const box = inst('반찬통'), fridge = inst('냉장고'), microwave = inst('전자레인지');
-  const stewDef = byName('된장찌개');
-  const made = events().filter((e) => e.type === 'instance_created' && e.data['def'] === stewDef);
-  assert.equal(made.length, 2, '끓인 두 번 모두 남은 것을 옮겨 담는다');
+  const made = events().filter((e) => e.type === 'instance_created' && (e.data['def'] === byName('된장찌개') || e.data['def'] === byName('김치찌개')));
+  assert.deepEqual(made.map((e) => db.defs[str(e.data['def'])]?.names.ko), ['된장찌개', '김치찌개'], '끓인 두 번 모두 남은 것을 옮겨 담고, 냄비의 국물 바탕이 어떤 찌개인지 정한다');
   const first = str(made[0]?.data['id']);
   const cause = events().find((e) => e.seq === made[0]?.cause);
   assert.equal(cause?.type, 'action_done', '찌개 개체는 옮겨 담기가 끝나 생긴다');
-  assert.equal(str(cause?.data['via']).split('/').at(-1), 'transfer');
+  assert.equal(str(cause?.data['via']).split('/').at(-1), 'transfer_doenjang');
   const placed = events().filter((e) => e.type === 'placed');
   const put = (id: string, rel: string, to: string): number => placed.find((e) => e.data['id'] === id && e.data['rel'] === rel && e.data['to'] === to)?.t ?? -1;
   assert.ok(put(first, 'in', box) > 0, '찌개는 반찬통 안에');
@@ -221,4 +226,29 @@ test('남은 찌개: 감사가 만들기·옮기기를 행동에서 다시 계�
     const r = auditLog(c.mutate(structuredClone(events())), db, vocab, opts);
     assert.ok(r.findings.some((f) => f.check === 'effects'), `${c.name}: 결과(effects) 위반을 잡아야 한다 (잡은 것: ${r.findings.map((f) => f.check).join(', ') || '없음'})`);
   }
+});
+
+test('숙련: 재료를 쓸 때마다 갈래별로 쌓이고(녹슬지 않음), 요리 솜씨가 기초가 되면 김치찌개를 구상하며, 손질 솜씨가 오르면 빨리 썬다', () => {
+  const who = inst('하루씨');
+  const rises = changes.filter((c) => c.key.startsWith(`${who}|skill:`)).map((c) => `${c.key.split(':').at(-1)}=${c.to}`);
+  assert.deepEqual(rises, ['handling=basic', 'judging=basic', 'cooking=basic'], '썰기 4번 → 손질·감별 기초, 재료 6칸 → 요리 기초 (임시값)');
+  const cookingUp = changes.find((c) => c.key === `${who}|skill:cooking`)?.t ?? -1;
+  assert.ok(cookingUp > 1100 && cookingUp < 1220, '첫날 요리 중에 오른다');
+  // 원인은 그 재료를 넣은 행동의 끝
+  const e = events().find((x) => x.type === 'state_changed' && x.data['key'] === `${who}|skill:cooking`);
+  assert.equal(events().find((x) => x.seq === e?.cause)?.type, 'action_done');
+  // 손질 솜씨가 처음부터 능숙(60%)이면 3분 썰기가 1분이 된다 (내림, 최소 1분)
+  const r = raw();
+  r['set'] = [{ key: `${who}|skill:handling`, level: 'skilled', t: 0 }];
+  const fast = runScenario(db, vocab, parseScenario(r)).log.map(parseEvent);
+  const slice = fast.find((x) => x.type === 'action_chosen' && str(x.data['via']).endsWith('/offer/slice_for_stew'));
+  assert.equal(Number(slice?.data['ends']) - (slice?.t ?? 0), 1);
+  assert.equal(fast.some((x) => x.type === 'state_changed' && x.t > 0 && x.data['key'] === `${who}|skill:handling`), false, '처음부터 능숙하면 썰어도 내려가지 않는다');
+  assert.deepEqual(auditLog(fast, db, vocab, { externalUntil: 0 }).findings, []);
+  // 감사: 숙련이 오른 기록을 지우거나, 끝나는 시각을 숙련 없는 시간으로 고치면 잡는다
+  const opts = { externalUntil: sc.start };
+  const noRise = events().filter((x) => !(x.type === 'state_changed' && str(x.data['key']).startsWith(`${who}|skill:`)));
+  assert.ok(auditLog(noRise, db, vocab, opts).findings.some((f) => f.check === 'effects'));
+  const slow = fast.map((x) => (x.seq === slice?.seq ? { ...x, data: { ...x.data, ends: (slice?.t ?? 0) + 3 } } : x));
+  assert.ok(auditLog(slow, db, vocab, { externalUntil: 0 }).findings.some((f) => f.check === 'action'));
 });

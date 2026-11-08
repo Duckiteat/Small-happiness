@@ -8,6 +8,7 @@
 //     (품질판-명세 8장). 층을 채울 때 이 파일의 해당 층만 바꾸고, 골든 트레이스의 변화를 결정 기록에 남긴다.
 //   - 8층은 판을 읽어 한 단계를 한 줄로 요약한다 (문장 엔진 전의 임시 표현).
 
+import { practicedLevel, skillKey } from './skill.ts';
 import type { BoardValue } from './board.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
 import { Agency, parseRecent } from './agency.ts';
@@ -114,6 +115,7 @@ export interface Engine {
 export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlock[], vocab: Vocab, scripted: readonly ScriptedChange[] = []): Layer[] {
   const { world, causal, perception, agency, log } = engine;
   const pending: RecentAction[] = []; // 끝나기를 기다리는 행동의 효과 요청 (2층)
+  const practice = new Map<string, number>(); // 숙련 상태 키 → 해 본 횟수 (기록의 행동 끝에서 다시 셀 수 있다)
   const script = [...scripted].sort((a, b) => a.t - b.t); // 아직 일어나지 않은 외부 사건 (정전·문 열림 같은, 시나리오가 정한 것)
   return [
     {
@@ -162,6 +164,13 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
             if (k !== null && (e.op === '=' || e.op === '>=' || e.op === '<=')) {
               applyLevel(world, vocab, e.key, k.feature, { op: e.op, level: e.level }, { t: a.ends, cause: done.seq });
             }
+          }
+          // 숙련이 쌓인다 (요리-설계 11장): 결과 바로 뒤, 경계를 넘으면 인물의 숙련 칸이 오른다. 원인은 행동의 끝
+          for (const tr of a.trains ?? []) {
+            const key = skillKey(a.who, tr.feature);
+            const count = (practice.get(key) ?? 0) + tr.gain;
+            practice.set(key, count);
+            world.set(key, practicedLevel(vocab, tr.feature, world.level(key), count), { t: a.ends, cause: done.seq });
           }
           // 만들고 옮기기 (요리-설계 8장): 결과를 기록한 뒤 새 개체를 만들어 놓고, 물건을 옮긴다. 원인은 모두 행동의 끝
           const made: string[] = [];
@@ -222,6 +231,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
           ...a,
           effects: a.effects.map((e) => ({ ...e })),
           ...(a.creates !== undefined ? { creates: a.creates.map((x) => ({ ...x })) } : {}),
+          ...(a.trains !== undefined ? { trains: a.trains.map((x) => ({ ...x })) } : {}),
           ...(a.moves !== undefined ? { moves: a.moves.map((x) => ({ id: x.id, rel: x.rel, ...(x.to !== null ? { to: x.to } : {}) })) } : {}), // 푸는 변화는 to를 적지 않는다 (판은 null을 받지 않는다)
         })));
       },

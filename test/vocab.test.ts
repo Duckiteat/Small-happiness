@@ -109,3 +109,22 @@ test('단계 사다리는 0~5 여섯 칸이고, 내구 배율은 정수 ×100 �
     /내구 배율/,
   );
 });
+
+test('내면 특징(숙련): 감각이 없어야 하고, 쌓이는 표·시간 표·tuned를 검사하며, 메뉴의 필요 숙련은 내면 특징의 단계여야 한다', () => {
+  const lad = ['a', 'b', 'c', 'd', 'e', 'f'].map((k) => ({ key: k, ko: k }));
+  const feature = (attrs: Record<string, unknown>): VocabCategoryRaw => ({ category: 'feature', entries: [{ key: 'knack', ko: '솜씨', attrs: { levels: lad, ...attrs } }, { key: 'look', ko: '모양', attrs: { sense: 'sight', levels: lad } }] });
+  const sense: VocabCategoryRaw = { category: 'sense', entries: [{ key: 'sight', ko: '시각' }] };
+  const ok = (attrs: Record<string, unknown>): string => messages([sense, feature(attrs)]);
+  assert.equal(ok({ inner: true, practice: [0, 1, 2, 3, 4, 5], minutes_pct: [100, 90, 80, 70, 60, 50], tuned: false }), '');
+  assert.match(ok({ inner: true, sense: 'sight', tuned: false }), /감각으로 느끼지 않는다/);
+  assert.match(ok({ inner: true, practice: [0, 3, 2, 4, 5, 6], tuned: false }), /practice/);
+  assert.match(ok({ inner: true, practice: [1, 2, 3, 4, 5, 6], tuned: false }), /practice/);
+  assert.match(ok({ inner: true, minutes_pct: [100, 90, 95, 70, 60, 50], tuned: false }), /minutes_pct/);
+  assert.match(ok({ inner: true }), /tuned/);
+  assert.match(ok({}), /감각\(sense 키\)이 필요하다/, '내면이 아니면 감각이 있어야 한다');
+  const menu = (ns: { [k: string]: string }): string => messages([sense, feature({ inner: true, tuned: false }), { category: 'menu', entries: [{ key: 'm', ko: '메뉴', attrs: { rank: 1, needs_skill: ns } }] }]);
+  assert.equal(menu({ feature: 'knack', at_least: 'b' }), '');
+  assert.match(menu({ feature: 'look', at_least: 'b' }), /내면 특징\(inner\)이 아니다/);
+  assert.match(menu({ feature: 'knack', at_least: 'zz' }), /쓸 수 있는 단계 키가 아니다/);
+  assert.match(menu({ feature: 'knack' }), /needs_skill은/);
+});

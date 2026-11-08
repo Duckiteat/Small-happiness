@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "메뉴 구상 (작가 2026-11-08: 일정에 적은 요리는 없고 하루씨가 계속 구상해 해 먹는다): 요리법의 재료 칸(uses의 ingredient)을 표시한다. 하루씨는 끼니가 시작되면 있는 줄 아는 재료와 믿는 남은 양으로 만들 수 있는 메뉴를 고른다. 남은 찌개를 먹는 끼니의 재료는 그 찌개(반 칸 → 없음)다.",
+  "why": "김치찌개와 요리 숙련 (작가 2026-11-08): 냄비에 국물 바탕(된장·김치)을 두어 옮겨 담을 때 어떤 찌개가 되는지 정한다. 김치를 푸는 단계와 양파만 넣는 단계를 더하고, 같은 단계는 두 메뉴가 함께 쓴다. 재료를 넣을 때마다 요리 솜씨가 쌓인다. 수치는 임시값.",
   "defs": [
     {
       "id": "OBJ000029",
@@ -64,7 +64,8 @@
             "water",
             "soup",
             "filling",
-            "amount"
+            "amount",
+            "base"
           ]
         },
         "body": {
@@ -78,7 +79,8 @@
         "pot:soup": "none",
         "pot:filling": "none",
         "body:dirt": "clean",
-        "pot:amount": "none"
+        "pot:amount": "none",
+        "pot:base": "none"
       },
       "rules": {
         "make_broth": {
@@ -133,7 +135,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ]
         },
         "add_anchovy": {
           "label": "불 위의 맹물에 국물용 멸치를 넣는다",
@@ -158,7 +163,13 @@
               "ingredient": true
             }
           ],
-          "menu": "doenjang_jjigae"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "trains": [
+            "cooking"
+          ]
         },
         "add_doenjang": {
           "label": "육수에 된장을 푼다",
@@ -168,7 +179,8 @@
             "OBJ000031|pot:soup@=broth"
           ],
           "effect": [
-            "OBJ000031|pot:soup@=seasoned"
+            "OBJ000031|pot:soup@=seasoned",
+            "OBJ000031|pot:base@=doenjang"
           ],
           "minutes": 2,
           "tuned": false,
@@ -182,7 +194,10 @@
               "ingredient": true
             }
           ],
-          "menu": "doenjang_jjigae"
+          "menu": "doenjang_jjigae",
+          "trains": [
+            "cooking"
+          ]
         },
         "add_veg": {
           "label": "썰어 둔 양파와 애호박을 반씩 넣는다",
@@ -214,7 +229,10 @@
               "ingredient": true
             }
           ],
-          "menu": "doenjang_jjigae"
+          "menu": "doenjang_jjigae",
+          "trains": [
+            "cooking"
+          ]
         },
         "add_tofu": {
           "label": "깍둑 썬 두부를 반 모 넣는다",
@@ -239,7 +257,13 @@
               "ingredient": true
             }
           ],
-          "menu": "doenjang_jjigae"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "trains": [
+            "cooking"
+          ]
         },
         "add_scallion": {
           "label": "송송 썬 대파를 조금 넣는다",
@@ -264,7 +288,13 @@
               "ingredient": true
             }
           ],
-          "menu": "doenjang_jjigae"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "trains": [
+            "cooking"
+          ]
         },
         "eat": {
           "label": "다 된 찌개를 반쯤 덜어 먹는다. 냄비가 더러워진다",
@@ -277,7 +307,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "effect": [
             "OBJ000031|body:dirt@>=dirty"
           ],
@@ -288,6 +321,63 @@
               "key": "OBJ000031|pot:amount",
               "steps": 2
             }
+          ]
+        },
+        "add_kimchi": {
+          "label": "육수에 김치를 넣어 푼다",
+          "verb": "add",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=broth"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "kimchi_jjigae",
+          "effect": [
+            "OBJ000031|pot:soup@=seasoned",
+            "OBJ000031|pot:base@=kimchi"
+          ],
+          "minutes": 2,
+          "tuned": false,
+          "uses": [
+            {
+              "key": "OBJ000005|cond:amount",
+              "steps": 1,
+              "ingredient": true
+            }
+          ],
+          "trains": [
+            "cooking"
+          ]
+        },
+        "add_onion": {
+          "label": "썰어 둔 양파를 반 넣는다",
+          "verb": "add",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=seasoned",
+            "OBJ000031|pot:filling@=none",
+            "OBJ000027|cond:cut@>=sliced"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "kimchi_jjigae",
+          "effect": [
+            "OBJ000031|pot:filling@=veg"
+          ],
+          "minutes": 1,
+          "tuned": false,
+          "uses": [
+            {
+              "key": "OBJ000027|cond:amount",
+              "steps": 2,
+              "ingredient": true
+            }
+          ],
+          "trains": [
+            "cooking"
           ]
         }
       },
@@ -317,36 +407,6 @@
         "box:contents": "none"
       },
       "offers": {
-        "transfer": {
-          "label": "먹고 남은 찌개를 빈 반찬통에 옮겨 담는다",
-          "verb": "transfer",
-          "needs": [],
-          "when": [
-            "OBJ000031|pot:soup@=stew",
-            "OBJ000031|pot:amount@>=little",
-            "OBJ000019|burner:flame@=out",
-            "OBJ000033|box:contents@=none"
-          ],
-          "during": [
-            "meal"
-          ],
-          "menu": "doenjang_jjigae",
-          "effect": [
-            "OBJ000031|pot:soup@=none",
-            "OBJ000031|pot:filling@=none",
-            "OBJ000031|pot:water@=none",
-            "OBJ000031|pot:amount@=none",
-            "OBJ000033|box:contents@=full"
-          ],
-          "minutes": 2,
-          "tuned": false,
-          "creates": [
-            {
-              "def": "OBJ000034",
-              "in": "OBJ000033"
-            }
-          ]
-        },
         "store": {
           "label": "찌개를 담은 반찬통을 냉장고에 넣는다",
           "verb": "store",
@@ -357,7 +417,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "effect": [],
           "minutes": 1,
           "tuned": false,
@@ -395,6 +458,76 @@
             }
           ],
           "reveals": true
+        },
+        "transfer_doenjang": {
+          "label": "먹고 남은 된장찌개를 빈 반찬통에 옮겨 담는다",
+          "verb": "transfer",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=stew",
+            "OBJ000031|pot:amount@>=little",
+            "OBJ000019|burner:flame@=out",
+            "OBJ000033|box:contents@=none",
+            "OBJ000031|pot:base@=doenjang"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "effect": [
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|pot:filling@=none",
+            "OBJ000031|pot:water@=none",
+            "OBJ000031|pot:amount@=none",
+            "OBJ000033|box:contents@=full",
+            "OBJ000031|pot:base@=none"
+          ],
+          "minutes": 2,
+          "tuned": false,
+          "creates": [
+            {
+              "def": "OBJ000034",
+              "in": "OBJ000033"
+            }
+          ]
+        },
+        "transfer_kimchi": {
+          "label": "먹고 남은 김치찌개를 빈 반찬통에 옮겨 담는다",
+          "verb": "transfer",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=stew",
+            "OBJ000031|pot:amount@>=little",
+            "OBJ000019|burner:flame@=out",
+            "OBJ000033|box:contents@=none",
+            "OBJ000031|pot:base@=kimchi"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "effect": [
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|pot:filling@=none",
+            "OBJ000031|pot:water@=none",
+            "OBJ000031|pot:amount@=none",
+            "OBJ000033|box:contents@=full",
+            "OBJ000031|pot:base@=none"
+          ],
+          "minutes": 2,
+          "tuned": false,
+          "creates": [
+            {
+              "def": "OBJ000036",
+              "in": "OBJ000033"
+            }
+          ]
         }
       },
       "desc": [

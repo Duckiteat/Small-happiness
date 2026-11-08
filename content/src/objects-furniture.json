@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "불 끄기·먹기·설거지도 된장찌개를 만드는 끼니의 단계로 둔다 (한 끼에 한 번). 메뉴가 없으면 같은 앎에서 되풀이하지 않는 규칙 때문에 이튿날 같은 상황에서 불을 끄지 않고 설거지하지 않았다 (시나리오로 확인).",
+  "why": "김치찌개 (작가 2026-11-08): 찌개의 불·물 받기·설거지는 된장찌개와 김치찌개가 함께 쓴다.",
   "defs": [
     {
       "id": "OBJ000022",
@@ -579,7 +579,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ]
         },
         "extinguish_stew": {
           "label": "찌개가 다 되면 불을 끈다",
@@ -597,7 +600,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ]
         }
       },
       "is_a": "OBJ000023"
@@ -684,7 +690,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ]
         },
         "draw_for_stew": {
           "label": "찌개 물을 받으려고 수도를 틀어 싱크대에 물을 받는다",
@@ -699,7 +708,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "effect": [
             "OBJ000020|basin:water@=full"
           ],
@@ -723,7 +735,10 @@
           ],
           "minutes": 2,
           "tuned": false,
-          "menu": "doenjang_jjigae"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ]
         }
       },
       "is_a": "OBJ000024"

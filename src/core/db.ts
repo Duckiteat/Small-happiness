@@ -36,7 +36,7 @@ const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
   OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
   PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'rules', 'offers'],
-  CHR: [...COMMON_FIELDS, 'senses', 'stays'],
+  CHR: [...COMMON_FIELDS, 'senses', 'stays', 'slots', 'initial'],
 };
 
 /** 이 종류의 정의가 가질 수 있는 최상위 필드. 아직 설계되지 않은 종류는 공통 필드만 쓴다. */
@@ -80,6 +80,12 @@ export interface RuleDef {
   /** 지연(초). 게임 시간은 분이므로 60의 배수. 없으면 0 (즉시). */
   readonly delay_s?: number;
   readonly tuned?: boolean;
+}
+
+/** 행동의 메뉴 목록 (하나만 적으면 문자열이다). */
+export function menusOf(offer: { readonly menu?: string | readonly string[] }): readonly string[] {
+  const m = offer.menu;
+  return m === undefined ? [] : typeof m === 'string' ? [m] : m;
 }
 
 /** 행동이 물건을 놓는 요청: what을 in(안에)·on(위에) 두거나 out(꺼내 놓임을 푼다). 셋 중 하나만. 참조는 정의 번호. */
@@ -129,7 +135,11 @@ export interface OfferDef {
    * 하루씨가 구상한 이 메뉴(사전 menu)를 만드는 끼니에만 하는 행동 (요리법의 한 단계). 없으면 메뉴와 상관없다.
    * 요리법은 이 메뉴를 가진 행동들이다. 그 행동의 uses 중 ingredient인 것이 구상할 때 있어야 하는 재료다 (요리-설계 10장).
    */
-  readonly menu?: string;
+  readonly menu?: string | readonly string[];
+  /** 이 행동을 끝내면 쌓이는 숙련 (사전 내면 특징). 재료를 쓰는 행동은 재료 하나에 한 번, 아니면 한 번 (요리-설계 11장). */
+  readonly trains?: readonly string[];
+  /** 걸리는 시간이 이 숙련(내면 특징의 minutes_pct)에 따라 줄어든다. */
+  readonly minutes_by?: string;
   /** 놓임 조건 (몸이 놓은 곳이라 세계로 본다). */
   readonly where?: readonly WhereSpec[];
   /** 새 개체를 만든다 (덜어 담은 찌개). */
@@ -400,7 +410,7 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
       bad(at, '제공 행동은 객체여야 한다');
       continue;
     }
-    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'uses', 'menu', 'where', 'creates', 'places', 'minutes', 'tuned'], at, push);
+    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'uses', 'menu', 'trains', 'minutes_by', 'where', 'creates', 'places', 'minutes', 'tuned'], at, push);
     const refsOk = (v: unknown, keys: readonly string[], pick: (x: { readonly [k: string]: unknown }) => number): boolean =>
       v === undefined || (Array.isArray(v) && v.length > 0 && v.every((x) => isObj(x) && Object.keys(x).every((k) => keys.includes(k)) && Object.entries(x).every(([k, y]) => (k === 'out' ? y === true : typeof y === 'string')) && pick(x) === 1));
     const relCount = (x: { readonly [k: string]: unknown }): number => ['in', 'on', 'out'].filter((k) => x[k] !== undefined).length;
@@ -419,7 +429,9 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
     else if (o['reveals'] !== undefined && typeof o['reveals'] !== 'boolean') bad(at, 'reveals는 true/false여야 한다');
     else if (o['during'] !== undefined && !(isStrArr(o['during']) && o['during'].length > 0)) bad(at, 'during은 상태(사전 presence) 키의 비어 있지 않은 목록이어야 한다');
     else if (!usesOk) bad(at, 'uses는 { key, steps, ingredient? } 목록이어야 한다 (steps는 양의 정수, ingredient는 true이거나 없음)');
-    else if (o['menu'] !== undefined && (typeof o['menu'] !== 'string' || !TOKEN_RE.test(o['menu']))) bad(at, 'menu는 사전 menu 키여야 한다');
+    else if (o['menu'] !== undefined && !(typeof o['menu'] === 'string' ? TOKEN_RE.test(o['menu']) : isStrArr(o['menu']) && o['menu'].length > 0 && o['menu'].every((m) => TOKEN_RE.test(m)))) bad(at, 'menu는 사전 menu 키나 그 목록이어야 한다');
+    else if (o['trains'] !== undefined && !(isStrArr(o['trains']) && o['trains'].length > 0)) bad(at, 'trains는 내면 특징 키의 비어 있지 않은 목록이어야 한다');
+    else if (o['minutes_by'] !== undefined && typeof o['minutes_by'] !== 'string') bad(at, 'minutes_by는 내면 특징 키여야 한다');
     else if (!whereOk) bad(at, 'where는 { what, in 또는 on } 목록이어야 한다 (관계는 하나만)');
     else if (!placesOk) bad(at, 'places는 { what, in 또는 on 또는 out: true } 목록이어야 한다 (관계는 하나만)');
     else if (!createsOk) bad(at, 'creates는 { def, in 또는 on (없어도 됨) } 목록이어야 한다');
@@ -437,7 +449,9 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
         ...(o['reveals'] === true ? { reveals: true } : {}),
         ...(isStrArr(o['during']) ? { during: o['during'].map((s) => s.trim()) } : {}),
         ...(Array.isArray(uses) ? { uses: (uses as { key: string; steps: number; ingredient?: boolean }[]).map((u) => ({ key: u.key.trim(), steps: u.steps, ...(u.ingredient === true ? { ingredient: true } : {}) })) } : {}),
-        ...(typeof o['menu'] === 'string' ? { menu: o['menu'] } : {}),
+        ...(typeof o['menu'] === 'string' || isStrArr(o['menu']) ? { menu: o['menu'] } : {}),
+        ...(isStrArr(o['trains']) ? { trains: o['trains'] } : {}),
+        ...(typeof o['minutes_by'] === 'string' ? { minutes_by: o['minutes_by'] } : {}),
         ...(Array.isArray(o['where']) ? { where: o['where'] as WhereSpec[] } : {}),
         ...(Array.isArray(o['creates']) ? { creates: o['creates'] as CreateSpec[] } : {}),
         ...(Array.isArray(o['places']) ? { places: o['places'] as PlaceSpec[] } : {}),

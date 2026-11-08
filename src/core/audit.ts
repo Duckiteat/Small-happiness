@@ -8,8 +8,10 @@
 // 하지 않는 것 (한계-등록부): 진행의 경계 넘는 시각(양 계산), 행동을 고른 이유(앎이 필요를 채웠나), 조건이 성립했는데 예약이 없는 경우.
 // 코어는 입출력이 없다. 시나리오를 읽는 일은 서기(clerk.ts)가 한다.
 
+import { menusOf } from './db.ts';
 import { stepDown } from './amount.ts';
 import { conceive } from './conceive.ts';
+import { practicedLevel, practiceGain, SKILL_SLOT, skilledMinutes, skillKey } from './skill.ts';
 import { pointerChanges, refInstance, relationOf, targetPointers } from './moves.ts';
 import type { Db } from './db.ts';
 import { latestSeq } from './events.ts';
@@ -72,6 +74,7 @@ interface Chosen {
   readonly ends: number;
   readonly effects: readonly { readonly key: string; readonly feature: string; readonly cond: StatePattern['cond'] }[];
   readonly moves: MoveExpected[];
+  readonly trains: readonly { readonly feature: string; readonly gain: number }[];
 }
 
 /** 행동이 끝난 뒤 따라와야 할 만들기·놓임 사건 (차례대로). */
@@ -148,6 +151,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const moveQueue = new Map<string, MoveExpected[]>(); // action_done seq → 따라올 만들기·놓임
   const knowSeq = new Map<string, string>(); // `${who}|${key}` → 그 앎을 정한 사건
   const planned = new Map<string, string>(); // `${who}|${끼니}` → 구상한 메뉴
+  const practiced = new Map<string, number>(); // 숙련 상태 키 → 해 본 횟수
   const inspected = new Set<string>(); // `${who}|${via}`: 끝난 행동
   const knows = new Map<string, { aw: string; level: string }>(); // `${who}|${key}`
   let pending: Pending | null = null;
@@ -353,7 +357,6 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         const who = str(e.data['who']), menu = str(e.data['menu']), meal = String(e.data['meal']);
         if (!who.startsWith('CHR') || !instances.has(who)) bad(e.seq, 'action', `구상한 이가 인물이 아니다: ${who}`);
         if (planned.has(`${who}|${meal}`)) bad(e.seq, 'action', `같은 끼니(${meal}분 구간)에 메뉴를 두 번 구상했다`);
-        planned.set(`${who}|${meal}`, menu);
         const knownIds = new Set([...knows.keys()].filter((k) => k.startsWith(`${who}|`)).map((k) => k.slice(who.length + 1, k.indexOf('|', who.length + 1))));
         const believe = (key: string): string => {
           const seen = knows.get(`${who}|${key}`);
@@ -365,7 +368,10 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         const pick = conceive(db, vocab, {
           known: (d) => [...instances.keys()].sort().filter((i) => kindOf(d).has(instances.get(i) ?? '') && knownIds.has(i)),
           level: believe,
+          skill: (f) => levelIn(levels, skillKey(who, f)),
+          lastPlanned: (m) => Math.max(-1, ...[...planned].filter(([k, x]) => k.startsWith(`${who}|`) && x === m).map(([k]) => Number(k.slice(who.length + 1)))),
         });
+        planned.set(`${who}|${meal}`, menu);
         if (pick?.menu !== menu) bad(e.seq, 'action', `알던 것으로 구상하면 ${pick?.menu ?? '만들 것이 없다'}인데 ${menu}를 골랐다`);
         else expectCause(e.seq, 'cause', e.cause, latestSeq(pick.keys.map((k) => knowSeq.get(`${who}|${k}`))), `${menu} 구상`);
         break;
@@ -382,7 +388,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (!who.startsWith('CHR') || !instances.has(who)) bad(e.seq, 'action', `행동하는 이가 인물이 아니다: ${who}`);
         if (verb !== offer.item.verb) bad(e.seq, 'action', `동사가 ${verb}인데 행동의 동사는 ${offer.item.verb}이다`);
         const ends = num(e.data['ends']);
-        if (ends !== e.t + offer.item.minutes) bad(e.seq, 'action', `끝나는 시각이 ${ends}분인데 행동은 ${offer.item.minutes}분 걸려 ${e.t + offer.item.minutes}분이다`);
+        const minutes = skilledMinutes(vocab, offer.item, (f) => levelIn(levels, skillKey(who, f)));
+        if (ends !== e.t + minutes) bad(e.seq, 'action', `끝나는 시각이 ${ends}분인데 행동은 ${minutes}분 걸려 ${e.t + minutes}분이다`);
         const effects: Chosen['effects'][number][] = offer.item.effect.flatMap((text) => {
           const p = parsePattern(text);
           return p === null ? [] : targets(p, { owner: pv.owner }, at).map((i) => ({ key: keyOf(p, i), feature: p.feature, cond: p.cond }));
@@ -428,8 +435,12 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           if (mealSteps.has(once)) bad(e.seq, 'action', `${via}를 같은 끼니(${String(e.data['meal'])}분 구간)에 두 번 골랐다`);
           mealSteps.add(once);
         }
-        if ((offer.item.menu ?? null) !== (typeof menu === 'string' ? menu : null)) bad(e.seq, 'action', `행동의 메뉴(${offer.item.menu ?? '없음'})와 고른 때의 메뉴(${typeof menu === 'string' ? menu : '없음'})가 다르다`);
-        chosen.set(e.seq, { via, who, verb, at, ends, effects, moves });
+        const offerMenus = menusOf(offer.item);
+        if (offerMenus.length > 0 ? typeof menu !== 'string' || !offerMenus.includes(menu) : menu !== undefined) bad(e.seq, 'action', `행동의 메뉴(${offerMenus.join('·') || '없음'})와 고른 때의 메뉴(${typeof menu === 'string' ? menu : '없음'})가 다르다`);
+        // 숙련: 인물에게 그 부위가 있을 때만 쌓인다
+        const skillFeatures = db.defs[instances.get(who) ?? '']?.slots?.[SKILL_SLOT]?.features ?? [];
+        const trains = (offer.item.trains ?? []).filter((f) => skillFeatures.includes(f)).map((f) => ({ feature: f, gain: practiceGain(offer.item) }));
+        chosen.set(e.seq, { via, who, verb, at, ends, effects, moves, trains });
         // 원인: 이 행동의 조건을 채운 하루씨의 앎(awareness 사건). 어느 앎인지까지는 행동을 고른 이유를 다시 계산해야 안다 (LIM014)
         // 앎이 필요 없는 행동(needs가 빈 요리 등)은 시간(일정)이 이끈 것이라 원인 사건이 없을 수 있다 (한계 LIM020)
         bump('cause');
@@ -449,6 +460,14 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         doneBy.set(e.seq, { who: c.who, via });
         if (c.moves.length > 0) moveQueue.set(e.seq, [...c.moves]);
         const expect = expectChanges(levels, c.effects);
+        // 결과 바로 뒤에 숙련이 쌓여 경계를 넘은 칸 (skill.ts와 같은 계산)
+        for (const tr of c.trains) {
+          const key = skillKey(c.who, tr.feature);
+          const count = (practiced.get(key) ?? 0) + tr.gain;
+          practiced.set(key, count);
+          const to = practicedLevel(vocab, tr.feature, levelIn(levels, key), count);
+          if (to !== levelIn(levels, key)) expect.push({ key, to });
+        }
         if (expect.length > 0) pending = { cause: e.seq, what: `${via} 끝`, expect };
         break;
       }

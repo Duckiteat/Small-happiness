@@ -11,7 +11,7 @@
       "FRG": 1,
       "HAB": 1,
       "ITM": 1,
-      "OBJ": 35,
+      "OBJ": 37,
       "PLC": 7,
       "RUL": 1
     }
@@ -24,6 +24,15 @@
         "en": "Haru"
       },
       "aliases": [],
+      "slots": {
+        "skill": {
+          "features": [
+            "cooking",
+            "handling",
+            "judging"
+          ]
+        }
+      },
       "senses": {
         "sight": {
           "notice": 1,
@@ -36,7 +45,8 @@
       },
       "stays": "PLC000002",
       "desc": [
-        "혼자 사는 직장인 (세계-설정 1장). 직업·출퇴근은 미정"
+        "혼자 사는 직장인 (세계-설정 1장). 직업·출퇴근은 미정",
+        "숙련(요리 솜씨·손질 솜씨·감별)은 재료를 쓸 때마다 쌓인다 (요리-설계 11장)"
       ]
     },
     "OBJ000001": {
@@ -473,7 +483,15 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "trains": [
+            "handling",
+            "judging"
+          ],
+          "minutes_by": "handling",
           "minutes": 3,
           "tuned": false
         }
@@ -602,7 +620,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -644,6 +663,7 @@
         }
       },
       "initial": {
+        "cond:amount": "full",
         "cond:cut": "chunk",
         "cond:moisture": "liquid",
         "cond:seal": "sealed",
@@ -1062,7 +1082,15 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "trains": [
+            "handling",
+            "judging"
+          ],
+          "minutes_by": "handling",
           "minutes": 3,
           "tuned": false
         }
@@ -1454,7 +1482,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "minutes": 1,
           "tuned": false
         },
@@ -1550,7 +1581,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "minutes": 1,
           "tuned": false
         }
@@ -1636,7 +1670,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "minutes": 2,
           "tuned": false
         },
@@ -1656,7 +1693,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "minutes": 2,
           "tuned": false
         },
@@ -1678,7 +1718,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "minutes": 10,
           "tuned": false
         }
@@ -2119,7 +2162,15 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "trains": [
+            "handling",
+            "judging"
+          ],
+          "minutes_by": "handling",
           "minutes": 3,
           "tuned": false
         }
@@ -2215,6 +2266,11 @@
             "meal"
           ],
           "menu": "doenjang_jjigae",
+          "trains": [
+            "handling",
+            "judging"
+          ],
+          "minutes_by": "handling",
           "minutes": 3,
           "tuned": false
         }
@@ -2307,7 +2363,8 @@
             "water",
             "soup",
             "filling",
-            "amount"
+            "amount",
+            "base"
           ]
         }
       },
@@ -2365,7 +2422,13 @@
               "ingredient": true
             }
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "trains": [
+            "cooking"
+          ],
           "minutes": 1,
           "tuned": false
         },
@@ -2377,7 +2440,8 @@
             "OBJ000031|pot:soup@=broth"
           ],
           "effect": [
-            "OBJ000031|pot:soup@=seasoned"
+            "OBJ000031|pot:soup@=seasoned",
+            "OBJ000031|pot:base@=doenjang"
           ],
           "during": [
             "meal"
@@ -2390,7 +2454,67 @@
             }
           ],
           "menu": "doenjang_jjigae",
+          "trains": [
+            "cooking"
+          ],
           "minutes": 2,
+          "tuned": false
+        },
+        "add_kimchi": {
+          "label": "육수에 김치를 넣어 푼다",
+          "verb": "add",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=broth"
+          ],
+          "effect": [
+            "OBJ000031|pot:soup@=seasoned",
+            "OBJ000031|pot:base@=kimchi"
+          ],
+          "during": [
+            "meal"
+          ],
+          "uses": [
+            {
+              "key": "OBJ000005|cond:amount",
+              "steps": 1,
+              "ingredient": true
+            }
+          ],
+          "menu": "kimchi_jjigae",
+          "trains": [
+            "cooking"
+          ],
+          "minutes": 2,
+          "tuned": false
+        },
+        "add_onion": {
+          "label": "썰어 둔 양파를 반 넣는다",
+          "verb": "add",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=seasoned",
+            "OBJ000031|pot:filling@=none",
+            "OBJ000027|cond:cut@>=sliced"
+          ],
+          "effect": [
+            "OBJ000031|pot:filling@=veg"
+          ],
+          "during": [
+            "meal"
+          ],
+          "uses": [
+            {
+              "key": "OBJ000027|cond:amount",
+              "steps": 2,
+              "ingredient": true
+            }
+          ],
+          "menu": "kimchi_jjigae",
+          "trains": [
+            "cooking"
+          ],
+          "minutes": 1,
           "tuned": false
         },
         "add_scallion": {
@@ -2414,7 +2538,13 @@
               "ingredient": true
             }
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "trains": [
+            "cooking"
+          ],
           "minutes": 1,
           "tuned": false
         },
@@ -2439,7 +2569,13 @@
               "ingredient": true
             }
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "trains": [
+            "cooking"
+          ],
           "minutes": 1,
           "tuned": false
         },
@@ -2472,6 +2608,9 @@
             }
           ],
           "menu": "doenjang_jjigae",
+          "trains": [
+            "cooking"
+          ],
           "minutes": 1,
           "tuned": false
         },
@@ -2495,7 +2634,10 @@
               "steps": 2
             }
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "minutes": 20,
           "tuned": false
         },
@@ -2517,7 +2659,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "minutes": 2,
           "tuned": false
         }
@@ -2525,6 +2670,7 @@
       "initial": {
         "body:dirt": "clean",
         "pot:amount": "none",
+        "pot:base": "none",
         "pot:filling": "none",
         "pot:soup": "none",
         "pot:water": "none"
@@ -2624,7 +2770,10 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "places": [
             {
               "what": "OBJ000033",
@@ -2662,30 +2811,70 @@
           "minutes": 1,
           "tuned": false
         },
-        "transfer": {
-          "label": "먹고 남은 찌개를 빈 반찬통에 옮겨 담는다",
+        "transfer_doenjang": {
+          "label": "먹고 남은 된장찌개를 빈 반찬통에 옮겨 담는다",
           "verb": "transfer",
           "needs": [],
           "when": [
             "OBJ000031|pot:soup@=stew",
             "OBJ000031|pot:amount@>=little",
             "OBJ000019|burner:flame@=out",
-            "OBJ000033|box:contents@=none"
+            "OBJ000033|box:contents@=none",
+            "OBJ000031|pot:base@=doenjang"
           ],
           "effect": [
             "OBJ000031|pot:soup@=none",
             "OBJ000031|pot:filling@=none",
             "OBJ000031|pot:water@=none",
             "OBJ000031|pot:amount@=none",
-            "OBJ000033|box:contents@=full"
+            "OBJ000033|box:contents@=full",
+            "OBJ000031|pot:base@=none"
           ],
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
           "creates": [
             {
               "def": "OBJ000034",
+              "in": "OBJ000033"
+            }
+          ],
+          "minutes": 2,
+          "tuned": false
+        },
+        "transfer_kimchi": {
+          "label": "먹고 남은 김치찌개를 빈 반찬통에 옮겨 담는다",
+          "verb": "transfer",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=stew",
+            "OBJ000031|pot:amount@>=little",
+            "OBJ000019|burner:flame@=out",
+            "OBJ000033|box:contents@=none",
+            "OBJ000031|pot:base@=kimchi"
+          ],
+          "effect": [
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|pot:filling@=none",
+            "OBJ000031|pot:water@=none",
+            "OBJ000031|pot:amount@=none",
+            "OBJ000033|box:contents@=full",
+            "OBJ000031|pot:base@=none"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "creates": [
+            {
+              "def": "OBJ000036",
               "in": "OBJ000033"
             }
           ],
@@ -2705,6 +2894,63 @@
       "names": {
         "ko": "된장찌개",
         "en": "doenjang stew"
+      },
+      "is_a": "OBJ000035",
+      "aliases": [],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "decay",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat",
+            "amount"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "offers": {},
+      "progress": {},
+      "initial": {
+        "cond:amount": "half",
+        "cond:cut": "chunk",
+        "cond:heat": "hot",
+        "cond:moisture": "liquid",
+        "cond:seal": "half",
+        "cond:temp": "mild_room"
+      },
+      "desc": [
+        "냄비에서 반찬통으로 옮겨 담은 된장찌개"
+      ]
+    },
+    "OBJ000035": {
+      "id": "OBJ000035",
+      "names": {
+        "ko": "찌개",
+        "en": "stew"
       },
       "is_a": "OBJ000001",
       "aliases": [],
@@ -2742,19 +2988,18 @@
           "means": "edible"
         }
       ],
-      "rules": {},
       "offers": {
         "eat_leftover": {
           "label": "데운 남은 찌개를 먹는다. 반찬통이 빈다",
           "verb": "eat",
           "needs": [],
           "when": [
-            "OBJ000034|cond:heat@>=hot"
+            "OBJ000035|cond:heat@>=hot"
           ],
           "effect": [
-            "OBJ000034|body:smell@=gone",
-            "OBJ000034|body:odor@=gone",
-            "OBJ000034|cond:seal@=gone",
+            "OBJ000035|body:smell@=gone",
+            "OBJ000035|body:odor@=gone",
+            "OBJ000035|cond:seal@=gone",
             "OBJ000033|box:contents@=none"
           ],
           "during": [
@@ -2762,7 +3007,7 @@
           ],
           "uses": [
             {
-              "key": "OBJ000034|cond:amount",
+              "key": "OBJ000035|cond:amount",
               "steps": 2,
               "ingredient": true
             }
@@ -2770,13 +3015,13 @@
           "menu": "leftover_stew",
           "where": [
             {
-              "what": "OBJ000034",
+              "what": "OBJ000035",
               "in": "OBJ000033"
             }
           ],
           "places": [
             {
-              "what": "OBJ000034",
+              "what": "OBJ000035",
               "out": true
             }
           ],
@@ -2788,14 +3033,14 @@
           "verb": "reheat",
           "needs": [],
           "when": [
-            "OBJ000034|cond:heat@=none",
-            "OBJ000034|body:decay@<=turned",
+            "OBJ000035|cond:heat@=none",
+            "OBJ000035|body:decay@<=turned",
             "OBJ000016|body:order@=ok",
             "OBJ000016|chamber:power@=off"
           ],
           "effect": [
             "OBJ000016|chamber:power@=on",
-            "OBJ000034|cond:heat@=hot"
+            "OBJ000035|cond:heat@=hot"
           ],
           "during": [
             "meal"
@@ -2803,7 +3048,7 @@
           "menu": "leftover_stew",
           "where": [
             {
-              "what": "OBJ000034",
+              "what": "OBJ000035",
               "in": "OBJ000033"
             },
             {
@@ -2829,7 +3074,63 @@
         "cond:temp": "mild_room"
       },
       "desc": [
-        "냄비에서 반찬통으로 옮겨 담은 된장찌개. 냉장 보관 기간은 일반적인 대략값의 임시값"
+        "냄비에서 반찬통으로 옮겨 담은 찌개의 종류. 남은 찌개를 데워 먹는 일은 종류가 한 번 갖는다. 냉장 보관 기간은 일반적인 대략값의 임시값"
+      ]
+    },
+    "OBJ000036": {
+      "id": "OBJ000036",
+      "names": {
+        "ko": "김치찌개",
+        "en": "kimchi stew"
+      },
+      "is_a": "OBJ000035",
+      "aliases": [],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "decay",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat",
+            "amount"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {},
+      "initial": {
+        "cond:amount": "half",
+        "cond:cut": "chunk",
+        "cond:heat": "hot",
+        "cond:moisture": "liquid",
+        "cond:seal": "half",
+        "cond:temp": "mild_room"
+      },
+      "desc": [
+        "냄비에서 반찬통으로 옮겨 담은 김치찌개"
       ]
     },
     "PLC000001": {

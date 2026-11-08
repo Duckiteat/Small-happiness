@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "메뉴 구상 (작가 2026-11-08: 일정에 적은 요리는 없고 하루씨가 계속 구상해 해 먹는다): 요리법의 재료 칸(uses의 ingredient)을 표시한다. 하루씨는 끼니가 시작되면 있는 줄 아는 재료와 믿는 남은 양으로 만들 수 있는 메뉴를 고른다. 남은 찌개를 먹는 끼니의 재료는 그 찌개(반 칸 → 없음)다.",
+  "why": "된장찌개의 데우기·먹기는 찌개 종류로 옮겼으므로 된장찌개 자신의 행동을 비운다 (부분 갱신이라 빼기만 하면 남는다).",
   "defs": [
     {
       "id": "OBJ000001",
@@ -434,8 +434,16 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
-          "when_meaning": "edible"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "when_meaning": "edible",
+          "trains": [
+            "handling",
+            "judging"
+          ],
+          "minutes_by": "handling"
         }
       },
       "progress": {
@@ -558,7 +566,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -603,7 +612,8 @@
         "cond:seal": "sealed",
         "cond:moisture": "liquid",
         "cond:cut": "chunk",
-        "cond:temp": "fridge"
+        "cond:temp": "fridge",
+        "cond:amount": "full"
       },
       "desc": [
         "김치통. 상하지 않고 익는다. 시어지면 찌개용"
@@ -1022,8 +1032,16 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
-          "when_meaning": "edible"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "when_meaning": "edible",
+          "trains": [
+            "handling",
+            "judging"
+          ],
+          "minutes_by": "handling"
         }
       }
     },
@@ -1198,8 +1216,16 @@
           "during": [
             "meal"
           ],
-          "menu": "doenjang_jjigae",
-          "when_meaning": "edible"
+          "menu": [
+            "doenjang_jjigae",
+            "kimchi_jjigae"
+          ],
+          "when_meaning": "edible",
+          "trains": [
+            "handling",
+            "judging"
+          ],
+          "minutes_by": "handling"
         }
       }
     },
@@ -1292,7 +1318,12 @@
             "meal"
           ],
           "menu": "doenjang_jjigae",
-          "when_meaning": "edible"
+          "when_meaning": "edible",
+          "trains": [
+            "handling",
+            "judging"
+          ],
+          "minutes_by": "handling"
         }
       }
     },
@@ -1357,8 +1388,137 @@
       ]
     },
     {
-      "id": "OBJ000034",
+      "id": "OBJ000035",
       "is_a": "OBJ000001",
+      "names": {
+        "ko": "찌개",
+        "en": "stew"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "decay",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat",
+            "amount"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "progress": {
+        "decay": {
+          "base_s": 691200
+        }
+      },
+      "initial": {
+        "cond:seal": "half",
+        "cond:moisture": "liquid",
+        "cond:cut": "chunk",
+        "cond:temp": "mild_room",
+        "cond:heat": "hot",
+        "cond:amount": "half"
+      },
+      "offers": {
+        "reheat": {
+          "label": "남은 찌개를 전자레인지로 데운다",
+          "verb": "reheat",
+          "needs": [],
+          "when": [
+            "OBJ000035|cond:heat@=none",
+            "OBJ000035|body:decay@<=turned",
+            "OBJ000016|body:order@=ok",
+            "OBJ000016|chamber:power@=off"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "leftover_stew",
+          "effect": [
+            "OBJ000016|chamber:power@=on",
+            "OBJ000035|cond:heat@=hot"
+          ],
+          "minutes": 3,
+          "tuned": false,
+          "where": [
+            {
+              "what": "OBJ000035",
+              "in": "OBJ000033"
+            },
+            {
+              "what": "OBJ000033",
+              "in": "OBJ000016"
+            }
+          ]
+        },
+        "eat_leftover": {
+          "label": "데운 남은 찌개를 먹는다. 반찬통이 빈다",
+          "verb": "eat",
+          "needs": [],
+          "when": [
+            "OBJ000035|cond:heat@>=hot"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "leftover_stew",
+          "effect": [
+            "OBJ000035|body:smell@=gone",
+            "OBJ000035|body:odor@=gone",
+            "OBJ000035|cond:seal@=gone",
+            "OBJ000033|box:contents@=none"
+          ],
+          "minutes": 15,
+          "tuned": false,
+          "uses": [
+            {
+              "key": "OBJ000035|cond:amount",
+              "steps": 2,
+              "ingredient": true
+            }
+          ],
+          "where": [
+            {
+              "what": "OBJ000035",
+              "in": "OBJ000033"
+            }
+          ],
+          "places": [
+            {
+              "what": "OBJ000035",
+              "out": true
+            }
+          ]
+        }
+      },
+      "desc": [
+        "냄비에서 반찬통으로 옮겨 담은 찌개의 종류. 남은 찌개를 데워 먹는 일은 종류가 한 번 갖는다. 냉장 보관 기간은 일반적인 대략값의 임시값"
+      ]
+    },
+    {
+      "id": "OBJ000034",
+      "is_a": "OBJ000035",
       "names": {
         "ko": "된장찌개",
         "en": "doenjang stew"
@@ -1397,11 +1557,7 @@
         }
       ],
       "rules": {},
-      "progress": {
-        "decay": {
-          "base_s": 691200
-        }
-      },
+      "progress": {},
       "initial": {
         "cond:seal": "half",
         "cond:moisture": "liquid",
@@ -1410,80 +1566,63 @@
         "cond:heat": "hot",
         "cond:amount": "half"
       },
-      "offers": {
-        "reheat": {
-          "label": "남은 찌개를 전자레인지로 데운다",
-          "verb": "reheat",
-          "needs": [],
-          "when": [
-            "OBJ000034|cond:heat@=none",
-            "OBJ000034|body:decay@<=turned",
-            "OBJ000016|body:order@=ok",
-            "OBJ000016|chamber:power@=off"
-          ],
-          "during": [
-            "meal"
-          ],
-          "menu": "leftover_stew",
-          "effect": [
-            "OBJ000016|chamber:power@=on",
-            "OBJ000034|cond:heat@=hot"
-          ],
-          "minutes": 3,
-          "tuned": false,
-          "where": [
-            {
-              "what": "OBJ000034",
-              "in": "OBJ000033"
-            },
-            {
-              "what": "OBJ000033",
-              "in": "OBJ000016"
-            }
+      "desc": [
+        "냄비에서 반찬통으로 옮겨 담은 된장찌개"
+      ],
+      "offers": {}
+    },
+    {
+      "id": "OBJ000036",
+      "is_a": "OBJ000035",
+      "names": {
+        "ko": "김치찌개",
+        "en": "kimchi stew"
+      },
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "decay",
+            "odor"
           ]
         },
-        "eat_leftover": {
-          "label": "데운 남은 찌개를 먹는다. 반찬통이 빈다",
-          "verb": "eat",
-          "needs": [],
-          "when": [
-            "OBJ000034|cond:heat@>=hot"
-          ],
-          "during": [
-            "meal"
-          ],
-          "menu": "leftover_stew",
-          "effect": [
-            "OBJ000034|body:smell@=gone",
-            "OBJ000034|body:odor@=gone",
-            "OBJ000034|cond:seal@=gone",
-            "OBJ000033|box:contents@=none"
-          ],
-          "minutes": 15,
-          "tuned": false,
-          "where": [
-            {
-              "what": "OBJ000034",
-              "in": "OBJ000033"
-            }
-          ],
-          "places": [
-            {
-              "what": "OBJ000034",
-              "out": true
-            }
-          ],
-          "uses": [
-            {
-              "key": "OBJ000034|cond:amount",
-              "steps": 2,
-              "ingredient": true
-            }
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat",
+            "amount"
           ]
         }
       },
+      "meanings": [
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {},
+      "initial": {
+        "cond:seal": "half",
+        "cond:moisture": "liquid",
+        "cond:cut": "chunk",
+        "cond:temp": "mild_room",
+        "cond:heat": "hot",
+        "cond:amount": "half"
+      },
       "desc": [
-        "냄비에서 반찬통으로 옮겨 담은 된장찌개. 냉장 보관 기간은 일반적인 대략값의 임시값"
+        "냄비에서 반찬통으로 옮겨 담은 김치찌개"
       ]
     }
   ]

@@ -250,5 +250,13 @@
   "uses-ingredient-false.json": {
     "stage": "gate",
     "match": "ingredient는 true이거나 없음"
+  },
+  "trains-not-inner.json": {
+    "stage": "gate",
+    "match": "숙련은 사전의 내면 특징\\(inner\\)이어야 한다"
+  },
+  "minutes-by-no-table.json": {
+    "stage": "gate",
+    "match": "시간 표\\(minutes_pct\\)가 없는 숙련"
   }
 }

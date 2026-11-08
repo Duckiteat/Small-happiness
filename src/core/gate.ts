@@ -5,7 +5,7 @@
 
 import { openLadder } from './amount.ts';
 import { DEF_PREFIXES, parseId } from './ids.ts';
-import { PREFIX_KIND } from './db.ts';
+import { menusOf, PREFIX_KIND } from './db.ts';
 import type { Db, Definition, Issue } from './db.ts';
 import { collectRules, selfLoops } from './chains.ts';
 import { condRange, parseLocalCondition, parsePattern } from './statekey.ts';
@@ -321,7 +321,13 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
         if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
         slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
       });
-      if (offer.menu !== undefined && !vocab.has('menu', offer.menu)) error(`${at}.menu`, `사전에 없는 메뉴: ${offer.menu}`);
+      for (const m of menusOf(offer)) if (!vocab.has('menu', m)) error(`${at}.menu`, `사전에 없는 메뉴: ${m}`);
+      // 숙련: 내면 특징이어야 하고, 시간을 줄이는 숙련은 시간 표(minutes_pct)가 있어야 한다
+      for (const f of [...(offer.trains ?? []), ...(offer.minutes_by !== undefined ? [offer.minutes_by] : [])]) {
+        if (vocab.entry('feature', f)?.attrs['inner'] !== true) error(`${at}`, `숙련은 사전의 내면 특징(inner)이어야 한다: ${f}`);
+      }
+      for (const f of offer.trains ?? []) if (!Array.isArray(vocab.entry('feature', f)?.attrs['practice'])) error(`${at}.trains`, `해 본 횟수로 오르는 표(practice)가 없는 특징을 쌓는다: ${f}`);
+      if (offer.minutes_by !== undefined && !Array.isArray(vocab.entry('feature', offer.minutes_by)?.attrs['minutes_pct'])) error(`${at}.minutes_by`, `시간 표(minutes_pct)가 없는 숙련으로 시간을 줄인다: ${offer.minutes_by}`);
       // 놓임 조건·옮기기·만들기: 가리키는 정의가 있어야 하고, 놓이는 것은 물건, 놓는 곳은 물건이나 장소다
       const ref = (w: string, r: string, what: boolean): void => {
         const d = db.defs[r];
