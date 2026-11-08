@@ -245,6 +245,216 @@
             }
           ]
         }
+      },
+      {
+        "key": "grid_electric",
+        "ko": "전기 공급",
+        "en": "electric supply",
+        "desc": "장소로 들어오는 전기가 끊겼는가 (정전)",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "normal",
+              "ko": "공급됨"
+            },
+            {
+              "key": "cut",
+              "ko": "끊김"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "grid_water",
+        "ko": "수도 공급",
+        "en": "water supply",
+        "desc": "장소로 들어오는 수도가 끊겼는가 (단수)",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "normal",
+              "ko": "공급됨"
+            },
+            {
+              "key": "cut",
+              "ko": "끊김"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "grid_gas",
+        "ko": "가스 공급",
+        "en": "gas supply",
+        "desc": "장소로 들어오는 가스가 끊겼는가",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "normal",
+              "ko": "공급됨"
+            },
+            {
+              "key": "cut",
+              "ko": "끊김"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "order",
+        "ko": "작동 상태",
+        "en": "working order",
+        "desc": "기기가 멀쩡한가, 망가졌는가. 쓰는 설비(전기·수도·가스)가 끊기면 망가지고, 고칠 수 있다",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "ok",
+              "ko": "정상"
+            },
+            {
+              "key": "broken",
+              "ko": "망가짐"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "door",
+        "ko": "문",
+        "en": "door",
+        "desc": "문이 닫혀 있는가, 열려 있는가",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "closed",
+              "ko": "닫힘"
+            },
+            {
+              "key": "open",
+              "ko": "열림"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "heat",
+        "ko": "가열 온도",
+        "en": "heat",
+        "desc": "가열해서 오른 온도. 없음이면 온도는 보관 온도(temp)로 읽는다 (docs/온도-읽기.md). 범위는 일반적인 값이며 확인하지 않았다(임시)",
+        "attrs": {
+          "sense": "touch",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "warm",
+              "ko": "따뜻함 (~60℃)"
+            },
+            {
+              "key": "hot",
+              "ko": "뜨거움 (60~100℃)"
+            },
+            {
+              "key": "boil",
+              "ko": "끓음 (100℃)"
+            },
+            {
+              "key": "fry",
+              "ko": "튀김 (150~190℃)"
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
       }
     ]
   },
@@ -270,6 +480,30 @@
           "스위치"
         ],
         "desc": "기기를 켠다. 전기를 쓰기 시작하고, 끝나면 스스로 꺼진다"
+      },
+      {
+        "key": "repair",
+        "ko": "고치기",
+        "en": "repair",
+        "aliases": [
+          "수리"
+        ],
+        "desc": "망가진 기기를 고친다. 그 기기의 설비가 다시 들어올 때 고칠 수 있다"
+      },
+      {
+        "key": "close",
+        "ko": "닫기",
+        "en": "close",
+        "desc": "열린 문을 닫는다"
+      },
+      {
+        "key": "reheat",
+        "ko": "데우기",
+        "en": "reheat",
+        "aliases": [
+          "데움"
+        ],
+        "desc": "전자레인지로 음식을 데운다. 가열 온도가 오르고 시간이 지나면 식는다"
       }
     ]
   }

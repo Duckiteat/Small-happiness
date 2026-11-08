@@ -176,6 +176,14 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     const pv = via === '' ? null : parseVia(via);
 
     switch (e.type) {
+      case 'external_event': {
+        // 시나리오가 정한 외부 사건(정전·문 열림): 원인은 시나리오 밖이다. 바로 뒤에 그 상태 변화가 이 사건의 결과로 와야 한다
+        const key = str(e.data['key']), level = str(e.data['level']);
+        const k = parseStateKey(key);
+        if (k === null || !instances.has(k.subject)) bad(e.seq, 'state', `없는 개체의 외부 사건: ${key}`);
+        else pending = { cause: e.seq, what: `외부 사건(${str(e.data['label'])})`, expect: [{ key, to: level }] };
+        break;
+      }
       case 'placed': {
         // 놓임을 따라간다 (저절로 느낀 물건이 머무는 곳에 있는지 보는 데 쓴다)
         const id = str(e.data['id']), rel = str(e.data['rel']), to = str(e.data['to']);
@@ -224,8 +232,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           if (options.externalUntil !== undefined && e.t > options.externalUntil) bad(e.seq, 'state', `원인 없는 상태 변화가 처음 설정 시각(${options.externalUntil}분) 뒤에 있다: ${key}`);
         } else {
           const cause = bySeq.get(e.cause);
-          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced'].includes(cause.type)) {
-            bad(e.seq, 'state', `상태 변화의 원인이 ${cause?.type ?? '없는 사건'}이다 (처음 상태 · 발화 · 행동 끝 · 진행만 상태를 바꾼다)`);
+          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event'].includes(cause.type)) {
+            bad(e.seq, 'state', `상태 변화의 원인이 ${cause?.type ?? '없는 사건'}이다 (처음 상태 · 발화 · 행동 끝 · 진행 · 외부 사건만 상태를 바꾼다)`);
           } else if (!consumed) bad(e.seq, 'effects', `${cause.type}의 정의가 요구하지 않는 결과다: ${key} → ${to}`);
         }
         break;

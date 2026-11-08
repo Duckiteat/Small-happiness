@@ -112,7 +112,7 @@ test('밥 짓기: 수도 → 싱크대 → 밥솥 → 전기로 지어짐까지 
   assert.equal(last[`${cooker}|pot:rice`], 'cooked');
   for (const [k, v] of Object.entries(last)) {
     if (k.endsWith(':water')) assert.equal(v, 'none', `${k}: 끝에 물이 남아 있다`);
-    if (k.endsWith(':power')) assert.equal(v, 'off', `${k}: 끝에 켜져 있다`);
+    if (k.endsWith(':power') && !k.includes('cooling:')) assert.equal(v, 'off', `${k}: 끝에 켜져 있다 (냉장고만 계속 켜져 있다)`);
   }
 });
 

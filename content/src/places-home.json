@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "places",
-  "why": "주방이 전기·수도·가스를 공급한다고 둔다 (가구 도입: 설비 출처 확인). 나머지는 그대로다.",
+  "why": "주방의 설비 공급 상태(grid): 정전·단수·가스 끊김과, 끊겨도 두 시간 뒤 스스로 돌아오는 규칙. 나머지는 그대로다. 수치는 임시값.",
   "defs": [
     {
       "id": "PLC000001",
@@ -78,6 +78,13 @@
             "smell",
             "odor",
             "bug"
+          ]
+        },
+        "grid": {
+          "features": [
+            "grid_electric",
+            "grid_water",
+            "grid_gas"
           ]
         }
       },
@@ -189,6 +196,39 @@
           "emits": [
             "PLC000002|space:odor@<=none"
           ]
+        },
+        "restore_electric": {
+          "label": "끊긴 electric 공급은 두 시간 뒤 돌아온다",
+          "on": [
+            "PLC000002|grid:grid_electric@=cut"
+          ],
+          "emits": [
+            "PLC000002|grid:grid_electric@<=normal"
+          ],
+          "delay_s": 7200,
+          "tuned": false
+        },
+        "restore_water": {
+          "label": "끊긴 water 공급은 두 시간 뒤 돌아온다",
+          "on": [
+            "PLC000002|grid:grid_water@=cut"
+          ],
+          "emits": [
+            "PLC000002|grid:grid_water@<=normal"
+          ],
+          "delay_s": 7200,
+          "tuned": false
+        },
+        "restore_gas": {
+          "label": "끊긴 gas 공급은 두 시간 뒤 돌아온다",
+          "on": [
+            "PLC000002|grid:grid_gas@=cut"
+          ],
+          "emits": [
+            "PLC000002|grid:grid_gas@<=normal"
+          ],
+          "delay_s": 7200,
+          "tuned": false
         }
       },
       "offers": {

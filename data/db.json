@@ -11,7 +11,7 @@
       "FRG": 1,
       "HAB": 1,
       "ITM": 1,
-      "OBJ": 22,
+      "OBJ": 25,
       "PLC": 7,
       "RUL": 1
     }
@@ -896,7 +896,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -921,7 +922,30 @@
           "means": "edible"
         }
       ],
-      "rules": {},
+      "rules": {
+        "cool_a": {
+          "label": "뜨거운 음식은 30분 뒤 따뜻함으로 식는다",
+          "on": [
+            "OBJ000010|cond:heat@>=hot"
+          ],
+          "emits": [
+            "OBJ000010|cond:heat@<=warm"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        },
+        "cool_b": {
+          "label": "따뜻한 음식은 30분 뒤 식는다",
+          "on": [
+            "OBJ000010|cond:heat@=warm"
+          ],
+          "emits": [
+            "OBJ000010|cond:heat@<=none"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        }
+      },
       "progress": {
         "decay": {
           "base_s": 440640
@@ -1046,12 +1070,71 @@
         "ko": "전자레인지",
         "en": "microwave"
       },
+      "is_a": "OBJ000022",
       "aliases": [],
       "mobility": "portable",
       "role": "device",
       "utility": [
         "electric"
       ],
+      "slots": {
+        "body": {
+          "features": [
+            "order"
+          ]
+        },
+        "chamber": {
+          "features": [
+            "power"
+          ]
+        }
+      },
+      "rules": {
+        "dies": {
+          "label": "망가지면 꺼진다",
+          "on": [
+            "OBJ000016|body:order@=broken"
+          ],
+          "emits": [
+            "OBJ000016|chamber:power@<=off"
+          ]
+        },
+        "stop": {
+          "label": "데우기가 끝나면 스스로 꺼진다",
+          "on": [
+            "OBJ000016|chamber:power@=on"
+          ],
+          "emits": [
+            "OBJ000016|chamber:power@<=off"
+          ],
+          "delay_s": 120,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "reheat": {
+          "label": "남은 치킨을 전자레인지로 데운다",
+          "verb": "reheat",
+          "needs": [],
+          "when": [
+            "OBJ000010|cond:heat@=none",
+            "OBJ000016|body:order@=ok",
+            "OBJ000016|chamber:power@=off"
+          ],
+          "effect": [
+            "OBJ000016|chamber:power@=on",
+            "OBJ000010|cond:heat@=hot"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 2,
+          "tuned": false
+        }
+      },
+      "initial": {
+        "chamber:power": "off"
+      },
       "desc": []
     },
     "OBJ000017": {
@@ -1060,6 +1143,7 @@
         "ko": "전기밥솥",
         "en": "rice cooker"
       },
+      "is_a": "OBJ000022",
       "aliases": [],
       "mobility": "portable",
       "role": "device",
@@ -1070,6 +1154,11 @@
         "water"
       ],
       "slots": {
+        "body": {
+          "features": [
+            "order"
+          ]
+        },
         "pot": {
           "features": [
             "water",
@@ -1083,7 +1172,8 @@
           "label": "물을 담고 켜 두면 30분 뒤 밥이 되고, 물은 밥에 흡수되고, 스스로 꺼진다",
           "on": [
             "OBJ000017|pot:power@=on",
-            "OBJ000017|pot:water@>=some"
+            "OBJ000017|pot:water@>=some",
+            "OBJ000017|body:order@=ok"
           ],
           "emits": [
             "OBJ000017|pot:rice@>=cooked",
@@ -1092,6 +1182,15 @@
           ],
           "delay_s": 1800,
           "tuned": false
+        },
+        "dies": {
+          "label": "망가지면 꺼진다",
+          "on": [
+            "OBJ000017|body:order@=broken"
+          ],
+          "emits": [
+            "OBJ000017|pot:power@<=off"
+          ]
         }
       },
       "offers": {
@@ -1101,7 +1200,8 @@
           "needs": [],
           "when": [
             "OBJ000017|pot:water@=none",
-            "OBJ000020|basin:water@>=some"
+            "OBJ000020|basin:water@>=some",
+            "OBJ000017|body:order@=ok"
           ],
           "effect": [
             "OBJ000017|pot:water@=full",
@@ -1120,7 +1220,8 @@
           "when": [
             "OBJ000017|pot:water@>=some",
             "OBJ000017|pot:power@=off",
-            "OBJ000017|pot:rice@=raw"
+            "OBJ000017|pot:rice@=raw",
+            "OBJ000017|body:order@=ok"
           ],
           "effect": [
             "OBJ000017|pot:power@=on"
@@ -1145,6 +1246,7 @@
         "ko": "후드",
         "en": "range hood"
       },
+      "is_a": "OBJ000022",
       "aliases": [],
       "mobility": "fixed",
       "role": "device",
@@ -1152,6 +1254,11 @@
         "electric"
       ],
       "slots": {
+        "body": {
+          "features": [
+            "order"
+          ]
+        },
         "fan": {
           "features": [
             "power"
@@ -1170,11 +1277,21 @@
           "delay_s": 3600,
           "tuned": false
         },
+        "dies": {
+          "label": "망가지면 꺼진다",
+          "on": [
+            "OBJ000018|body:order@=broken"
+          ],
+          "emits": [
+            "OBJ000018|fan:power@<=off"
+          ]
+        },
         "vent": {
           "label": "후드를 켜 두면 주방의 짙은 냄새가 10분 안에 옅어진다",
           "on": [
             "OBJ000018|fan:power@=on",
-            "PLC000002|space:smell@>=distinct"
+            "PLC000002|space:smell@>=distinct",
+            "OBJ000018|body:order@=ok"
           ],
           "emits": [
             "PLC000002|space:smell@<=faint"
@@ -1190,7 +1307,8 @@
           "needs": [],
           "when": [
             "PLC000002|space:smell@>=distinct",
-            "OBJ000018|fan:power@=off"
+            "OBJ000018|fan:power@=off",
+            "OBJ000018|body:order@=ok"
           ],
           "effect": [
             "OBJ000018|fan:power@=on"
@@ -1213,6 +1331,7 @@
         "ko": "가스레인지",
         "en": "gas stove"
       },
+      "is_a": "OBJ000023",
       "aliases": [],
       "mobility": "fixed",
       "role": "device",
@@ -1223,6 +1342,11 @@
         "gas"
       ],
       "slots": {
+        "body": {
+          "features": [
+            "order"
+          ]
+        },
         "burner": {
           "features": [
             "flame"
@@ -1240,6 +1364,15 @@
           ],
           "delay_s": 3600,
           "tuned": false
+        },
+        "dies": {
+          "label": "망가지면 불이 꺼진다",
+          "on": [
+            "OBJ000019|body:order@=broken"
+          ],
+          "emits": [
+            "OBJ000019|burner:flame@<=out"
+          ]
         }
       },
       "offers": {
@@ -1249,7 +1382,8 @@
           "needs": [],
           "when": [
             "OBJ000004|cond:seal@>=open",
-            "OBJ000019|burner:flame@=out"
+            "OBJ000019|burner:flame@=out",
+            "OBJ000019|body:order@=ok"
           ],
           "effect": [
             "OBJ000019|burner:flame@=lit"
@@ -1266,7 +1400,8 @@
           "needs": [],
           "when": [
             "OBJ000009|cond:seal@>=open",
-            "OBJ000019|burner:flame@=out"
+            "OBJ000019|burner:flame@=out",
+            "OBJ000019|body:order@=ok"
           ],
           "effect": [
             "OBJ000019|burner:flame@=lit"
@@ -1289,6 +1424,7 @@
         "ko": "싱크대",
         "en": "sink"
       },
+      "is_a": "OBJ000024",
       "aliases": [],
       "mobility": "fixed",
       "role": "device",
@@ -1302,6 +1438,11 @@
         "basin": {
           "features": [
             "water"
+          ]
+        },
+        "body": {
+          "features": [
+            "order"
           ]
         }
       },
@@ -1326,7 +1467,8 @@
           "when": [
             "OBJ000020|basin:water@=none",
             "OBJ000017|pot:water@=none",
-            "OBJ000017|pot:rice@=raw"
+            "OBJ000017|pot:rice@=raw",
+            "OBJ000020|body:order@=ok"
           ],
           "effect": [
             "OBJ000020|basin:water@=full"
@@ -1349,13 +1491,243 @@
         "ko": "냉장고",
         "en": "refrigerator"
       },
+      "is_a": "OBJ000022",
       "aliases": [],
       "mobility": "fixed",
       "role": "device",
       "utility": [
         "electric"
       ],
+      "slots": {
+        "body": {
+          "features": [
+            "order"
+          ]
+        },
+        "cooling": {
+          "features": [
+            "power"
+          ]
+        },
+        "door": {
+          "features": [
+            "door"
+          ]
+        }
+      },
+      "rules": {
+        "back_on": {
+          "label": "고쳐지고 전기가 들어오면 다시 켜진다",
+          "on": [
+            "OBJ000021|cooling:power@=off",
+            "OBJ000021|body:order@=ok",
+            "PLC000002|grid:grid_electric@=normal"
+          ],
+          "emits": [
+            "OBJ000021|cooling:power@>=on"
+          ]
+        },
+        "dies": {
+          "label": "망가지면 꺼진다",
+          "on": [
+            "OBJ000021|body:order@=broken"
+          ],
+          "emits": [
+            "OBJ000021|cooling:power@<=off"
+          ]
+        },
+        "rechill": {
+          "label": "켜져 있고 문이 닫혀 있으면 한 시간 뒤 음식이 다시 차가워진다",
+          "on": [
+            "OBJ000021|cooling:power@=on",
+            "OBJ000021|door:door@=closed"
+          ],
+          "emits": [
+            "OBJ000001|cond:temp@<=fridge"
+          ],
+          "delay_s": 3600,
+          "tuned": false
+        },
+        "warm_door": {
+          "label": "문이 열려 있으면 한 시간 뒤 음식이 실온이 된다",
+          "on": [
+            "OBJ000021|door:door@=open"
+          ],
+          "emits": [
+            "OBJ000001|cond:temp@>=mild_room"
+          ],
+          "delay_s": 3600,
+          "tuned": false
+        },
+        "warm_off": {
+          "label": "꺼져 있으면 두 시간 뒤 음식이 실온이 된다",
+          "on": [
+            "OBJ000021|cooling:power@=off"
+          ],
+          "emits": [
+            "OBJ000001|cond:temp@>=mild_room"
+          ],
+          "delay_s": 7200,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "close_door": {
+          "label": "열린 냉장고 문을 닫는다",
+          "verb": "close",
+          "needs": [],
+          "when": [
+            "OBJ000021|door:door@=open"
+          ],
+          "effect": [
+            "OBJ000021|door:door@=closed"
+          ],
+          "minutes": 1,
+          "tuned": false
+        }
+      },
+      "initial": {
+        "cooling:power": "on"
+      },
       "desc": []
+    },
+    "OBJ000022": {
+      "id": "OBJ000022",
+      "names": {
+        "ko": "전기 기기",
+        "en": "electric appliance"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "order"
+          ]
+        }
+      },
+      "rules": {
+        "breaks": {
+          "label": "전기이 끊기면 이 종류의 기기는 망가진다",
+          "on": [
+            "PLC000002|grid:grid_electric@=cut"
+          ],
+          "emits": [
+            "OBJ000022|body:order@>=broken"
+          ]
+        }
+      },
+      "offers": {
+        "repair": {
+          "label": "망가진 기기를 고친다 (전기이 들어올 때)",
+          "verb": "repair",
+          "needs": [],
+          "when": [
+            "OBJ000022|body:order@=broken",
+            "PLC000002|grid:grid_electric@=normal"
+          ],
+          "effect": [
+            "OBJ000022|body:order@=ok"
+          ],
+          "minutes": 10,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "전기을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+      ]
+    },
+    "OBJ000023": {
+      "id": "OBJ000023",
+      "names": {
+        "ko": "가스 기기",
+        "en": "gas appliance"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "order"
+          ]
+        }
+      },
+      "rules": {
+        "breaks": {
+          "label": "가스이 끊기면 이 종류의 기기는 망가진다",
+          "on": [
+            "PLC000002|grid:grid_gas@=cut"
+          ],
+          "emits": [
+            "OBJ000023|body:order@>=broken"
+          ]
+        }
+      },
+      "offers": {
+        "repair": {
+          "label": "망가진 기기를 고친다 (가스이 들어올 때)",
+          "verb": "repair",
+          "needs": [],
+          "when": [
+            "OBJ000023|body:order@=broken",
+            "PLC000002|grid:grid_gas@=normal"
+          ],
+          "effect": [
+            "OBJ000023|body:order@=ok"
+          ],
+          "minutes": 10,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "가스을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+      ]
+    },
+    "OBJ000024": {
+      "id": "OBJ000024",
+      "names": {
+        "ko": "수도 기기",
+        "en": "water appliance"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "order"
+          ]
+        }
+      },
+      "rules": {
+        "breaks": {
+          "label": "수도이 끊기면 이 종류의 기기는 망가진다",
+          "on": [
+            "PLC000002|grid:grid_water@=cut"
+          ],
+          "emits": [
+            "OBJ000024|body:order@>=broken"
+          ]
+        }
+      },
+      "offers": {
+        "repair": {
+          "label": "망가진 기기를 고친다 (수도이 들어올 때)",
+          "verb": "repair",
+          "needs": [],
+          "when": [
+            "OBJ000024|body:order@=broken",
+            "PLC000002|grid:grid_water@=normal"
+          ],
+          "effect": [
+            "OBJ000024|body:order@=ok"
+          ],
+          "minutes": 10,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "수도을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+      ]
     },
     "PLC000001": {
       "id": "PLC000001",
@@ -1407,6 +1779,13 @@
         "gas"
       ],
       "slots": {
+        "grid": {
+          "features": [
+            "grid_electric",
+            "grid_water",
+            "grid_gas"
+          ]
+        },
         "space": {
           "features": [
             "smell",
@@ -1522,6 +1901,39 @@
             "PLC000002|space:smell@>=distinct"
           ],
           "delay_s": 10800,
+          "tuned": false
+        },
+        "restore_electric": {
+          "label": "끊긴 electric 공급은 두 시간 뒤 돌아온다",
+          "on": [
+            "PLC000002|grid:grid_electric@=cut"
+          ],
+          "emits": [
+            "PLC000002|grid:grid_electric@<=normal"
+          ],
+          "delay_s": 7200,
+          "tuned": false
+        },
+        "restore_gas": {
+          "label": "끊긴 gas 공급은 두 시간 뒤 돌아온다",
+          "on": [
+            "PLC000002|grid:grid_gas@=cut"
+          ],
+          "emits": [
+            "PLC000002|grid:grid_gas@<=normal"
+          ],
+          "delay_s": 7200,
+          "tuned": false
+        },
+        "restore_water": {
+          "label": "끊긴 water 공급은 두 시간 뒤 돌아온다",
+          "on": [
+            "PLC000002|grid:grid_water@=cut"
+          ],
+          "emits": [
+            "PLC000002|grid:grid_water@<=normal"
+          ],
+          "delay_s": 7200,
           "tuned": false
         }
       },

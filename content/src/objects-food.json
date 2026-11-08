@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "요리(계란·햄)는 가스레인지 불이 켜져 있어야 한다. 이전에는 불 없이 요리했다.",
+  "why": "남은 치킨은 데울 수 있다(가열 온도 heat): 데워진 뒤 30분마다 한 칸씩 식어 없음으로 돌아온다. 가열은 부패 속도에 영향을 주지 않는다(임시).",
   "defs": [
     {
       "id": "OBJ000001",
@@ -842,7 +842,8 @@
             "seal",
             "moisture",
             "cut",
-            "temp"
+            "temp",
+            "heat"
           ]
         }
       },
@@ -867,7 +868,30 @@
           "means": "edible"
         }
       ],
-      "rules": {},
+      "rules": {
+        "cool_a": {
+          "label": "뜨거운 음식은 30분 뒤 따뜻함으로 식는다",
+          "on": [
+            "OBJ000010|cond:heat@>=hot"
+          ],
+          "emits": [
+            "OBJ000010|cond:heat@<=warm"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        },
+        "cool_b": {
+          "label": "따뜻한 음식은 30분 뒤 식는다",
+          "on": [
+            "OBJ000010|cond:heat@=warm"
+          ],
+          "emits": [
+            "OBJ000010|cond:heat@<=none"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        }
+      },
       "progress": {
         "decay": {
           "base_s": 440640

@@ -1,0 +1,685 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "주방의 설비 공급 상태(grid): 정전·단수·가스 끊김과, 끊겨도 두 시간 뒤 스스로 돌아오는 규칙. 나머지는 그대로다. 수치는 임시값. / 기기의 종류(전기·가스·수도 기기): 쓰는 설비가 끊기면 망가지고, 설비가 다시 들어오면 고칠 수 있다. 개별 기기는 이 종류에서 물려받는다.",
+    "defs": [
+      {
+        "id": "PLC000001",
+        "names": {
+          "ko": "현관",
+          "en": "entrance"
+        },
+        "environment": {
+          "weather_effect": "mid",
+          "temp_swing": "mid",
+          "ventilation": "low",
+          "humidity": "low"
+        },
+        "passages": [
+          {
+            "to": "PLC000002",
+            "kind": "open",
+            "medium_pass": {
+              "air": 1000,
+              "self_move": 1000
+            },
+            "tuned": false
+          }
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell"
+            ]
+          }
+        },
+        "desc": [
+          "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "PLC000002",
+        "names": {
+          "ko": "주방",
+          "en": "kitchen"
+        },
+        "aliases": [
+          "부엌"
+        ],
+        "environment": {
+          "weather_effect": "low",
+          "temp_swing": "low",
+          "ventilation": "low",
+          "humidity": "mid"
+        },
+        "passages": [
+          {
+            "to": "PLC000003",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          },
+          {
+            "to": "PLC000004",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          }
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "odor",
+              "bug"
+            ]
+          },
+          "grid": {
+            "features": [
+              "grid_electric",
+              "grid_water",
+              "grid_gas"
+            ]
+          }
+        },
+        "rules": {
+          "odor_reach": {
+            "label": "상한 음식의 냄새가 주방에 퍼진다",
+            "on": [
+              "OBJ000001|body:smell@>=distinct"
+            ],
+            "emits": [
+              "PLC000002|space:smell@>=faint"
+            ]
+          },
+          "odor_thicken": {
+            "label": "냄새나는 음식이 남아 있으면 주방 냄새가 짙어진다",
+            "on": [
+              "OBJ000001|body:smell@>=distinct",
+              "PLC000002|space:smell@=faint"
+            ],
+            "emits": [
+              "PLC000002|space:smell@>=distinct"
+            ],
+            "delay_s": 10800,
+            "tuned": false
+          },
+          "air_out": {
+            "label": "냄새나는 음식이 하나도 없으면 주방 냄새가 빠진다",
+            "on": [
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:smell@<=none"
+            ],
+            "on_all": [
+              "OBJ000001|body:smell@<=faint"
+            ],
+            "delay_s": 10800,
+            "tuned": false
+          },
+          "bugs": {
+            "label": "상한 냄새(시큼함 이상)가 뚜렷하면 벌레가 꼬인다",
+            "on": [
+              "PLC000002|space:smell@>=distinct",
+              "PLC000002|space:odor@>=sour"
+            ],
+            "emits": [
+              "PLC000002|space:bug@=few"
+            ],
+            "delay_s": 28800,
+            "tuned": false
+          },
+          "kind_sour": {
+            "label": "음식 중 가장 심한 냄새가 시큼한 발효 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 시큼한 발효 냄새가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=sour",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=sour"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=sour"
+            ]
+          },
+          "kind_musty": {
+            "label": "음식 중 가장 심한 냄새가 곰팡내이고 주방에 냄새가 퍼지면 주방 냄새도 곰팡내가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=musty",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=musty"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=musty"
+            ]
+          },
+          "kind_sulfur": {
+            "label": "음식 중 가장 심한 냄새가 황 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 황 냄새가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=sulfur",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=sulfur"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=sulfur"
+            ]
+          },
+          "kind_putrid": {
+            "label": "음식 중 가장 심한 냄새가 썩는 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 썩는 냄새가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=putrid",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=putrid"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=putrid"
+            ]
+          },
+          "kind_clear": {
+            "label": "주방 냄새가 가시면 냄새 종류도 사라진다",
+            "on": [
+              "PLC000002|space:smell@<=none"
+            ],
+            "emits": [
+              "PLC000002|space:odor@<=none"
+            ]
+          },
+          "restore_electric": {
+            "label": "끊긴 electric 공급은 두 시간 뒤 돌아온다",
+            "on": [
+              "PLC000002|grid:grid_electric@=cut"
+            ],
+            "emits": [
+              "PLC000002|grid:grid_electric@<=normal"
+            ],
+            "delay_s": 7200,
+            "tuned": false
+          },
+          "restore_water": {
+            "label": "끊긴 water 공급은 두 시간 뒤 돌아온다",
+            "on": [
+              "PLC000002|grid:grid_water@=cut"
+            ],
+            "emits": [
+              "PLC000002|grid:grid_water@<=normal"
+            ],
+            "delay_s": 7200,
+            "tuned": false
+          },
+          "restore_gas": {
+            "label": "끊긴 gas 공급은 두 시간 뒤 돌아온다",
+            "on": [
+              "PLC000002|grid:grid_gas@=cut"
+            ],
+            "emits": [
+              "PLC000002|grid:grid_gas@<=normal"
+            ],
+            "delay_s": 7200,
+            "tuned": false
+          }
+        },
+        "offers": {
+          "inspect": {
+            "label": "냄새가 어디서 나는지 주방과 냉장고를 살핀다 (구수한 요리 냄새는 살피지 않는다)",
+            "verb": "inspect",
+            "needs": [
+              {
+                "aware": "PLC000002|space:smell",
+                "at_least": "noticed"
+              }
+            ],
+            "effect": [],
+            "reveals": true,
+            "minutes": 5,
+            "tuned": false,
+            "when": [
+              "PLC000002|space:odor@>=sour"
+            ]
+          }
+        },
+        "desc": [
+          "현관을 열면 바로 있다. 냄새가 고인다. 냉장고의 자리 (세계-설정 2·3장)"
+        ],
+        "supplies": [
+          "electric",
+          "water",
+          "gas"
+        ]
+      },
+      {
+        "id": "PLC000003",
+        "names": {
+          "ko": "거실",
+          "en": "living room"
+        },
+        "environment": {
+          "weather_effect": "high",
+          "temp_swing": "mid",
+          "ventilation": "low",
+          "humidity": "mid"
+        },
+        "passages": [
+          {
+            "to": "PLC000005",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          },
+          {
+            "to": "PLC000006",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          }
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "가장 큰 공간. 중문 너머 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "PLC000004",
+        "names": {
+          "ko": "욕실",
+          "en": "bathroom"
+        },
+        "aliases": [
+          "화장실"
+        ],
+        "environment": {
+          "weather_effect": "low",
+          "temp_swing": "low",
+          "ventilation": "very_low",
+          "humidity": "high"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "화장실 겸용, 약 1.5평, 부엌 옆. 문은 주방에서 (작가 2026-11-07). 환풍기가 작다 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "PLC000005",
+        "names": {
+          "ko": "베란다",
+          "en": "veranda"
+        },
+        "environment": {
+          "weather_effect": "high",
+          "temp_swing": "high",
+          "ventilation": "mid",
+          "humidity": "high"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "거실에 붙어 있다. 외벽이라 온도 변화가 크다 (세계-설정 2·3장)"
+        ]
+      },
+      {
+        "id": "PLC000006",
+        "names": {
+          "ko": "작은 방",
+          "en": "small room"
+        },
+        "environment": {
+          "weather_effect": "low",
+          "temp_swing": "low",
+          "ventilation": "low",
+          "humidity": "low"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "거실에 달린 방. 문을 닫으면 고립된다 (세계-설정 2·3장)"
+        ]
+      },
+      {
+        "id": "OBJ+1",
+        "names": {
+          "ko": "전기 기기",
+          "en": "electric appliance"
+        },
+        "mobility": "portable",
+        "slots": {
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "rules": {
+          "breaks": {
+            "label": "전기이 끊기면 이 종류의 기기는 망가진다",
+            "on": [
+              "PLC000002|grid:grid_electric@=cut"
+            ],
+            "emits": [
+              "OBJ+1|body:order@>=broken"
+            ]
+          }
+        },
+        "offers": {
+          "repair": {
+            "label": "망가진 기기를 고친다 (전기이 들어올 때)",
+            "verb": "repair",
+            "needs": [],
+            "when": [
+              "OBJ+1|body:order@=broken",
+              "PLC000002|grid:grid_electric@=normal"
+            ],
+            "effect": [
+              "OBJ+1|body:order@=ok"
+            ],
+            "minutes": 10,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "전기을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+        ]
+      },
+      {
+        "id": "OBJ+2",
+        "names": {
+          "ko": "가스 기기",
+          "en": "gas appliance"
+        },
+        "mobility": "portable",
+        "slots": {
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "rules": {
+          "breaks": {
+            "label": "가스이 끊기면 이 종류의 기기는 망가진다",
+            "on": [
+              "PLC000002|grid:grid_gas@=cut"
+            ],
+            "emits": [
+              "OBJ+2|body:order@>=broken"
+            ]
+          }
+        },
+        "offers": {
+          "repair": {
+            "label": "망가진 기기를 고친다 (가스이 들어올 때)",
+            "verb": "repair",
+            "needs": [],
+            "when": [
+              "OBJ+2|body:order@=broken",
+              "PLC000002|grid:grid_gas@=normal"
+            ],
+            "effect": [
+              "OBJ+2|body:order@=ok"
+            ],
+            "minutes": 10,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "가스을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+        ]
+      },
+      {
+        "id": "OBJ+3",
+        "names": {
+          "ko": "수도 기기",
+          "en": "water appliance"
+        },
+        "mobility": "portable",
+        "slots": {
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "rules": {
+          "breaks": {
+            "label": "수도이 끊기면 이 종류의 기기는 망가진다",
+            "on": [
+              "PLC000002|grid:grid_water@=cut"
+            ],
+            "emits": [
+              "OBJ+3|body:order@>=broken"
+            ]
+          }
+        },
+        "offers": {
+          "repair": {
+            "label": "망가진 기기를 고친다 (수도이 들어올 때)",
+            "verb": "repair",
+            "needs": [],
+            "when": [
+              "OBJ+3|body:order@=broken",
+              "PLC000002|grid:grid_water@=normal"
+            ],
+            "effect": [
+              "OBJ+3|body:order@=ok"
+            ],
+            "minutes": 10,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "수도을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+        ]
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {
+    "OBJ+1": "OBJ000022",
+    "OBJ+2": "OBJ000023",
+    "OBJ+3": "OBJ000024"
+  },
+  "mapped": [],
+  "report": {
+    "why": "주방의 설비 공급 상태(grid): 정전·단수·가스 끊김과, 끊겨도 두 시간 뒤 스스로 돌아오는 규칙. 나머지는 그대로다. 수치는 임시값. / 기기의 종류(전기·가스·수도 기기): 쓰는 설비가 끊기면 망가지고, 설비가 다시 들어오면 고칠 수 있다. 개별 기기는 이 종류에서 물려받는다.",
+    "scope": {
+      "added": {
+        "object": [
+          "OBJ000022",
+          "OBJ000023",
+          "OBJ000024"
+        ]
+      },
+      "updated": {
+        "place": [
+          {
+            "id": "PLC000002",
+            "fields": [
+              "names",
+              "aliases",
+              "environment",
+              "passages",
+              "slots",
+              "rules",
+              "offers",
+              "desc",
+              "supplies"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {
+        "PLC000002": [
+          "OBJ000018"
+        ]
+      },
+      "chainEdges": [
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_clear"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_sulfur"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "PLC000002/rule/air_out",
+          "to": "PLC000002/rule/kind_clear"
+        },
+        {
+          "from": "PLC000002/rule/kind_musty",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/kind_putrid",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/kind_sour",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/kind_sulfur",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "OBJ000018/rule/vent"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_sulfur"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "OBJ000018/rule/vent"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_sulfur"
+        }
+      ],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}
