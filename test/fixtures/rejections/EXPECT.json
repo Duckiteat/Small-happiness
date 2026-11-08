@@ -270,5 +270,17 @@
   "away-not-true.json": {
     "stage": "gate",
     "match": "away는 true이거나 없어야 한다"
+  },
+  "feels-unknown-sensation.json": {
+    "stage": "gate",
+    "match": "사전에 없는 감각질: velvety"
+  },
+  "feels-missing-feature.json": {
+    "stage": "gate",
+    "match": "특징 \"ripen\"가 없다"
+  },
+  "feels-bad-shape.json": {
+    "stage": "gate",
+    "match": "feels는 \\{ sensation"
   }
 }

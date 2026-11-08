@@ -170,6 +170,11 @@ export class World {
    * 그 상태가 지금 값으로 정해진 마지막 사건 번호: 마지막으로 바꾼 state_changed, 한 번도 바뀌지 않았으면 그 개체가 생긴 사건.
    * 원인을 적을 때 쓴다 ("조건을 마지막으로 채운 사건", 영수증-명세 9장). 없는 키면 null.
    */
+  /** 개체가 생긴 사건. */
+  bornEvent(id: string): string | null {
+    return this.#born.get(id) ?? null;
+  }
+
   lastChange(key: string): string | null {
     const k = parseStateKey(key);
     return this.#last.get(key) ?? (k === null ? null : this.#born.get(k.subject) ?? null);

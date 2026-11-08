@@ -222,6 +222,9 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
           // 자기가 한 일이 바꾼 상태는 안다 (만든 것의 상태도)
           for (const e of a.effects) perception.learn(a.who, e.key, world.level(e.key), a.ends, a.via, done.seq);
           for (const key of made.flatMap((id) => world.keysOf(id))) perception.learn(a.who, key, world.level(key), a.ends, a.via, done.seq);
+          // 손으로 다루거나 먹은 것을 느낀다 (촉각·미각): 행동을 내놓은 물건, 결과가 바뀐 물건 (번호 순)
+          const handled = [a.at, ...[...new Set(a.effects.map((e) => e.key.slice(0, e.key.indexOf('|'))))].filter((x) => x !== a.at).sort()].filter((x) => x.startsWith('OBJ'));
+          perception.touch(world, a.who, handled, a.verb, a.ends, a.via, done.seq);
         }
         causal.advance(world, c.t);
         c.write('world.state', world.snapshot().states);

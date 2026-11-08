@@ -25,7 +25,7 @@
       { "key": "delay_cancelled", "ko": "지연 취소", "desc": "발화 시각에 조건이 풀려 있어 아무 일도 없음", "attrs": { "via_kinds": ["rule"] } },
       { "key": "event_fired", "ko": "이벤트 발생" },
       { "key": "choice_made", "ko": "선택" },
-      { "key": "stimulus_perceived", "ko": "자극 지각" },
+      { "key": "stimulus_perceived", "ko": "감각", "desc": "감각 자체(드라이한 감각질)를 느끼기 시작하거나 그침. 무엇에서 온 것인지는 모른 채 (내면-설계 2장)", "attrs": { "via_kinds": ["sense", "offer"] } },
       { "key": "awareness_up", "ko": "인지 상승", "attrs": { "via_kinds": ["sense", "offer"] } },
       { "key": "awareness_changed", "ko": "앎 바뀜", "desc": "다시 보니 본 단계가 달라짐 (짙어짐, 없어짐, 다시 남)", "attrs": { "via_kinds": ["sense", "offer"] } },
       { "key": "habit_formed", "ko": "습관 형성" },

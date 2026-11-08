@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "된장찌개의 데우기·먹기는 찌개 종류로 옮겼으므로 된장찌개 자신의 행동을 비운다 (부분 갱신이라 빼기만 하면 남는다).",
+  "why": "감각 고침: 컴파일러가 종류(음식)의 감각을 개별 음식에 복사해 개별 음식의 감각이 덮였다(두부의 말랑함, 멸치의 까끌까끌함이 사라짐 — 시나리오로 확인). 감각은 실행 중에 종류에서 물려받으므로 복사하지 않고, 개별 감각이 없는 종류는 빈 목록으로 둔다.",
   "defs": [
     {
       "id": "OBJ000001",
@@ -296,6 +296,33 @@
           "when": [],
           "means": "edible"
         }
+      ],
+      "feels": [
+        {
+          "sensation": "hot_feel",
+          "when": [
+            "cond:heat@>=hot"
+          ]
+        },
+        {
+          "sensation": "steaming",
+          "when": [
+            "cond:heat@>=hot"
+          ]
+        },
+        {
+          "sensation": "warm_feel",
+          "when": [
+            "cond:heat@=warm"
+          ]
+        },
+        {
+          "sensation": "cold_feel",
+          "when": [
+            "cond:heat@=none",
+            "cond:temp@<=fridge"
+          ]
+        }
       ]
     },
     {
@@ -362,6 +389,14 @@
       },
       "desc": [
         "살균 흰우유. 뜯으면 오픈이 되어 빨리 시어진다"
+      ],
+      "feels": [
+        {
+          "sensation": "sour_scent",
+          "when": [
+            "body:sour@>=sour"
+          ]
+        }
       ]
     },
     {
@@ -463,6 +498,18 @@
       },
       "desc": [
         "충전수에 담긴 포장 두부"
+      ],
+      "feels": [
+        {
+          "sensation": "soft",
+          "when": [
+            "cond:cut@<=chunk"
+          ]
+        },
+        {
+          "sensation": "squishy",
+          "when": []
+        }
       ]
     },
     {
@@ -542,6 +589,18 @@
       },
       "desc": [
         "껍데기째 난좌에"
+      ],
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": []
+        },
+        {
+          "sensation": "slippery",
+          "when": [
+            "cond:seal@=gone"
+          ]
+        }
       ]
     },
     {
@@ -617,6 +676,28 @@
       },
       "desc": [
         "김치통. 상하지 않고 익는다. 시어지면 찌개용"
+      ],
+      "feels": [
+        {
+          "sensation": "sour_scent",
+          "when": [
+            "body:ripen@>=ripe"
+          ]
+        },
+        {
+          "sensation": "sour_taste",
+          "when": [
+            "body:ripen@>=ripe"
+          ]
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "looks_glossy",
+          "when": []
+        }
       ]
     },
     {
@@ -676,6 +757,28 @@
       },
       "desc": [
         "통째로 냉장. 쭈글해져도 먹을 수 있다"
+      ],
+      "feels": [
+        {
+          "sensation": "sweet_scent",
+          "when": []
+        },
+        {
+          "sensation": "sweet",
+          "when": []
+        },
+        {
+          "sensation": "hard",
+          "when": [
+            "body:wilt@=crisp"
+          ]
+        },
+        {
+          "sensation": "looks_moldy",
+          "when": [
+            "body:mold@>=spot"
+          ]
+        }
       ]
     },
     {
@@ -731,6 +834,24 @@
       },
       "desc": [
         "봉지에 든 잎채소"
+      ],
+      "feels": [
+        {
+          "sensation": "looks_moist",
+          "when": [
+            "body:wilt@=crisp"
+          ]
+        },
+        {
+          "sensation": "looks_wilted",
+          "when": [
+            "body:wilt@>=wilted"
+          ]
+        },
+        {
+          "sensation": "soft",
+          "when": []
+        }
       ]
     },
     {
@@ -797,6 +918,24 @@
       },
       "desc": [
         "떠먹는 요거트"
+      ],
+      "feels": [
+        {
+          "sensation": "sour_scent",
+          "when": []
+        },
+        {
+          "sensation": "sour_taste",
+          "when": []
+        },
+        {
+          "sensation": "sweet",
+          "when": []
+        },
+        {
+          "sensation": "soft",
+          "when": []
+        }
       ]
     },
     {
@@ -887,6 +1026,20 @@
       },
       "desc": [
         "진공 포장 슬라이스 햄 (얇아서 채·큐브)"
+      ],
+      "feels": [
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "soft",
+          "when": []
+        },
+        {
+          "sensation": "looks_glossy",
+          "when": []
+        }
       ]
     },
     {
@@ -953,6 +1106,24 @@
       },
       "desc": [
         "배달 상자째. 조리된 음식"
+      ],
+      "feels": [
+        {
+          "sensation": "savory_scent",
+          "when": [
+            "body:decay@<=turned"
+          ]
+        },
+        {
+          "sensation": "sharp_scent",
+          "when": [
+            "body:decay@=turned"
+          ]
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        }
       ]
     },
     {
@@ -1043,7 +1214,21 @@
           ],
           "minutes_by": "handling"
         }
-      }
+      },
+      "feels": [
+        {
+          "sensation": "looks_wilted",
+          "when": [
+            "body:wilt@>=wilted"
+          ]
+        },
+        {
+          "sensation": "sharp_scent",
+          "when": [
+            "cond:cut@>=sliced"
+          ]
+        }
+      ]
     },
     {
       "id": "OBJ000025",
@@ -1058,7 +1243,8 @@
       "mobility": "가변",
       "desc": [
         "상하지 않고 익는 음식의 종류 (김치, 요거트, 된장). 규칙은 아직 음식에서 물려받는다"
-      ]
+      ],
+      "feels": []
     },
     {
       "id": "OBJ000026",
@@ -1126,6 +1312,24 @@
       },
       "desc": [
         "발효한 콩 장. 오래 두면 더 익는다"
+      ],
+      "feels": [
+        {
+          "sensation": "savory_scent",
+          "when": []
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "umami",
+          "when": []
+        },
+        {
+          "sensation": "sticky",
+          "when": []
+        }
       ]
     },
     {
@@ -1227,7 +1431,27 @@
           ],
           "minutes_by": "handling"
         }
-      }
+      },
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": [
+            "cond:cut@=whole"
+          ]
+        },
+        {
+          "sensation": "sharp_scent",
+          "when": [
+            "cond:cut@>=sliced"
+          ]
+        },
+        {
+          "sensation": "sweet",
+          "when": [
+            "cond:heat@>=hot"
+          ]
+        }
+      ]
     },
     {
       "id": "OBJ000028",
@@ -1325,7 +1549,21 @@
           ],
           "minutes_by": "handling"
         }
-      }
+      },
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": [
+            "cond:cut@=whole"
+          ]
+        },
+        {
+          "sensation": "looks_moist",
+          "when": [
+            "cond:cut@>=sliced"
+          ]
+        }
+      ]
     },
     {
       "id": "OBJ000032",
@@ -1385,6 +1623,20 @@
       },
       "desc": [
         "말린 국물용 멸치 한 봉지. 냉장 보관 기간은 일반적인 대략값의 임시값"
+      ],
+      "feels": [
+        {
+          "sensation": "fishy",
+          "when": []
+        },
+        {
+          "sensation": "rough",
+          "when": []
+        },
+        {
+          "sensation": "looks_dry",
+          "when": []
+        }
       ]
     },
     {
@@ -1514,7 +1766,8 @@
       },
       "desc": [
         "냄비에서 반찬통으로 옮겨 담은 찌개의 종류. 남은 찌개를 데워 먹는 일은 종류가 한 번 갖는다. 냉장 보관 기간은 일반적인 대략값의 임시값"
-      ]
+      ],
+      "feels": []
     },
     {
       "id": "OBJ000034",
@@ -1569,7 +1822,21 @@
       "desc": [
         "냄비에서 반찬통으로 옮겨 담은 된장찌개"
       ],
-      "offers": {}
+      "offers": {},
+      "feels": [
+        {
+          "sensation": "savory_scent",
+          "when": []
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "umami",
+          "when": []
+        }
+      ]
     },
     {
       "id": "OBJ000036",
@@ -1623,6 +1890,24 @@
       },
       "desc": [
         "냄비에서 반찬통으로 옮겨 담은 김치찌개"
+      ],
+      "feels": [
+        {
+          "sensation": "sour_scent",
+          "when": []
+        },
+        {
+          "sensation": "sour_taste",
+          "when": []
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "umami",
+          "when": []
+        }
       ]
     }
   ]

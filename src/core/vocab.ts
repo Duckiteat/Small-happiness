@@ -171,6 +171,22 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       if (attrs['plans_menu'] === true && attrs['observed'] !== true) push(`${path}.attrs.plans_menu`, '메뉴 구상은 플레이어가 함께 보는 구간에서만 한다');
       break;
     }
+    case 'sense': {
+      // reach: 감각이 닿는 길 — distance(머무는 곳에서 멀리서: 냄새·보기·소리), contact(손에 닿을 때), mouth(먹을 때), body(몸 안)
+      if (!['distance', 'contact', 'mouth', 'body'].includes(String(attrs['reach']))) push(`${path}.attrs.reach`, 'reach(감각이 닿는 길)는 distance · contact · mouth · body 중 하나여야 한다');
+      break;
+    }
+    case 'sensation': {
+      // 감각 자체 (내면-설계 2장): 한 감각의 드라이한 성질. look은 보이는 것 중 '~해 보임'의 예측
+      if (typeof attrs['sense'] !== 'string') push(`${path}.attrs.sense`, '이 감각질을 느끼는 감각(sense 키)이 필요하다');
+      if (attrs['look'] !== undefined && attrs['look'] !== true) push(`${path}.attrs.look`, 'look은 true이거나 없어야 한다');
+      break;
+    }
+    case 'action': {
+      // handles: 이 행동은 그 물건을 손으로 다룬다 (촉각), eats: 먹는다 (미각)
+      for (const k of ['handles', 'eats']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
+      break;
+    }
     case 'menu': {
       // rank: 구상할 때 먼저 보는 순서 (작을수록 먼저, 남은 음식이 앞선다)
       const r = attrs['rank'];
@@ -242,6 +258,7 @@ const REFS: readonly (readonly [string, string, string])[] = [
   ['spreader', 'stimulus', 'sense'],
   ['spreader', 'feature', 'feature'], // 번짐이 바꾸는 장소의 특징
   ['feature', 'sense', 'sense'], // 이 특징을 어느 감각으로 느끼는가 (5층 지각)
+  ['sensation', 'sense', 'sense'], // 감각질을 느끼는 감각
   ['feature', 'resource', 'resource'], // 이 특징이 담는 설비 자원 (물 양 → 물). 사라지는 길을 관문이 요구한다
   ['odor_kind', 'feature', 'feature'], // 냄새 종류가 들어가는 특징
   ['compound', 'odor', 'odor_kind'], // 이 화합물이 어떤 냄새인가

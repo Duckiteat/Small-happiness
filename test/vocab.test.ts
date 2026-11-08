@@ -113,7 +113,7 @@ test('단계 사다리는 0~5 여섯 칸이고, 내구 배율은 정수 ×100 �
 test('내면 특징(숙련): 감각이 없어야 하고, 쌓이는 표·시간 표·tuned를 검사하며, 메뉴의 필요 숙련은 내면 특징의 단계여야 한다', () => {
   const lad = ['a', 'b', 'c', 'd', 'e', 'f'].map((k) => ({ key: k, ko: k }));
   const feature = (attrs: Record<string, unknown>): VocabCategoryRaw => ({ category: 'feature', entries: [{ key: 'knack', ko: '솜씨', attrs: { levels: lad, ...attrs } }, { key: 'look', ko: '모양', attrs: { sense: 'sight', levels: lad } }] });
-  const sense: VocabCategoryRaw = { category: 'sense', entries: [{ key: 'sight', ko: '시각' }] };
+  const sense: VocabCategoryRaw = { category: 'sense', entries: [{ key: 'sight', ko: '시각', attrs: { reach: 'distance' } }] };
   const ok = (attrs: Record<string, unknown>): string => messages([sense, feature(attrs)]);
   assert.equal(ok({ inner: true, practice: [0, 1, 2, 3, 4, 5], minutes_pct: [100, 90, 80, 70, 60, 50], tuned: false }), '');
   assert.match(ok({ inner: true, sense: 'sight', tuned: false }), /감각으로 느끼지 않는다/);
@@ -127,4 +127,13 @@ test('내면 특징(숙련): 감각이 없어야 하고, 쌓이는 표·시간 �
   assert.match(menu({ feature: 'look', at_least: 'b' }), /내면 특징\(inner\)이 아니다/);
   assert.match(menu({ feature: 'knack', at_least: 'zz' }), /쓸 수 있는 단계 키가 아니다/);
   assert.match(menu({ feature: 'knack' }), /needs_skill은/);
+});
+
+test('감각: 감각마다 닿는 길(reach)이 있어야 하고, 감각질은 있는 감각을 가리키며, 행동의 handles·eats는 true만', () => {
+  const sense: VocabCategoryRaw = { category: 'sense', entries: [{ key: 'smell', ko: '후각', attrs: { reach: 'distance' } }] };
+  assert.equal(messages([sense, { category: 'sensation', entries: [{ key: 'sweet_scent', ko: '단향', attrs: { sense: 'smell' } }] }]), '');
+  assert.match(messages([{ category: 'sense', entries: [{ key: 'smell', ko: '후각', attrs: { reach: 'far' } }] }]), /reach/);
+  assert.match(messages([sense, { category: 'sensation', entries: [{ key: 'x', ko: '엑스', attrs: {} }] }]), /감각\(sense 키\)이 필요하다/);
+  assert.match(messages([sense, { category: 'sensation', entries: [{ key: 'x', ko: '엑스', attrs: { sense: 'sight' } }] }]), /sense 분류에 없는 키/);
+  assert.match(messages([{ category: 'action', entries: [{ key: 'pat', ko: '두드리기', attrs: { handles: false } }] }]), /handles는 true/);
 });

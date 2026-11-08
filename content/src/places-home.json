@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "places",
-  "why": "주방의 설비 공급 상태(grid): 정전·단수·가스 끊김과, 끊겨도 두 시간 뒤 스스로 돌아오는 규칙. 나머지는 그대로다. 수치는 임시값.",
+  "why": "감각 자체 (작가 2026-11-08): 장소의 냄새 종류가 냄새의 감각질을 준다 (구수한 냄새·신향·퀴퀴한 냄새·썩은 냄새). 황 냄새는 썩은 냄새로 느낀다 (기본안).",
   "defs": [
     {
       "id": "PLC000001",
@@ -257,6 +257,38 @@
         "electric",
         "water",
         "gas"
+      ],
+      "feels": [
+        {
+          "sensation": "savory_scent",
+          "when": [
+            "space:odor@=savory"
+          ]
+        },
+        {
+          "sensation": "sour_scent",
+          "when": [
+            "space:odor@=sour"
+          ]
+        },
+        {
+          "sensation": "musty_scent",
+          "when": [
+            "space:odor@=musty"
+          ]
+        },
+        {
+          "sensation": "rotten_scent",
+          "when": [
+            "space:odor@=sulfur"
+          ]
+        },
+        {
+          "sensation": "rotten_scent",
+          "when": [
+            "space:odor@=putrid"
+          ]
+        }
       ]
     },
     {

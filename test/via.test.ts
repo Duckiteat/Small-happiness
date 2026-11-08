@@ -32,10 +32,11 @@ test('via: 모양을 읽고 쓰며, 사건 유형의 규칙(필수·허용 종�
   assert.equal(viaProblem(undefined, { key: 'x' }), null);
 });
 
-test('사전: via를 쓰는 유형은 8개이고 종류가 정해져 있다. 모르는 종류를 적으면 사전이 거부한다', () => {
+test('사전: via를 쓰는 유형은 9개이고 종류가 정해져 있다. 모르는 종류를 적으면 사전이 거부한다', () => {
   const lookup = viaKindsLookup(vocab);
   const withVia = vocab.keys('event_type').filter((t) => lookup(t) !== undefined).sort();
-  assert.deepEqual(withVia, ['action_chosen', 'action_done', 'awareness_changed', 'awareness_up', 'delay_cancelled', 'delay_fired', 'delay_scheduled', 'stage_advanced']);
+  assert.deepEqual(withVia, ['action_chosen', 'action_done', 'awareness_changed', 'awareness_up', 'delay_cancelled', 'delay_fired', 'delay_scheduled', 'stage_advanced', 'stimulus_perceived']);
+  assert.deepEqual(lookup('stimulus_perceived'), ['sense', 'offer'], '감각질은 멀리서 닿는 감각으로, 또는 다루고 먹는 행동으로 느낀다');
   assert.deepEqual(lookup('stage_advanced'), ['progress']);
   assert.deepEqual(lookup('awareness_up'), ['sense', 'offer']);
   assert.equal(lookup('state_changed'), undefined, '상태 변화의 근거는 cause가 가리키는 사건의 via로 찾는다');
@@ -67,7 +68,8 @@ test('실제 첫 주: 근거가 필요한 유형이 모두 나오고, 모든 via
     set.add(String(parseVia(String(via))?.kind));
     kinds.set(raw.type, set);
   }
-  assert.deepEqual([...kinds.keys()].sort(), ['action_chosen', 'action_done', 'awareness_changed', 'awareness_up', 'delay_cancelled', 'delay_fired', 'delay_scheduled', 'stage_advanced']);
+  assert.deepEqual([...kinds.keys()].sort(), ['action_chosen', 'action_done', 'awareness_changed', 'awareness_up', 'delay_cancelled', 'delay_fired', 'delay_scheduled', 'stage_advanced', 'stimulus_perceived']);
+  assert.deepEqual([...(kinds.get('stimulus_perceived') ?? [])].sort(), ['offer', 'sense'], '감각 자체: 멀리서는 감각이, 다루고 먹은 것은 그 행동이 근거다');
   const awareness = new Set([...(kinds.get('awareness_up') ?? []), ...(kinds.get('awareness_changed') ?? [])]);
   assert.deepEqual([...awareness].sort(), ['offer', 'sense'], '저절로 느낀 것은 감각, 살펴서 안 것(자기 행동의 결과 포함)은 그 행동이 근거다');
   assert.deepEqual([...(kinds.get('stage_advanced') ?? [])], ['progress']);

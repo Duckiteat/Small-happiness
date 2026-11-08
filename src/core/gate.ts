@@ -109,6 +109,16 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
 
     // 상태 의미: 위에서부터 첫 일치. 기본값(빈 when)이 없으면 경고, 기본값 뒤의 의미는 닿지 않는다
+    // 감각 자체: 사전의 감각질, 그 정의(종류면 그 종류)의 부위·특징
+    (def.feels ?? []).forEach((f, i) => {
+      const at = `${id}.feels[${i}]`;
+      if (!vocab.has('sensation', f.sensation)) error(at, `사전에 없는 감각질: ${f.sensation}`);
+      for (const w of f.when) {
+        const c = parseLocalCondition(w);
+        if (c === null) error(at, `조건 형식이 아니다: ${w}`);
+        else slotCheck(def, c.slot, c.feature, c.cond, vocab, at, error);
+      }
+    });
     const meanings = def.meanings ?? [];
     meanings.forEach((m, i) => {
       const at = `${id}.meanings[${i}]`;

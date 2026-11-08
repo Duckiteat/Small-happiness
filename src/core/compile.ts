@@ -153,9 +153,10 @@ export function compileSource(source: unknown): CompileResult {
     }
     // 기본 항목의 필드 → 개별 항목 자신의 필드 → override 순서로 덮는다. 번호·names·aliases·desc 는 개별 항목 것이다.
     // 이름·별칭·설명은 개별 항목 것만 쓴다 (기본 항목의 별칭이 복사되면 이름 충돌이 난다)
-    const { names: _n, aliases: _al, desc: _de, rules: _ru, offers: _of, progress: _pr, initial: _in, ...inherited } = base;
+    // 감각(feels)은 규칙·행동처럼 실행 중에 종류에서 물려받으므로 복사하지 않는다 (복사하면 개별 항목의 감각이 덮였다)
+    const { names: _n, aliases: _al, desc: _de, rules: _ru, offers: _of, progress: _pr, initial: _in, feels: _fe, ...inherited } = base;
     const merged: Obj = { ...inherited, id, names: d['names'], is_a: isA };
-    for (const k of ['aliases', 'desc', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'] as const) {
+    for (const k of ['aliases', 'desc', 'mobility', 'slots', 'meanings', 'feels', 'rules', 'offers', 'progress', 'initial'] as const) {
       if (d[k] !== undefined) merged[k] = d[k];
     }
     if (isObj(override)) for (const [k, v] of Object.entries(override)) merged[k] = v;

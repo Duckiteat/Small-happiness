@@ -11,6 +11,8 @@
 import { menusOf } from './db.ts';
 import { pickUse } from './amount.ts';
 import { conceive } from './conceive.ts';
+import { actionReaches, feltCause, feltFrom, reachOf, sensesOf, stopCause } from './sensation.ts';
+import type { FeltOne } from './sensation.ts';
 import { canBuy, readyAt, shoppingList } from './shopping.ts';
 import type { ShoppingBelief } from './shopping.ts';
 import { practicedLevel, practiceGain, SKILL_SLOT, skilledMinutes, skillKey } from './skill.ts';
@@ -151,6 +153,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const chosen = new Map<string, Chosen>();
   const mealSteps = new Set<string>(); // 요리법 단계 × 끼니
   const moveQueue = new Map<string, MoveExpected[]>(); // action_done seq → 따라올 만들기·놓임
+  const sensed = new Map<string, Map<string, FeltOne>>(); // 인물 → 멀리서 느끼고 있는 감각질
   const knowSeq = new Map<string, string>(); // `${who}|${key}` → 그 앎을 정한 사건
   const planned = new Map<string, string>(); // `${who}|${끼니}` → 구상한 메뉴
   const practiced = new Map<string, number>(); // 숙련 상태 키 → 해 본 횟수
@@ -371,6 +374,56 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (from < 0 || toAt <= from) bad(e.seq, 'progress', `진행은 사다리를 올라가야 한다: ${levelIn(levels, key)} → ${to}`);
         else if (vocab.isLocked(k.feature, to)) bad(e.seq, 'progress', `잠긴 칸(${to})으로 올라갈 수 없다`);
         else pending = { cause: e.seq, what: `${key}의 진행`, expect: [{ key, to }] };
+        break;
+      }
+      case 'stimulus_perceived': {
+        // 감각 자체 (sensation.ts): 멀리서 느낀 것은 머무는 곳과 그곳에 보이는 것이 지금 주는지, 다루고 먹은 것은 그 행동이 다룬 것이 주는지
+        bump('awareness');
+        const who = str(e.data['who']), s = str(e.data['sensation']), sense = str(e.data['sense']), on = e.data['on'] === true;
+        const cdef = instances.get(who);
+        const senses = sensesOf(db, cdef ?? '');
+        if (cdef === undefined || !who.startsWith('CHR')) {
+          bad(e.seq, 'awareness', `느낀 이가 인물이 아니다: ${who}`);
+          break;
+        }
+        if (vocab.entry('sensation', s)?.attrs['sense'] !== sense || !senses.has(sense)) bad(e.seq, 'awareness', `${s}는 ${who}가 ${sense}로 느끼는 감각질이 아니다`);
+        const view = {
+          defOf: (i: string) => instances.get(i),
+          has: (key: string) => {
+            const k = parseStateKey(key);
+            return k !== null && (db.defs[instances.get(k.subject) ?? '']?.slots?.[k.slot]?.features ?? []).includes(k.feature);
+          },
+          level: (key: string) => levelIn(levels, key),
+        };
+        const bornAt = (id: string): string | null => born.get(id) ?? null;
+        if (pv?.kind === 'sense') {
+          const away = awayUntil.get(who);
+          if (away !== undefined && e.t > away.from && e.t < away.to) bad(e.seq, 'awareness', `${who}는 집을 비웠는데 ${s}를 느꼈다`);
+          const stays = db.defs[cdef]?.stays;
+          const places = [...instances.keys()].filter((i) => i.startsWith('PLC') && (stays === undefined || instances.get(i) === stays)).sort();
+          const here = [...instances.keys()].filter((i) => i.startsWith('OBJ') && places.includes(visibleRoot(placeMap, i))).sort();
+          const now = feltFrom(db, vocab, view, [...places, ...here], 'distance', senses);
+          const prev = sensed.get(who) ?? new Map<string, FeltOne>();
+          if (pv.owner !== cdef || pv.key !== sense || reachOf(vocab, sense) !== 'distance') bad(e.seq, 'awareness', `${via}는 멀리서 ${s}를 느끼는 감각이 아니다`);
+          const f = on ? now.get(s) : prev.get(s);
+          if (f === undefined || (on ? prev.has(s) : now.has(s))) bad(e.seq, 'awareness', on ? `지금 ${s}를 주는 것이 없거나 이미 느끼고 있다` : `${s}를 아직 주고 있거나 느끼고 있지 않았다`);
+          else expectCause(e.seq, 'cause', e.cause, on ? feltCause(f, lastChangeOf, bornAt) : stopCause(db, vocab, [...places, ...here], s, (i) => instances.get(i), lastChangeOf), `${s} ${on ? '느낌' : '그침'}`);
+          const next = new Map(prev);
+          if (on && f !== undefined) next.set(s, f);
+          else next.delete(s);
+          sensed.set(who, next);
+        } else {
+          // 다루고 먹은 것: 원인은 그 행동의 끝이고, 그 행동이 다룬 것(행동을 내놓은 물건, 결과가 바뀐 물건)이 그 길로 주는 것이어야 한다
+          const d = e.cause === null ? undefined : bySeq.get(e.cause);
+          const c = d === undefined || d.cause === null ? undefined : chosen.get(d.cause);
+          if (d?.type !== 'action_done' || c === undefined || c.who !== who || c.via !== via) {
+            bad(e.seq, 'cause', `다루고 먹은 감각의 원인이 그 행동의 끝이 아니다: ${e.cause ?? '없음'}`);
+            break;
+          }
+          const handled = [c.at, ...[...new Set(c.effects.map((x) => x.key.slice(0, x.key.indexOf('|'))))].filter((x) => x !== c.at).sort()].filter((x) => x.startsWith('OBJ'));
+          const ok = actionReaches(vocab, c.verb).some((r) => feltFrom(db, vocab, view, handled, r, senses).has(s));
+          if (!ok || e.data['moment'] !== true || !on) bad(e.seq, 'awareness', `${c.verb} 행동이 다룬 것은 ${s}를 주지 않는다`);
+        }
         break;
       }
       case 'menu_planned': {

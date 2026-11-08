@@ -34,8 +34,8 @@ export const PREFIX_KIND: Readonly<Record<DefPrefix, string>> = {
 
 const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
-  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
-  PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'rules', 'offers'],
+  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'feels', 'rules', 'offers', 'progress', 'initial'],
+  PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'feels', 'rules', 'offers'],
   CHR: [...COMMON_FIELDS, 'senses', 'stays', 'slots', 'initial'],
 };
 
@@ -56,6 +56,12 @@ export interface SlotDef {
 }
 
 /** 상태 의미: 위에서부터 보아 처음 맞는 규칙이 그 상태의 뜻이다. `when`이 비면 기본값. */
+/** 감각 자체 (내면-설계 2장): 이 물건·장소가 자기 상태(when, 소유자 안의 조건)일 때 주는 감각질(사전 sensation). 종류로 물려받는다. */
+export interface FeelDef {
+  readonly sensation: string;
+  readonly when: readonly string[];
+}
+
 export interface MeaningDef {
   readonly label: string;
   readonly when: readonly string[]; // 소유자 안의 조건 (예: body:rot@<=1)
@@ -214,6 +220,7 @@ export interface Definition {
   readonly supplies?: readonly string[];
   readonly slots?: { readonly [key: string]: SlotDef };
   readonly meanings?: readonly MeaningDef[];
+  readonly feels?: readonly FeelDef[];
   readonly rules?: { readonly [key: string]: RuleDef };
   readonly offers?: { readonly [key: string]: OfferDef };
   readonly senses?: { readonly [sense: string]: SenseDef };
@@ -614,6 +621,7 @@ export type Fields = Partial<{
   supplies: string[];
   slots: Record<string, SlotDef>;
   meanings: MeaningDef[];
+  feels: FeelDef[];
   rules: Record<string, RuleDef>;
   offers: Record<string, OfferDef>;
   senses: Record<string, SenseDef>;
@@ -679,6 +687,12 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
       case 'slots': {
         const v = fieldSlots(value, at, push);
         if (v !== undefined) out.slots = v;
+        break;
+      }
+      case 'feels': {
+        if (!Array.isArray(value) || !value.every((f) => isObj(f) && typeof f['sensation'] === 'string' && isStrArr(f['when']) && Object.keys(f).every((k) => k === 'sensation' || k === 'when'))) {
+          push(at, 'feels는 { sensation: 감각질 키, when: 소유자 안의 조건 목록 } 목록이어야 한다');
+        } else out.feels = value.map((f) => ({ sensation: String(f['sensation']), when: (f['when'] as string[]).map((w) => w.trim()) }));
         break;
       }
       case 'meanings': {
@@ -757,6 +771,7 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
     ...(f.supplies !== undefined ? { supplies: f.supplies } : {}),
     ...(f.slots !== undefined ? { slots: f.slots } : {}),
     ...(f.meanings !== undefined ? { meanings: f.meanings } : {}),
+    ...(f.feels !== undefined ? { feels: f.feels } : {}),
     ...(f.rules !== undefined ? { rules: f.rules } : {}),
     ...(f.offers !== undefined ? { offers: f.offers } : {}),
     ...(f.senses !== undefined ? { senses: f.senses } : {}),

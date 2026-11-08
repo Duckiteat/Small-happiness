@@ -34,6 +34,10 @@
         }
       },
       "senses": {
+        "hearing": {
+          "notice": 1,
+          "tuned": false
+        },
         "sight": {
           "notice": 1,
           "tuned": false
@@ -41,12 +45,21 @@
         "smell": {
           "notice": 1,
           "tuned": false
+        },
+        "taste": {
+          "notice": 1,
+          "tuned": false
+        },
+        "touch": {
+          "notice": 1,
+          "tuned": false
         }
       },
       "stays": "PLC000002",
       "desc": [
         "혼자 사는 직장인 (세계-설정 1장). 직업·출퇴근은 미정",
-        "숙련(요리 솜씨·손질 솜씨·감별)은 재료를 쓸 때마다 쌓인다 (요리-설계 11장)"
+        "숙련(요리 솜씨·손질 솜씨·감별)은 재료를 쓸 때마다 쌓인다 (요리-설계 11장)",
+        "감각 다섯(시각·청각·후각·촉각·미각). 멀리서 닿는 것(냄새·보기·소리)은 머무는 곳에서, 촉각은 손에 닿을 때, 미각은 먹을 때 느낀다"
       ]
     },
     "OBJ000001": {
@@ -82,6 +95,33 @@
           "label": "먹을 수 있음",
           "when": [],
           "means": "edible"
+        }
+      ],
+      "feels": [
+        {
+          "sensation": "hot_feel",
+          "when": [
+            "cond:heat@>=hot"
+          ]
+        },
+        {
+          "sensation": "steaming",
+          "when": [
+            "cond:heat@>=hot"
+          ]
+        },
+        {
+          "sensation": "warm_feel",
+          "when": [
+            "cond:heat@=warm"
+          ]
+        },
+        {
+          "sensation": "cold_feel",
+          "when": [
+            "cond:heat@=none",
+            "cond:temp@<=fridge"
+          ]
         }
       ],
       "rules": {
@@ -393,6 +433,14 @@
           "means": "edible"
         }
       ],
+      "feels": [
+        {
+          "sensation": "sour_scent",
+          "when": [
+            "body:sour@>=sour"
+          ]
+        }
+      ],
       "rules": {},
       "progress": {
         "mold": {
@@ -460,6 +508,18 @@
           "label": "먹을 수 있음",
           "when": [],
           "means": "edible"
+        }
+      ],
+      "feels": [
+        {
+          "sensation": "soft",
+          "when": [
+            "cond:cut@<=chunk"
+          ]
+        },
+        {
+          "sensation": "squishy",
+          "when": []
         }
       ],
       "rules": {},
@@ -554,6 +614,18 @@
           "label": "먹을 수 있음",
           "when": [],
           "means": "edible"
+        }
+      ],
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": []
+        },
+        {
+          "sensation": "slippery",
+          "when": [
+            "cond:seal@=gone"
+          ]
         }
       ],
       "rules": {},
@@ -653,6 +725,28 @@
           "means": "edible"
         }
       ],
+      "feels": [
+        {
+          "sensation": "sour_scent",
+          "when": [
+            "body:ripen@>=ripe"
+          ]
+        },
+        {
+          "sensation": "sour_taste",
+          "when": [
+            "body:ripen@>=ripe"
+          ]
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "looks_glossy",
+          "when": []
+        }
+      ],
       "rules": {},
       "progress": {
         "mold": {
@@ -715,6 +809,28 @@
           "means": "edible"
         }
       ],
+      "feels": [
+        {
+          "sensation": "sweet_scent",
+          "when": []
+        },
+        {
+          "sensation": "sweet",
+          "when": []
+        },
+        {
+          "sensation": "hard",
+          "when": [
+            "body:wilt@=crisp"
+          ]
+        },
+        {
+          "sensation": "looks_moldy",
+          "when": [
+            "body:mold@>=spot"
+          ]
+        }
+      ],
       "rules": {},
       "progress": {
         "mold": {
@@ -773,6 +889,24 @@
           "label": "먹을 수 있음",
           "when": [],
           "means": "edible"
+        }
+      ],
+      "feels": [
+        {
+          "sensation": "looks_moist",
+          "when": [
+            "body:wilt@=crisp"
+          ]
+        },
+        {
+          "sensation": "looks_wilted",
+          "when": [
+            "body:wilt@>=wilted"
+          ]
+        },
+        {
+          "sensation": "soft",
+          "when": []
         }
       ],
       "rules": {},
@@ -838,6 +972,24 @@
           "label": "먹을 수 있음",
           "when": [],
           "means": "edible"
+        }
+      ],
+      "feels": [
+        {
+          "sensation": "sour_scent",
+          "when": []
+        },
+        {
+          "sensation": "sour_taste",
+          "when": []
+        },
+        {
+          "sensation": "sweet",
+          "when": []
+        },
+        {
+          "sensation": "soft",
+          "when": []
         }
       ],
       "rules": {},
@@ -906,6 +1058,20 @@
           "label": "먹을 수 있음",
           "when": [],
           "means": "edible"
+        }
+      ],
+      "feels": [
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "soft",
+          "when": []
+        },
+        {
+          "sensation": "looks_glossy",
+          "when": []
         }
       ],
       "rules": {},
@@ -1000,6 +1166,24 @@
           "means": "edible"
         }
       ],
+      "feels": [
+        {
+          "sensation": "savory_scent",
+          "when": [
+            "body:decay@<=turned"
+          ]
+        },
+        {
+          "sensation": "sharp_scent",
+          "when": [
+            "body:decay@=turned"
+          ]
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        }
+      ],
       "rules": {},
       "progress": {
         "decay": {
@@ -1061,6 +1245,20 @@
           "means": "edible"
         }
       ],
+      "feels": [
+        {
+          "sensation": "looks_wilted",
+          "when": [
+            "body:wilt@>=wilted"
+          ]
+        },
+        {
+          "sensation": "sharp_scent",
+          "when": [
+            "cond:cut@>=sliced"
+          ]
+        }
+      ],
       "rules": {},
       "offers": {
         "slice_for_stew": {
@@ -1120,6 +1318,16 @@
       "aliases": [],
       "mobility": "fixed",
       "role": "plain",
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": []
+        },
+        {
+          "sensation": "looks_glossy",
+          "when": []
+        }
+      ],
       "desc": []
     },
     "OBJ000013": {
@@ -1180,6 +1388,14 @@
           ]
         }
       },
+      "feels": [
+        {
+          "sensation": "microwave_hum",
+          "when": [
+            "chamber:power@=on"
+          ]
+        }
+      ],
       "rules": {
         "dies": {
           "label": "망가지면 꺼진다",
@@ -1445,6 +1661,14 @@
           ]
         }
       },
+      "feels": [
+        {
+          "sensation": "gas_hiss",
+          "when": [
+            "burner:flame@=lit"
+          ]
+        }
+      ],
       "rules": {
         "burn_out": {
           "label": "불은 한 시간 뒤 꺼진다 (가스가 연소해 사라진다)",
@@ -1622,6 +1846,14 @@
           ]
         }
       },
+      "feels": [
+        {
+          "sensation": "looks_moist",
+          "when": [
+            "basin:water@>=some"
+          ]
+        }
+      ],
       "rules": {
         "drain": {
           "label": "싱크대에 남은 물은 한 시간 뒤 배수구로 빠진다",
@@ -1761,6 +1993,14 @@
           ]
         }
       },
+      "feels": [
+        {
+          "sensation": "fridge_hum",
+          "when": [
+            "cooling:power@=on"
+          ]
+        }
+      ],
       "rules": {
         "back_on": {
           "label": "고쳐지고 전기가 들어오면 다시 켜진다",
@@ -2017,6 +2257,7 @@
           "means": "edible"
         }
       ],
+      "feels": [],
       "desc": [
         "상하지 않고 익는 음식의 종류 (김치, 요거트, 된장). 규칙은 아직 음식에서 물려받는다"
       ]
@@ -2069,6 +2310,24 @@
           "label": "먹을 수 있음",
           "when": [],
           "means": "edible"
+        }
+      ],
+      "feels": [
+        {
+          "sensation": "savory_scent",
+          "when": []
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "umami",
+          "when": []
+        },
+        {
+          "sensation": "sticky",
+          "when": []
         }
       ],
       "rules": {},
@@ -2139,6 +2398,26 @@
           "label": "먹을 수 있음",
           "when": [],
           "means": "edible"
+        }
+      ],
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": [
+            "cond:cut@=whole"
+          ]
+        },
+        {
+          "sensation": "sharp_scent",
+          "when": [
+            "cond:cut@>=sliced"
+          ]
+        },
+        {
+          "sensation": "sweet",
+          "when": [
+            "cond:heat@>=hot"
+          ]
         }
       ],
       "rules": {},
@@ -2244,6 +2523,20 @@
           "means": "edible"
         }
       ],
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": [
+            "cond:cut@=whole"
+          ]
+        },
+        {
+          "sensation": "looks_moist",
+          "when": [
+            "cond:cut@>=sliced"
+          ]
+        }
+      ],
       "rules": {},
       "offers": {
         "slice_for_stew": {
@@ -2310,6 +2603,16 @@
           ]
         }
       },
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": []
+        },
+        {
+          "sensation": "cold_feel",
+          "when": []
+        }
+      ],
       "initial": {
         "body:dirt": "clean"
       },
@@ -2333,6 +2636,18 @@
           ]
         }
       },
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": []
+        },
+        {
+          "sensation": "damp_feel",
+          "when": [
+            "body:dirt@>=dirty"
+          ]
+        }
+      ],
       "initial": {
         "body:dirt": "clean"
       },
@@ -2368,6 +2683,58 @@
           ]
         }
       },
+      "feels": [
+        {
+          "sensation": "bubbling",
+          "when": [
+            "pot:soup@>=steeping",
+            "pot:soup@<=seasoned"
+          ]
+        },
+        {
+          "sensation": "savory_scent",
+          "when": [
+            "pot:soup@>=broth"
+          ]
+        },
+        {
+          "sensation": "steaming",
+          "when": [
+            "pot:soup@>=broth"
+          ]
+        },
+        {
+          "sensation": "salty",
+          "when": [
+            "pot:soup@=stew"
+          ]
+        },
+        {
+          "sensation": "umami",
+          "when": [
+            "pot:soup@=stew"
+          ]
+        },
+        {
+          "sensation": "sour_scent",
+          "when": [
+            "pot:base@=kimchi"
+          ]
+        },
+        {
+          "sensation": "sour_taste",
+          "when": [
+            "pot:base@=kimchi",
+            "pot:soup@=stew"
+          ]
+        },
+        {
+          "sensation": "sticky",
+          "when": [
+            "body:dirt@>=dirty"
+          ]
+        }
+      ],
       "rules": {
         "make_broth": {
           "label": "멸치를 넣은 물이 불 위에서 10분 끓으면 육수가 된다",
@@ -2723,6 +3090,20 @@
           "means": "edible"
         }
       ],
+      "feels": [
+        {
+          "sensation": "fishy",
+          "when": []
+        },
+        {
+          "sensation": "rough",
+          "when": []
+        },
+        {
+          "sensation": "looks_dry",
+          "when": []
+        }
+      ],
       "rules": {},
       "progress": {
         "decay": {
@@ -2758,6 +3139,18 @@
           ]
         }
       },
+      "feels": [
+        {
+          "sensation": "hard",
+          "when": []
+        },
+        {
+          "sensation": "cold_feel",
+          "when": [
+            "box:contents@=full"
+          ]
+        }
+      ],
       "offers": {
         "store": {
           "label": "찌개를 담은 반찬통을 냉장고에 넣는다",
@@ -2931,6 +3324,20 @@
           "means": "edible"
         }
       ],
+      "feels": [
+        {
+          "sensation": "savory_scent",
+          "when": []
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "umami",
+          "when": []
+        }
+      ],
       "rules": {},
       "offers": {},
       "progress": {},
@@ -2988,6 +3395,7 @@
           "means": "edible"
         }
       ],
+      "feels": [],
       "offers": {
         "eat_leftover": {
           "label": "데운 남은 찌개를 먹는다. 반찬통이 빈다",
@@ -3117,6 +3525,24 @@
           "label": "먹을 수 있음",
           "when": [],
           "means": "edible"
+        }
+      ],
+      "feels": [
+        {
+          "sensation": "sour_scent",
+          "when": []
+        },
+        {
+          "sensation": "sour_taste",
+          "when": []
+        },
+        {
+          "sensation": "salty",
+          "when": []
+        },
+        {
+          "sensation": "umami",
+          "when": []
         }
       ],
       "rules": {},
@@ -3398,6 +3824,38 @@
           ]
         }
       },
+      "feels": [
+        {
+          "sensation": "savory_scent",
+          "when": [
+            "space:odor@=savory"
+          ]
+        },
+        {
+          "sensation": "sour_scent",
+          "when": [
+            "space:odor@=sour"
+          ]
+        },
+        {
+          "sensation": "musty_scent",
+          "when": [
+            "space:odor@=musty"
+          ]
+        },
+        {
+          "sensation": "rotten_scent",
+          "when": [
+            "space:odor@=sulfur"
+          ]
+        },
+        {
+          "sensation": "rotten_scent",
+          "when": [
+            "space:odor@=putrid"
+          ]
+        }
+      ],
       "rules": {
         "air_out": {
           "label": "냄새나는 음식이 하나도 없으면 주방 냄새가 빠진다",

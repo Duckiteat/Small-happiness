@@ -1,0 +1,272 @@
+[
+  {
+    "category": "sensation",
+    "entries": [
+      {
+        "key": "rough",
+        "ko": "까끌까끌함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "soft",
+        "ko": "부드러움",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "hard",
+        "ko": "딱딱함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "squishy",
+        "ko": "말랑함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "sticky",
+        "ko": "끈적함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "slippery",
+        "ko": "미끈거림",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "damp_feel",
+        "ko": "축축함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "hot_feel",
+        "ko": "뜨거움",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "warm_feel",
+        "ko": "따뜻함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "lukewarm",
+        "ko": "미지근함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "cold_feel",
+        "ko": "차가움",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "ticklish",
+        "ko": "간지러움",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "sweet",
+        "ko": "단맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "sour_taste",
+        "ko": "신맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "salty",
+        "ko": "짠맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "bitter",
+        "ko": "쓴맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "umami",
+        "ko": "감칠맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "sweet_scent",
+        "ko": "단향",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "sour_scent",
+        "ko": "신향",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "sharp_scent",
+        "ko": "시큰한 냄새",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "savory_scent",
+        "ko": "구수한 냄새",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "fishy",
+        "ko": "비린내",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "musty_scent",
+        "ko": "퀴퀴한 냄새",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "rotten_scent",
+        "ko": "썩은 냄새",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "burnt",
+        "ko": "탄내",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "bubbling",
+        "ko": "보글보글",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "sizzling",
+        "ko": "지글지글",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "gas_hiss",
+        "ko": "가스 불 소리",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "fridge_hum",
+        "ko": "냉장고 웅웅",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "microwave_hum",
+        "ko": "전자레인지 웅 소리",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "water_run",
+        "ko": "물 흐르는 소리",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "steaming",
+        "ko": "김이 남",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_moist",
+        "ko": "촉촉해 보임",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_dry",
+        "ko": "말라 보임",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_wilted",
+        "ko": "시들어 보임",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_glossy",
+        "ko": "윤기 남",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_moldy",
+        "ko": "곰팡이가 핀 듯 보임",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      }
+    ]
+  }
+]
