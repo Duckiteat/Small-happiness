@@ -8,6 +8,7 @@
 // 하지 않는 것 (한계-등록부): 진행의 경계 넘는 시각(양 계산), 행동을 고른 이유(앎이 필요를 채웠나), 조건이 성립했는데 예약이 없는 경우.
 // 코어는 입출력이 없다. 시나리오를 읽는 일은 서기(clerk.ts)가 한다.
 
+import { stepDown } from './amount.ts';
 import type { Db } from './db.ts';
 import { latestSeq } from './events.ts';
 import type { GameEvent, JsonValue } from './events.ts';
@@ -137,6 +138,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const open = new Map<string, Reservation>(); // delay_scheduled seq → 예약
   const openIds = new Set<string>(); // 같은 규칙 × 인스턴스의 예약은 하나
   const chosen = new Map<string, Chosen>();
+  const mealSteps = new Set<string>(); // 요리법 단계 × 끼니
   const inspected = new Set<string>(); // `${who}|${via}`: 끝난 행동
   const knows = new Map<string, { aw: string; level: string }>(); // `${who}|${key}`
   let pending: Pending | null = null;
@@ -332,10 +334,29 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (verb !== offer.item.verb) bad(e.seq, 'action', `동사가 ${verb}인데 행동의 동사는 ${offer.item.verb}이다`);
         const ends = num(e.data['ends']);
         if (ends !== e.t + offer.item.minutes) bad(e.seq, 'action', `끝나는 시각이 ${ends}분인데 행동은 ${offer.item.minutes}분 걸려 ${e.t + offer.item.minutes}분이다`);
-        const effects = offer.item.effect.flatMap((text) => {
+        const effects: Chosen['effects'][number][] = offer.item.effect.flatMap((text) => {
           const p = parsePattern(text);
           return p === null ? [] : targets(p, { owner: pv.owner }, at).map((i) => ({ key: keyOf(p, i), feature: p.feature, cond: p.cond }));
         });
+        // 쓰는 양: 고른 때의 세계에서 steps칸 내린 단계가 결과에 더해진다 (행동 층과 같은 계산). 모자랐다면 고를 수 없었다
+        for (const u of offer.item.uses ?? []) {
+          const p = parsePattern(u.key);
+          if (p === null) continue;
+          for (const i of targets(p, { owner: pv.owner }, at)) {
+            const key = keyOf(p, i);
+            const to = stepDown(vocab, p.feature, levelIn(levels, key), u.steps);
+            if (to === null) bad(e.seq, 'action', `${key}가 ${levelIn(levels, key)}라 ${u.steps}칸을 쓸 수 없는데 행동을 골랐다`);
+            else effects.push({ key, feature: p.feature, cond: { op: '=', level: to } });
+          }
+        }
+        const menu = e.data['menu'];
+        if (typeof menu === 'string') {
+          // 요리법의 단계는 한 끼에 한 번
+          const once = `${via}@${at}|${String(e.data['meal'])}`;
+          if (mealSteps.has(once)) bad(e.seq, 'action', `${via}를 같은 끼니(${String(e.data['meal'])}분 구간)에 두 번 골랐다`);
+          mealSteps.add(once);
+        }
+        if ((offer.item.menu ?? null) !== (typeof menu === 'string' ? menu : null)) bad(e.seq, 'action', `행동의 메뉴(${offer.item.menu ?? '없음'})와 고른 때의 메뉴(${typeof menu === 'string' ? menu : '없음'})가 다르다`);
         chosen.set(e.seq, { via, who, verb, at, ends, effects });
         // 원인: 이 행동의 조건을 채운 하루씨의 앎(awareness 사건). 어느 앎인지까지는 행동을 고른 이유를 다시 계산해야 안다 (LIM014)
         // 앎이 필요 없는 행동(needs가 빈 요리 등)은 시간(일정)이 이끈 것이라 원인 사건이 없을 수 있다 (한계 LIM020)

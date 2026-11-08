@@ -1,0 +1,847 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "찌개와 설거지의 물 받기 (작가 2026-11-08): 싱크대의 물 받기는 밥솥에 묶여 있어서, 된장찌개를 끓일 때(빈 깨끗한 냄비)와 먹고 난 설거지(더러운 빈 냄비)에 받는 행동을 따로 둔다. 수치는 임시값(tuned:false).",
+    "defs": [
+      {
+        "id": "OBJ000022",
+        "names": {
+          "ko": "전기 기기",
+          "en": "electric appliance"
+        },
+        "mobility": "portable",
+        "slots": {
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "rules": {
+          "breaks": {
+            "label": "전기이 끊기면 이 종류의 기기는 망가진다",
+            "on": [
+              "PLC000002|grid:grid_electric@=cut"
+            ],
+            "emits": [
+              "OBJ000022|body:order@>=broken"
+            ],
+            "linked": true
+          }
+        },
+        "offers": {
+          "repair": {
+            "label": "망가진 기기를 고친다 (전기이 들어올 때)",
+            "verb": "repair",
+            "needs": [],
+            "when": [
+              "OBJ000022|body:order@=broken",
+              "PLC000002|grid:grid_electric@=normal"
+            ],
+            "effect": [
+              "OBJ000022|body:order@=ok"
+            ],
+            "minutes": 10,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "전기을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+        ]
+      },
+      {
+        "id": "OBJ000023",
+        "names": {
+          "ko": "가스 기기",
+          "en": "gas appliance"
+        },
+        "mobility": "portable",
+        "slots": {
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "rules": {
+          "breaks": {
+            "label": "가스이 끊기면 이 종류의 기기는 망가진다",
+            "on": [
+              "PLC000002|grid:grid_gas@=cut"
+            ],
+            "emits": [
+              "OBJ000023|body:order@>=broken"
+            ],
+            "linked": true
+          }
+        },
+        "offers": {
+          "repair": {
+            "label": "망가진 기기를 고친다 (가스이 들어올 때)",
+            "verb": "repair",
+            "needs": [],
+            "when": [
+              "OBJ000023|body:order@=broken",
+              "PLC000002|grid:grid_gas@=normal"
+            ],
+            "effect": [
+              "OBJ000023|body:order@=ok"
+            ],
+            "minutes": 10,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "가스을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+        ]
+      },
+      {
+        "id": "OBJ000024",
+        "names": {
+          "ko": "수도 기기",
+          "en": "water appliance"
+        },
+        "mobility": "portable",
+        "slots": {
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "rules": {
+          "breaks": {
+            "label": "수도이 끊기면 이 종류의 기기는 망가진다",
+            "on": [
+              "PLC000002|grid:grid_water@=cut"
+            ],
+            "emits": [
+              "OBJ000024|body:order@>=broken"
+            ],
+            "linked": true
+          }
+        },
+        "offers": {
+          "repair": {
+            "label": "망가진 기기를 고친다 (수도이 들어올 때)",
+            "verb": "repair",
+            "needs": [],
+            "when": [
+              "OBJ000024|body:order@=broken",
+              "PLC000002|grid:grid_water@=normal"
+            ],
+            "effect": [
+              "OBJ000024|body:order@=ok"
+            ],
+            "minutes": 10,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "수도을 쓰는 기기의 공통 성질: 망가짐과 고치기"
+        ]
+      },
+      {
+        "id": "OBJ000012",
+        "names": {
+          "ko": "식탁",
+          "en": "dining table"
+        },
+        "mobility": "fixed",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ000013",
+        "names": {
+          "ko": "의자",
+          "en": "chair"
+        },
+        "mobility": "portable",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ000014",
+        "names": {
+          "ko": "식탁보",
+          "en": "tablecloth"
+        },
+        "mobility": "portable",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ000015",
+        "names": {
+          "ko": "전자레인지 선반",
+          "en": "microwave shelf"
+        },
+        "mobility": "fixed",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ000016",
+        "mobility": "portable",
+        "slots": {
+          "body": {
+            "features": [
+              "order"
+            ]
+          },
+          "chamber": {
+            "features": [
+              "power"
+            ]
+          }
+        },
+        "names": {
+          "ko": "전자레인지",
+          "en": "microwave"
+        },
+        "is_a": "OBJ000022",
+        "rules": {
+          "dies": {
+            "label": "망가지면 꺼진다",
+            "on": [
+              "OBJ000016|body:order@=broken"
+            ],
+            "emits": [
+              "OBJ000016|chamber:power@<=off"
+            ]
+          },
+          "stop": {
+            "label": "데우기가 끝나면 스스로 꺼진다",
+            "on": [
+              "OBJ000016|chamber:power@=on"
+            ],
+            "emits": [
+              "OBJ000016|chamber:power@<=off"
+            ],
+            "delay_s": 120,
+            "tuned": false
+          }
+        },
+        "offers": {
+          "reheat": {
+            "label": "남은 치킨을 전자레인지로 데운다",
+            "verb": "reheat",
+            "needs": [],
+            "when": [
+              "OBJ000010|cond:heat@=none",
+              "OBJ000016|body:order@=ok",
+              "OBJ000016|chamber:power@=off",
+              "OBJ000010|body:decay@<=turned"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000016|chamber:power@=on",
+              "OBJ000010|cond:heat@=hot"
+            ],
+            "minutes": 2,
+            "tuned": false
+          }
+        },
+        "initial": {
+          "chamber:power": "off"
+        }
+      },
+      {
+        "id": "OBJ000017",
+        "mobility": "portable",
+        "slots": {
+          "pot": {
+            "features": [
+              "water",
+              "power",
+              "rice"
+            ]
+          },
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "names": {
+          "ko": "전기밥솥",
+          "en": "rice cooker"
+        },
+        "is_a": "OBJ000022",
+        "rules": {
+          "cook_rice": {
+            "label": "물을 담고 켜 두면 30분 뒤 밥이 되고, 물은 밥에 흡수되고, 스스로 꺼진다",
+            "on": [
+              "OBJ000017|pot:power@=on",
+              "OBJ000017|pot:water@>=some",
+              "OBJ000017|body:order@=ok"
+            ],
+            "emits": [
+              "OBJ000017|pot:rice@>=cooked",
+              "OBJ000017|pot:water@<=none",
+              "OBJ000017|pot:power@<=off"
+            ],
+            "delay_s": 1800,
+            "tuned": false
+          },
+          "dies": {
+            "label": "망가지면 꺼진다",
+            "on": [
+              "OBJ000017|body:order@=broken"
+            ],
+            "emits": [
+              "OBJ000017|pot:power@<=off"
+            ]
+          }
+        },
+        "offers": {
+          "pour": {
+            "label": "싱크대에 받은 물을 밥솥에 붓는다",
+            "verb": "fill",
+            "needs": [],
+            "when": [
+              "OBJ000017|pot:water@=none",
+              "OBJ000020|basin:water@>=some",
+              "OBJ000017|body:order@=ok"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000017|pot:water@=full",
+              "OBJ000020|basin:water@=none"
+            ],
+            "minutes": 2,
+            "tuned": false
+          },
+          "start": {
+            "label": "물을 담은 밥솥을 켠다",
+            "verb": "switch",
+            "needs": [],
+            "when": [
+              "OBJ000017|pot:water@>=some",
+              "OBJ000017|pot:power@=off",
+              "OBJ000017|pot:rice@=raw",
+              "OBJ000017|body:order@=ok"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000017|pot:power@=on"
+            ],
+            "minutes": 1,
+            "tuned": false
+          }
+        },
+        "initial": {
+          "pot:water": "none",
+          "pot:power": "off",
+          "pot:rice": "raw"
+        }
+      },
+      {
+        "id": "OBJ000018",
+        "mobility": "fixed",
+        "slots": {
+          "fan": {
+            "features": [
+              "power"
+            ]
+          },
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "names": {
+          "ko": "후드",
+          "en": "range hood"
+        },
+        "is_a": "OBJ000022",
+        "rules": {
+          "vent": {
+            "label": "후드를 켜 두면 주방의 짙은 냄새가 10분 안에 옅어진다",
+            "on": [
+              "OBJ000018|fan:power@=on",
+              "PLC000002|space:smell@>=distinct",
+              "OBJ000018|body:order@=ok"
+            ],
+            "emits": [
+              "PLC000002|space:smell@<=faint"
+            ],
+            "delay_s": 600,
+            "tuned": false
+          },
+          "auto_off": {
+            "label": "후드는 켠 지 한 시간이면 스스로 꺼진다",
+            "on": [
+              "OBJ000018|fan:power@=on"
+            ],
+            "emits": [
+              "OBJ000018|fan:power@<=off"
+            ],
+            "delay_s": 3600,
+            "tuned": false
+          },
+          "dies": {
+            "label": "망가지면 꺼진다",
+            "on": [
+              "OBJ000018|body:order@=broken"
+            ],
+            "emits": [
+              "OBJ000018|fan:power@<=off"
+            ]
+          }
+        },
+        "offers": {
+          "run": {
+            "label": "주방 냄새가 짙으면 후드를 켠다",
+            "verb": "switch",
+            "needs": [],
+            "when": [
+              "PLC000002|space:smell@>=distinct",
+              "OBJ000018|fan:power@=off",
+              "OBJ000018|body:order@=ok"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000018|fan:power@=on"
+            ],
+            "minutes": 1,
+            "tuned": false
+          }
+        },
+        "initial": {
+          "fan:power": "off"
+        }
+      },
+      {
+        "id": "OBJ000019",
+        "mobility": "fixed",
+        "slots": {
+          "burner": {
+            "features": [
+              "flame"
+            ]
+          },
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "names": {
+          "ko": "가스레인지",
+          "en": "gas stove"
+        },
+        "is_a": "OBJ000023",
+        "rules": {
+          "burn_out": {
+            "label": "불은 한 시간 뒤 꺼진다 (가스가 연소해 사라진다)",
+            "on": [
+              "OBJ000019|burner:flame@=lit"
+            ],
+            "emits": [
+              "OBJ000019|burner:flame@<=out"
+            ],
+            "delay_s": 3600,
+            "tuned": false
+          },
+          "dies": {
+            "label": "망가지면 불이 꺼진다",
+            "on": [
+              "OBJ000019|body:order@=broken"
+            ],
+            "emits": [
+              "OBJ000019|burner:flame@<=out"
+            ]
+          }
+        },
+        "offers": {
+          "ignite_egg": {
+            "label": "요리하려고 가스레인지에 불을 붙인다 (계란)",
+            "verb": "switch",
+            "needs": [],
+            "when": [
+              "OBJ000004|cond:seal@>=open",
+              "OBJ000019|burner:flame@=out",
+              "OBJ000019|body:order@=ok"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000019|burner:flame@=lit"
+            ],
+            "minutes": 1,
+            "tuned": false
+          },
+          "ignite_ham": {
+            "label": "요리하려고 가스레인지에 불을 붙인다 (햄)",
+            "verb": "switch",
+            "needs": [],
+            "when": [
+              "OBJ000009|cond:seal@>=open",
+              "OBJ000019|burner:flame@=out",
+              "OBJ000019|body:order@=ok"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000019|burner:flame@=lit"
+            ],
+            "minutes": 1,
+            "tuned": false
+          },
+          "ignite_chicken": {
+            "label": "전자레인지가 망가져 치킨을 튀기려고 가스레인지에 불을 붙인다",
+            "verb": "switch",
+            "needs": [],
+            "when": [
+              "OBJ000010|cond:heat@=none",
+              "OBJ000016|body:order@=broken",
+              "OBJ000019|body:order@=ok",
+              "OBJ000019|burner:flame@=out",
+              "OBJ000010|body:decay@<=turned"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000019|burner:flame@=lit"
+            ],
+            "minutes": 1,
+            "tuned": false
+          },
+          "fry_chicken": {
+            "label": "전자레인지가 망가져 남은 치킨을 튀겨 데운다",
+            "verb": "fry",
+            "needs": [],
+            "when": [
+              "OBJ000010|cond:heat@=none",
+              "OBJ000016|body:order@=broken",
+              "OBJ000019|body:order@=ok",
+              "OBJ000019|burner:flame@=lit",
+              "OBJ000010|body:decay@<=turned"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000010|cond:heat@=fry"
+            ],
+            "minutes": 10,
+            "tuned": false
+          },
+          "ignite_stew": {
+            "label": "된장찌개를 끓이려고 가스레인지에 불을 붙인다",
+            "verb": "switch",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:soup@>=plain",
+              "OBJ000031|pot:soup@<stew",
+              "OBJ000019|burner:flame@=out",
+              "OBJ000019|body:order@=ok"
+            ],
+            "effect": [
+              "OBJ000019|burner:flame@=lit"
+            ],
+            "minutes": 1,
+            "tuned": false,
+            "during": [
+              "meal"
+            ],
+            "menu": "doenjang_jjigae"
+          },
+          "extinguish_stew": {
+            "label": "찌개가 다 되면 불을 끈다",
+            "verb": "extinguish",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:soup@=stew",
+              "OBJ000019|burner:flame@=lit"
+            ],
+            "effect": [
+              "OBJ000019|burner:flame@=out"
+            ],
+            "minutes": 1,
+            "tuned": false,
+            "during": [
+              "meal"
+            ]
+          }
+        },
+        "initial": {
+          "burner:flame": "out"
+        }
+      },
+      {
+        "id": "OBJ000020",
+        "mobility": "fixed",
+        "slots": {
+          "basin": {
+            "features": [
+              "water"
+            ]
+          },
+          "body": {
+            "features": [
+              "order"
+            ]
+          }
+        },
+        "names": {
+          "ko": "싱크대",
+          "en": "sink"
+        },
+        "is_a": "OBJ000024",
+        "rules": {
+          "drain": {
+            "label": "싱크대에 남은 물은 한 시간 뒤 배수구로 빠진다",
+            "on": [
+              "OBJ000020|basin:water@>=some"
+            ],
+            "emits": [
+              "OBJ000020|basin:water@<=none"
+            ],
+            "delay_s": 3600,
+            "tuned": false
+          }
+        },
+        "offers": {
+          "draw": {
+            "label": "수도를 틀어 싱크대에 물을 받는다",
+            "verb": "fill",
+            "needs": [],
+            "when": [
+              "OBJ000020|basin:water@=none",
+              "OBJ000017|pot:water@=none",
+              "OBJ000017|pot:rice@=raw",
+              "OBJ000020|body:order@=ok"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000020|basin:water@=full"
+            ],
+            "minutes": 2,
+            "tuned": false
+          },
+          "wash_dishes": {
+            "label": "먹고 난 뒤 받아 둔 물로 냄비·칼·도마를 설거지한다",
+            "verb": "wash",
+            "needs": [],
+            "when": [
+              "OBJ000031|body:dirt@>=dirty",
+              "OBJ000031|pot:soup@=none",
+              "OBJ000020|basin:water@>=some"
+            ],
+            "effect": [
+              "OBJ000031|body:dirt@=clean",
+              "OBJ000029|body:dirt@=clean",
+              "OBJ000030|body:dirt@=clean",
+              "OBJ000020|basin:water@=none"
+            ],
+            "minutes": 10,
+            "tuned": false,
+            "during": [
+              "meal"
+            ]
+          },
+          "draw_for_stew": {
+            "label": "찌개 물을 받으려고 수도를 틀어 싱크대에 물을 받는다",
+            "verb": "fill",
+            "needs": [],
+            "when": [
+              "OBJ000020|basin:water@=none",
+              "OBJ000031|pot:soup@=none",
+              "OBJ000031|pot:water@=none",
+              "OBJ000031|body:dirt@<=dust"
+            ],
+            "during": [
+              "meal"
+            ],
+            "menu": "doenjang_jjigae",
+            "effect": [
+              "OBJ000020|basin:water@=full"
+            ],
+            "minutes": 2,
+            "tuned": false
+          },
+          "draw_for_dishes": {
+            "label": "설거지하려고 수도를 틀어 싱크대에 물을 받는다",
+            "verb": "fill",
+            "needs": [],
+            "when": [
+              "OBJ000020|basin:water@=none",
+              "OBJ000031|pot:soup@=none",
+              "OBJ000031|body:dirt@>=dirty"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000020|basin:water@=full"
+            ],
+            "minutes": 2,
+            "tuned": false
+          }
+        },
+        "initial": {
+          "basin:water": "none"
+        }
+      },
+      {
+        "id": "OBJ000021",
+        "mobility": "fixed",
+        "slots": {
+          "body": {
+            "features": [
+              "order"
+            ]
+          },
+          "cooling": {
+            "features": [
+              "power"
+            ]
+          },
+          "door": {
+            "features": [
+              "door"
+            ]
+          }
+        },
+        "names": {
+          "ko": "냉장고",
+          "en": "refrigerator"
+        },
+        "is_a": "OBJ000022",
+        "rules": {
+          "dies": {
+            "label": "망가지면 꺼진다",
+            "on": [
+              "OBJ000021|body:order@=broken"
+            ],
+            "emits": [
+              "OBJ000021|cooling:power@<=off"
+            ]
+          },
+          "back_on": {
+            "label": "고쳐지고 전기가 들어오면 다시 켜진다",
+            "on": [
+              "OBJ000021|cooling:power@=off",
+              "OBJ000021|body:order@=ok",
+              "PLC000002|grid:grid_electric@=normal"
+            ],
+            "emits": [
+              "OBJ000021|cooling:power@>=on"
+            ],
+            "linked": true
+          },
+          "warm_off": {
+            "label": "꺼져 있으면 두 시간 뒤 음식이 실온이 된다",
+            "on": [
+              "OBJ000021|cooling:power@=off"
+            ],
+            "emits": [
+              "OBJ000001|cond:temp@>=mild_room"
+            ],
+            "delay_s": 7200,
+            "tuned": false,
+            "linked": true
+          },
+          "warm_door": {
+            "label": "문이 열려 있으면 한 시간 뒤 음식이 실온이 된다",
+            "on": [
+              "OBJ000021|door:door@=open"
+            ],
+            "emits": [
+              "OBJ000001|cond:temp@>=mild_room"
+            ],
+            "delay_s": 3600,
+            "tuned": false,
+            "linked": true
+          },
+          "rechill": {
+            "label": "켜져 있고 문이 닫혀 있으면 한 시간 뒤 음식이 다시 차가워진다",
+            "on": [
+              "OBJ000021|cooling:power@=on",
+              "OBJ000021|door:door@=closed"
+            ],
+            "emits": [
+              "OBJ000001|cond:temp@<=fridge"
+            ],
+            "delay_s": 3600,
+            "tuned": false,
+            "linked": true
+          }
+        },
+        "offers": {
+          "close_door": {
+            "label": "열린 냉장고 문을 닫는다",
+            "verb": "close",
+            "needs": [],
+            "when": [
+              "OBJ000021|door:door@=open"
+            ],
+            "effect": [
+              "OBJ000021|door:door@=closed"
+            ],
+            "minutes": 1,
+            "tuned": false
+          }
+        },
+        "initial": {
+          "cooling:power": "on"
+        }
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {},
+  "mapped": [],
+  "report": {
+    "why": "찌개와 설거지의 물 받기 (작가 2026-11-08): 싱크대의 물 받기는 밥솥에 묶여 있어서, 된장찌개를 끓일 때(빈 깨끗한 냄비)와 먹고 난 설거지(더러운 빈 냄비)에 받는 행동을 따로 둔다. 수치는 임시값(tuned:false).",
+    "scope": {
+      "added": {},
+      "updated": {
+        "object": [
+          {
+            "id": "OBJ000020",
+            "fields": [
+              "mobility",
+              "slots",
+              "names",
+              "is_a",
+              "rules",
+              "offers",
+              "initial"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

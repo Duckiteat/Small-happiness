@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "데우기·튀기기는 상하지 않은 치킨만 한다 (decay가 turned 이하). 나머지는 그대로다.",
+  "why": "불 끄기·먹기·설거지도 된장찌개를 만드는 끼니의 단계로 둔다 (한 끼에 한 번). 메뉴가 없으면 같은 앎에서 되풀이하지 않는 규칙 때문에 이튿날 같은 상황에서 불을 끄지 않고 설거지하지 않았다 (시나리오로 확인).",
   "defs": [
     {
       "id": "OBJ000022",
@@ -560,6 +560,44 @@
           ],
           "minutes": 10,
           "tuned": false
+        },
+        "ignite_stew": {
+          "label": "된장찌개를 끓이려고 가스레인지에 불을 붙인다",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@>=plain",
+            "OBJ000031|pot:soup@<stew",
+            "OBJ000019|burner:flame@=out",
+            "OBJ000019|body:order@=ok"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "minutes": 1,
+          "tuned": false,
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae"
+        },
+        "extinguish_stew": {
+          "label": "찌개가 다 되면 불을 끈다",
+          "verb": "extinguish",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=stew",
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=out"
+          ],
+          "minutes": 1,
+          "tuned": false,
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae"
         }
       },
       "is_a": "OBJ000023"
@@ -625,6 +663,67 @@
           ],
           "minutes": 2,
           "tuned": false
+        },
+        "wash_dishes": {
+          "label": "먹고 난 뒤 받아 둔 물로 냄비·칼·도마를 설거지한다",
+          "verb": "wash",
+          "needs": [],
+          "when": [
+            "OBJ000031|body:dirt@>=dirty",
+            "OBJ000031|pot:soup@=none",
+            "OBJ000020|basin:water@>=some"
+          ],
+          "effect": [
+            "OBJ000031|body:dirt@=clean",
+            "OBJ000029|body:dirt@=clean",
+            "OBJ000030|body:dirt@=clean",
+            "OBJ000020|basin:water@=none"
+          ],
+          "minutes": 10,
+          "tuned": false,
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae"
+        },
+        "draw_for_stew": {
+          "label": "찌개 물을 받으려고 수도를 틀어 싱크대에 물을 받는다",
+          "verb": "fill",
+          "needs": [],
+          "when": [
+            "OBJ000020|basin:water@=none",
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|pot:water@=none",
+            "OBJ000031|body:dirt@<=dust"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "effect": [
+            "OBJ000020|basin:water@=full"
+          ],
+          "minutes": 2,
+          "tuned": false
+        },
+        "draw_for_dishes": {
+          "label": "설거지하려고 수도를 틀어 싱크대에 물을 받는다",
+          "verb": "fill",
+          "needs": [],
+          "when": [
+            "OBJ000020|basin:water@=none",
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|body:dirt@>=dirty"
+          ],
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000020|basin:water@=full"
+          ],
+          "minutes": 2,
+          "tuned": false,
+          "menu": "doenjang_jjigae"
         }
       },
       "is_a": "OBJ000024"

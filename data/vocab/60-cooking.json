@@ -1,0 +1,164 @@
+[
+  {
+    "category": "feature",
+    "entries": [
+      {
+        "key": "amount",
+        "ko": "남은 양",
+        "en": "amount",
+        "desc": "재료가 남은 정도. 요리가 한 번에 몇 칸씩 쓴다(행동의 uses). 칸 사이의 실제 양(숟갈·g)은 정하지 않았다 (임시, 요리-설계 3장)",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "little",
+              "ko": "조금"
+            },
+            {
+              "key": "half",
+              "ko": "반"
+            },
+            {
+              "key": "plenty",
+              "ko": "넉넉"
+            },
+            {
+              "key": "full",
+              "ko": "가득"
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "soup",
+        "ko": "국물",
+        "en": "soup",
+        "desc": "냄비 속 국물의 단계: 맹물에 국물 재료를 넣어 우리면 육수가 되고, 된장을 풀고 건더기를 넣어 끓이면 찌개가 된다 (요리-설계 3장)",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "plain",
+              "ko": "맹물"
+            },
+            {
+              "key": "steeping",
+              "ko": "우리는 중"
+            },
+            {
+              "key": "broth",
+              "ko": "육수"
+            },
+            {
+              "key": "seasoned",
+              "ko": "된장 풂"
+            },
+            {
+              "key": "stew",
+              "ko": "찌개"
+            }
+          ]
+        }
+      },
+      {
+        "key": "filling",
+        "ko": "건더기",
+        "en": "filling",
+        "desc": "냄비에 넣은 건더기가 어디까지 들어갔는지: 채소 → 두부 → 대파 순서로 넣는다",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "veg",
+              "ko": "채소"
+            },
+            {
+              "key": "tofu",
+              "ko": "두부까지"
+            },
+            {
+              "key": "scallion",
+              "ko": "대파까지"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "category": "action",
+    "entries": [
+      {
+        "key": "slice",
+        "ko": "썰기",
+        "en": "slice",
+        "aliases": [
+          "칼질"
+        ],
+        "desc": "칼과 도마로 재료를 썬다. 재료의 가공이 오르고 칼과 도마가 더러워진다"
+      },
+      {
+        "key": "add",
+        "ko": "넣기",
+        "en": "add",
+        "desc": "재료를 냄비에 넣는다. 재료의 남은 양이 줄고 냄비의 국물·건더기가 바뀐다"
+      },
+      {
+        "key": "wash",
+        "ko": "설거지",
+        "en": "wash",
+        "aliases": [
+          "씻기"
+        ],
+        "desc": "싱크대에 받은 물로 더러워진 도구를 씻는다. 물은 배수로 사라진다"
+      },
+      {
+        "key": "eat",
+        "ko": "먹기",
+        "en": "eat",
+        "desc": "만든 음식을 먹는다. 그릇이 비고 더러워진다"
+      },
+      {
+        "key": "extinguish",
+        "ko": "불 끄기",
+        "en": "extinguish",
+        "desc": "다 된 요리의 불을 끈다"
+      }
+    ]
+  },
+  {
+    "category": "menu",
+    "entries": [
+      {
+        "key": "doenjang_jjigae",
+        "ko": "된장찌개",
+        "en": "doenjang stew",
+        "desc": "첫 끓임 요리 (요리-설계). 멸치 육수 → 된장 풀기 → 채소 → 두부 → 대파. 일반적인 순서이며 시간은 임시값"
+      }
+    ]
+  }
+]

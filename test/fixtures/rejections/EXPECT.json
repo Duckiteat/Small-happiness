@@ -214,5 +214,21 @@
   "linked-no-other.json": {
     "stage": "gate",
     "match": "걸 대상이 없는 범위"
+  },
+  "uses-with-cond.json": {
+    "stage": "gate",
+    "match": "쓰는 양에는 단계 조건을 쓰지 않는다"
+  },
+  "uses-too-many-steps.json": {
+    "stage": "gate",
+    "match": "한 번도 쓸 수 없다"
+  },
+  "uses-bad-shape.json": {
+    "stage": "gate",
+    "match": "uses는 { key, steps } 목록"
+  },
+  "menu-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 메뉴"
   }
 }

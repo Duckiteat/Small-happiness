@@ -3,6 +3,7 @@
 // 병합 결과가 규칙을 어기면 패치 전체를 거부한다. 새 오류가 없어도 새 경고가 생기면 거부하고,
 // 경고는 allowWarnings로만 통과시킬 수 있다 (사용자 허락이 있을 때).
 
+import { openLadder } from './amount.ts';
 import { DEF_PREFIXES, parseId } from './ids.ts';
 import { PREFIX_KIND } from './db.ts';
 import type { Db, Definition, Issue } from './db.ts';
@@ -168,7 +169,7 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
       if (a === undefined) continue;
       const inherited = [
         ...Object.values(a.rules ?? {}).flatMap((r) => [...r.on, ...(r.on_all ?? []), ...r.emits]),
-        ...Object.values(a.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect]),
+        ...Object.values(a.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect, ...(o.uses ?? []).map((u) => u.key)]),
       ];
       const need = new Set<string>();
       for (const text of inherited) {
@@ -319,6 +320,18 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
         const target = db.defs[p.def];
         if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
         slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
+      });
+      if (offer.menu !== undefined && !vocab.has('menu', offer.menu)) error(`${at}.menu`, `사전에 없는 메뉴: ${offer.menu}`);
+      (offer.uses ?? []).forEach((u, i) => {
+        const w = `${at}.uses[${i}]`;
+        const p = parsePattern(u.key);
+        if (p === null) return void error(w, `패턴 형식이 아니다 (번호로 쓴다): ${u.key}`);
+        if (p.cond !== null) error(w, `쓰는 양에는 단계 조건을 쓰지 않는다 (steps칸 내린다): ${u.key}`);
+        const target = db.defs[p.def];
+        if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
+        slotCheck(target, p.slot, p.feature, null, vocab, w, error);
+        const open = openLadder(vocab, p.feature).length;
+        if (u.steps >= open) error(w, `쓰는 양(${u.steps}칸)이 사다리의 열린 칸(${open}칸)으로 한 번도 쓸 수 없다`);
       });
       offer.effect.forEach((text, i) => {
         const w = `${at}.effect[${i}]`;

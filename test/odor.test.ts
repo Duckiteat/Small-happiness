@@ -63,7 +63,7 @@ test('사슬: 단계마다 균주 → 화합물 → 냄새가 계산되고 가�
 
 test('규칙: 원인 특징과 종류 특징을 둘 다 가진 정의마다 단계별 규칙이 만들어지고, 근거(via)로 찾을 수 있다', () => {
   const rules = odorRules(db, vocab);
-  assert.equal(rules.length, 39, '부패 3단계 × 4 + 시어짐 2 × 2 + 익음 2 × 1 + 시듦 1 × 3 + 곰팡이 1 × 7 + 양파 4 + 애호박 4 + 된장 3');
+  assert.equal(rules.length, 42, '부패 3단계 × 4 + 시어짐 2 × 2 + 익음 2 × 1 + 시듦 1 × 3 + 곰팡이 1 × 7 + 양파 4 + 애호박 4 + 된장 3 + 국물용 멸치(부패) 3');
   assert.equal(Object.values(db.defs).filter((d) => d.is_a === 'OBJ000001').flatMap((d) => Object.values(d.rules ?? {})).filter((r) => r.emits.some((e) => e.includes(':smell@'))).length, 0, '음식마다 복사하던 냄새 세기 손규칙은 이제 없다 (식는 규칙 같은 다른 규칙은 둘 수 있다)');
   assert.ok(rules.every((r) => r.delayMin === 0 && r.owner === r.def && r.onAll.length === 0));
   assert.equal(rules.some((r) => r.def === 'OBJ000001' || r.def.startsWith('PLC')), false, '종류(음식)와 장소에는 만들지 않는다');

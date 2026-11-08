@@ -10,8 +10,11 @@
 // 본 적 없는 상태는 살 때의 상태(initial)로, 그것도 없으면 사다리 0칸으로 믿는다. 앎이 낡으면 판단도 낡는다.
 // 다만 결과가 이미 세계에서 이루어졌는지(버린 것을 또 버리지 않기)는 몸이 하는 일이라 세계로 본다.
 //
+// 요리법의 단계(offer.menu)는 그 구간의 일정이 그 메뉴를 만들 때에만 후보가 된다. 쓰는 양(offer.uses)은 세계의 남은 양에서 칸을 내린다.
+//
 // 고르는 방식 (기본안, 18번 점수 매기기 전까지): 할 수 있는 후보 중 정의 번호·행동 키 순서로 첫 번째. 난수 없음.
 
+import { stepDown } from './amount.ts';
 import { levelMatches, stateMatches } from './causal.ts';
 import type { BoardValue } from './board.ts';
 import { formatVia } from './via.ts';
@@ -22,6 +25,7 @@ import { meaningOf } from './meaning.ts';
 import type { EventLog } from './log.ts';
 import type { AwareMap } from './perception.ts';
 import { isObserved } from './schedule.ts';
+import type { MealMenu } from './schedule.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
@@ -88,7 +92,7 @@ export class Agency {
   }
 
   /** 한 단계의 행동 선택. 고르지 않으면 빈 목록. */
-  step(world: World, t: number, presence: string, aware: AwareMap): RecentAction[] {
+  step(world: World, t: number, presence: string, aware: AwareMap, meal?: MealMenu): RecentAction[] {
     if (!isObserved(this.#vocab, presence) || t < this.#busyUntil) return [];
     const instances = world.instances();
     const who = instances.find((i) => i.startsWith('CHR'));
@@ -123,6 +127,7 @@ export class Agency {
       for (const { owner, key, item: offer } of effectiveOffers(this.#db, def)) {
         for (const at of instances.filter((i) => world.defOfInstance(i) === def)) {
           if (offer.during !== undefined && !offer.during.includes(presence)) continue; // 정해진 시간에만 하는 행동 (요리는 식사 준비 시간)
+          if (offer.menu !== undefined && offer.menu !== meal?.menu) continue; // 요리법의 단계는 일정이 그 메뉴를 만들 때에만
           const targets = (p: StatePattern): string[] =>
             (p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def)).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
           const needs = offer.needs.map((n) => ({ keys: targets(pattern(n.aware)), min: rank(n.at_least) }));
@@ -143,9 +148,18 @@ export class Agency {
             return targets(p).map((k) => ({ key: k, feature: p.feature, cond: p.cond }));
           });
           if (effects.length > 0 && effects.every((e) => stateMatches(world, this.#vocab, e.key, e.feature, e.cond))) continue;
+          // 쓰는 양: 남은 양은 몸이 보는 것이라 세계로 본다. 모자라면 하지 않고, 있으면 steps칸 내린 단계가 결과에 더해진다
+          const used = (offer.uses ?? []).flatMap((u) => {
+            const p = pattern(u.key);
+            return targets(p).map((k) => ({ key: k, to: stepDown(this.#vocab, p.feature, world.level(k), u.steps) }));
+          });
+          if (used.some((u) => u.to === null)) continue;
           // 같은 앎에서는 되풀이하지 않는다: 필요한 앎과 그 물건에 대한 앎(본 단계)이 바뀌면 다시 할 수 있다
           const knowing = (k: string): string => `${knows[k]?.aw ?? 'unknown'}:${knows[k]?.level ?? ''}`;
-          const signature = `${owner}/${key}@${at}|${JSON.stringify([needs.map((n) => n.keys.map(knowing)), world.keysOf(at).map(knowing)])}`;
+          // 요리법의 단계는 한 끼(일정 구간)에 한 번: 끝나고 시간이 남아도 같은 메뉴를 다시 만들지 않는다
+          const signature = offer.menu !== undefined
+            ? `${owner}/${key}@${at}|meal@${meal?.from ?? ''}`
+            : `${owner}/${key}@${at}|${JSON.stringify([needs.map((n) => n.keys.map(knowing)), world.keysOf(at).map(knowing)])}`;
           if (this.#tried.has(signature)) continue;
 
           this.#tried.add(signature);
@@ -157,7 +171,7 @@ export class Agency {
             ...when.flatMap((p) => targets(p).filter((k) => levelMatches(this.#vocab, p.feature, believed(k), p.cond)).map((k) => knows[k]?.seq)),
             ...(offer.when_meaning !== undefined ? world.keysOf(at).map((k) => knows[k]?.seq) : []),
           ]);
-          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends } });
+          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends, ...(offer.menu !== undefined ? { menu: offer.menu, meal: meal?.from ?? null } : {}) } });
           return [
             {
               event: e.seq,
@@ -166,7 +180,10 @@ export class Agency {
               via: formatVia(owner, 'offer', key),
               at,
               ends,
-              effects: effects.map((x) => ({ key: x.key, op: x.cond?.op ?? '=', level: x.cond?.level ?? '' })),
+              effects: [
+                ...effects.map((x) => ({ key: x.key, op: x.cond?.op ?? '=', level: x.cond?.level ?? '' })),
+                ...used.map((u) => ({ key: u.key, op: '=', level: u.to ?? '' })),
+              ],
               ...(offer.reveals === true ? { reveals: at } : {}),
             },
           ];

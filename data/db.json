@@ -11,7 +11,7 @@
       "FRG": 1,
       "HAB": 1,
       "ITM": 1,
-      "OBJ": 29,
+      "OBJ": 33,
       "PLC": 7,
       "RUL": 1
     }
@@ -426,7 +426,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -452,7 +453,31 @@
         }
       ],
       "rules": {},
-      "offers": {},
+      "offers": {
+        "slice_for_stew": {
+          "label": "두부를 깍둑 썬다 (된장찌개)",
+          "verb": "slice",
+          "needs": [],
+          "when": [
+            "OBJ000003|cond:cut@=whole",
+            "OBJ000003|cond:amount@>=little",
+            "OBJ000029|body:dirt@<=dirty",
+            "OBJ000030|body:dirt@<=dirty"
+          ],
+          "when_meaning": "edible",
+          "effect": [
+            "OBJ000003|cond:cut@>=sliced",
+            "OBJ000029|body:dirt@>=dirty",
+            "OBJ000030|body:dirt@>=dirty"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 3,
+          "tuned": false
+        }
+      },
       "progress": {
         "decay": {
           "base_s": 1468800
@@ -462,6 +487,7 @@
         }
       },
       "initial": {
+        "cond:amount": "full",
         "cond:cut": "whole",
         "cond:moisture": "liquid",
         "cond:seal": "sealed",
@@ -996,7 +1022,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -1015,12 +1042,38 @@
         }
       ],
       "rules": {},
+      "offers": {
+        "slice_for_stew": {
+          "label": "대파를 송송 썬다 (된장찌개)",
+          "verb": "slice",
+          "needs": [],
+          "when": [
+            "OBJ000011|cond:cut@=whole",
+            "OBJ000011|cond:amount@>=little",
+            "OBJ000029|body:dirt@<=dirty",
+            "OBJ000030|body:dirt@<=dirty"
+          ],
+          "when_meaning": "edible",
+          "effect": [
+            "OBJ000011|cond:cut@>=sliced",
+            "OBJ000029|body:dirt@>=dirty",
+            "OBJ000030|body:dirt@>=dirty"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 3,
+          "tuned": false
+        }
+      },
       "progress": {
         "wilt": {
           "base_s": 4492800
         }
       },
       "initial": {
+        "cond:amount": "full",
         "cond:cut": "whole",
         "cond:moisture": "dry",
         "cond:seal": "open",
@@ -1387,6 +1440,24 @@
         }
       },
       "offers": {
+        "extinguish_stew": {
+          "label": "찌개가 다 되면 불을 끈다",
+          "verb": "extinguish",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=stew",
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=out"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 1,
+          "tuned": false
+        },
         "fry_chicken": {
           "label": "전자레인지가 망가져 남은 치킨을 튀겨 데운다",
           "verb": "fry",
@@ -1462,6 +1533,26 @@
           ],
           "minutes": 1,
           "tuned": false
+        },
+        "ignite_stew": {
+          "label": "된장찌개를 끓이려고 가스레인지에 불을 붙인다",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@>=plain",
+            "OBJ000031|pot:soup@<stew",
+            "OBJ000019|burner:flame@=out",
+            "OBJ000019|body:order@=ok"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 1,
+          "tuned": false
         }
       },
       "initial": {
@@ -1528,6 +1619,67 @@
             "meal"
           ],
           "minutes": 2,
+          "tuned": false
+        },
+        "draw_for_dishes": {
+          "label": "설거지하려고 수도를 틀어 싱크대에 물을 받는다",
+          "verb": "fill",
+          "needs": [],
+          "when": [
+            "OBJ000020|basin:water@=none",
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|body:dirt@>=dirty"
+          ],
+          "effect": [
+            "OBJ000020|basin:water@=full"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 2,
+          "tuned": false
+        },
+        "draw_for_stew": {
+          "label": "찌개 물을 받으려고 수도를 틀어 싱크대에 물을 받는다",
+          "verb": "fill",
+          "needs": [],
+          "when": [
+            "OBJ000020|basin:water@=none",
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|pot:water@=none",
+            "OBJ000031|body:dirt@<=dust"
+          ],
+          "effect": [
+            "OBJ000020|basin:water@=full"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 2,
+          "tuned": false
+        },
+        "wash_dishes": {
+          "label": "먹고 난 뒤 받아 둔 물로 냄비·칼·도마를 설거지한다",
+          "verb": "wash",
+          "needs": [],
+          "when": [
+            "OBJ000031|body:dirt@>=dirty",
+            "OBJ000031|pot:soup@=none",
+            "OBJ000020|basin:water@>=some"
+          ],
+          "effect": [
+            "OBJ000031|body:dirt@=clean",
+            "OBJ000029|body:dirt@=clean",
+            "OBJ000030|body:dirt@=clean",
+            "OBJ000020|basin:water@=none"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 10,
           "tuned": false
         }
       },
@@ -1850,7 +2002,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -1885,6 +2038,7 @@
         }
       },
       "initial": {
+        "cond:amount": "full",
         "cond:cut": "whole",
         "cond:moisture": "thick",
         "cond:seal": "half",
@@ -1918,7 +2072,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -1944,6 +2099,31 @@
         }
       ],
       "rules": {},
+      "offers": {
+        "slice_for_stew": {
+          "label": "양파를 썬다 (된장찌개)",
+          "verb": "slice",
+          "needs": [],
+          "when": [
+            "OBJ000027|cond:cut@=whole",
+            "OBJ000027|cond:amount@>=little",
+            "OBJ000029|body:dirt@<=dirty",
+            "OBJ000030|body:dirt@<=dirty"
+          ],
+          "when_meaning": "edible",
+          "effect": [
+            "OBJ000027|cond:cut@>=sliced",
+            "OBJ000029|body:dirt@>=dirty",
+            "OBJ000030|body:dirt@>=dirty"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 3,
+          "tuned": false
+        }
+      },
       "progress": {
         "decay": {
           "base_s": 2592000
@@ -1953,6 +2133,7 @@
         }
       },
       "initial": {
+        "cond:amount": "full",
         "cond:cut": "whole",
         "cond:moisture": "dry",
         "cond:seal": "open",
@@ -1986,7 +2167,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -2012,6 +2194,31 @@
         }
       ],
       "rules": {},
+      "offers": {
+        "slice_for_stew": {
+          "label": "애호박을 썬다 (된장찌개)",
+          "verb": "slice",
+          "needs": [],
+          "when": [
+            "OBJ000028|cond:cut@=whole",
+            "OBJ000028|cond:amount@>=little",
+            "OBJ000029|body:dirt@<=dirty",
+            "OBJ000030|body:dirt@<=dirty"
+          ],
+          "when_meaning": "edible",
+          "effect": [
+            "OBJ000028|cond:cut@>=sliced",
+            "OBJ000029|body:dirt@>=dirty",
+            "OBJ000030|body:dirt@>=dirty"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 3,
+          "tuned": false
+        }
+      },
       "progress": {
         "decay": {
           "base_s": 1555200
@@ -2021,6 +2228,7 @@
         }
       },
       "initial": {
+        "cond:amount": "full",
         "cond:cut": "whole",
         "cond:moisture": "dry",
         "cond:seal": "open",
@@ -2028,6 +2236,350 @@
       },
       "desc": [
         "통째로 냉장한 애호박"
+      ]
+    },
+    "OBJ000029": {
+      "id": "OBJ000029",
+      "names": {
+        "ko": "칼",
+        "en": "knife"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "role": "plain",
+      "slots": {
+        "body": {
+          "features": [
+            "dirt"
+          ]
+        }
+      },
+      "initial": {
+        "body:dirt": "clean"
+      },
+      "desc": [
+        "재료를 써는 칼. 썰면 더러워지고 설거지로 깨끗해진다"
+      ]
+    },
+    "OBJ000030": {
+      "id": "OBJ000030",
+      "names": {
+        "ko": "도마",
+        "en": "cutting board"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "role": "plain",
+      "slots": {
+        "body": {
+          "features": [
+            "dirt"
+          ]
+        }
+      },
+      "initial": {
+        "body:dirt": "clean"
+      },
+      "desc": [
+        "재료를 써는 도마. 썰면 더러워지고 설거지로 깨끗해진다"
+      ]
+    },
+    "OBJ000031": {
+      "id": "OBJ000031",
+      "names": {
+        "ko": "냄비",
+        "en": "pot"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "role": "plain",
+      "holds": [
+        "water"
+      ],
+      "slots": {
+        "body": {
+          "features": [
+            "dirt"
+          ]
+        },
+        "pot": {
+          "features": [
+            "water",
+            "soup",
+            "filling"
+          ]
+        }
+      },
+      "rules": {
+        "make_broth": {
+          "label": "멸치를 넣은 물이 불 위에서 10분 끓으면 육수가 된다",
+          "on": [
+            "OBJ000031|pot:soup@=steeping",
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "emits": [
+            "OBJ000031|pot:soup@>=broth"
+          ],
+          "delay_s": 600,
+          "tuned": false,
+          "linked": true
+        },
+        "simmer": {
+          "label": "된장을 풀고 건더기를 다 넣은 국물이 불 위에서 5분 끓으면 찌개가 되고 주방에 구수한 냄새가 난다",
+          "on": [
+            "OBJ000031|pot:soup@=seasoned",
+            "OBJ000031|pot:filling@=scallion",
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "emits": [
+            "OBJ000031|pot:soup@>=stew",
+            "PLC000002|space:smell@>=distinct",
+            "PLC000002|space:odor@>=savory"
+          ],
+          "delay_s": 300,
+          "tuned": false,
+          "linked": true
+        }
+      },
+      "offers": {
+        "add_anchovy": {
+          "label": "불 위의 맹물에 국물용 멸치를 넣는다",
+          "verb": "add",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=plain",
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "effect": [
+            "OBJ000031|pot:soup@=steeping"
+          ],
+          "during": [
+            "meal"
+          ],
+          "uses": [
+            {
+              "key": "OBJ000032|cond:amount",
+              "steps": 1
+            }
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 1,
+          "tuned": false
+        },
+        "add_doenjang": {
+          "label": "육수에 된장을 푼다",
+          "verb": "add",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=broth"
+          ],
+          "effect": [
+            "OBJ000031|pot:soup@=seasoned"
+          ],
+          "during": [
+            "meal"
+          ],
+          "uses": [
+            {
+              "key": "OBJ000026|cond:amount",
+              "steps": 1
+            }
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 2,
+          "tuned": false
+        },
+        "add_scallion": {
+          "label": "송송 썬 대파를 조금 넣는다",
+          "verb": "add",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:filling@=tofu",
+            "OBJ000011|cond:cut@>=sliced"
+          ],
+          "effect": [
+            "OBJ000031|pot:filling@=scallion"
+          ],
+          "during": [
+            "meal"
+          ],
+          "uses": [
+            {
+              "key": "OBJ000011|cond:amount",
+              "steps": 1
+            }
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 1,
+          "tuned": false
+        },
+        "add_tofu": {
+          "label": "깍둑 썬 두부를 반 모 넣는다",
+          "verb": "add",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:filling@=veg",
+            "OBJ000003|cond:cut@>=sliced"
+          ],
+          "effect": [
+            "OBJ000031|pot:filling@=tofu"
+          ],
+          "during": [
+            "meal"
+          ],
+          "uses": [
+            {
+              "key": "OBJ000003|cond:amount",
+              "steps": 2
+            }
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 1,
+          "tuned": false
+        },
+        "add_veg": {
+          "label": "썰어 둔 양파와 애호박을 반씩 넣는다",
+          "verb": "add",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=seasoned",
+            "OBJ000031|pot:filling@=none",
+            "OBJ000027|cond:cut@>=sliced",
+            "OBJ000028|cond:cut@>=sliced"
+          ],
+          "effect": [
+            "OBJ000031|pot:filling@=veg"
+          ],
+          "during": [
+            "meal"
+          ],
+          "uses": [
+            {
+              "key": "OBJ000027|cond:amount",
+              "steps": 2
+            },
+            {
+              "key": "OBJ000028|cond:amount",
+              "steps": 2
+            }
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 1,
+          "tuned": false
+        },
+        "eat": {
+          "label": "다 된 찌개를 먹는다. 냄비가 비고 더러워진다",
+          "verb": "eat",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=stew",
+            "OBJ000019|burner:flame@=out"
+          ],
+          "effect": [
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|pot:filling@=none",
+            "OBJ000031|pot:water@=none",
+            "OBJ000031|body:dirt@>=dirty"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 20,
+          "tuned": false
+        },
+        "pour_water": {
+          "label": "싱크대에 받은 물을 깨끗한 냄비에 붓는다 (된장찌개)",
+          "verb": "fill",
+          "needs": [],
+          "when": [
+            "OBJ000031|pot:soup@=none",
+            "OBJ000031|pot:water@=none",
+            "OBJ000031|body:dirt@<=dust",
+            "OBJ000020|basin:water@>=some"
+          ],
+          "effect": [
+            "OBJ000031|pot:water@=full",
+            "OBJ000031|pot:soup@=plain",
+            "OBJ000020|basin:water@=none"
+          ],
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "minutes": 2,
+          "tuned": false
+        }
+      },
+      "initial": {
+        "body:dirt": "clean",
+        "pot:filling": "none",
+        "pot:soup": "none",
+        "pot:water": "none"
+      },
+      "desc": [
+        "국·찌개를 끓이는 냄비. 가스레인지 위에 놓여야 불이 국물을 끓인다 (규칙의 linked)"
+      ]
+    },
+    "OBJ000032": {
+      "id": "OBJ000032",
+      "names": {
+        "ko": "국물용 멸치",
+        "en": "dried anchovy"
+      },
+      "is_a": "OBJ000001",
+      "aliases": [
+        "멸치"
+      ],
+      "mobility": "portable",
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "decay",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat",
+            "amount"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {
+        "decay": {
+          "base_s": 15552000
+        }
+      },
+      "initial": {
+        "cond:amount": "full",
+        "cond:cut": "whole",
+        "cond:moisture": "dry",
+        "cond:seal": "half",
+        "cond:temp": "fridge"
+      },
+      "desc": [
+        "말린 국물용 멸치 한 봉지. 냉장 보관 기간은 일반적인 대략값의 임시값"
       ]
     },
     "PLC000001": {

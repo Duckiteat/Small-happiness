@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "가열로 시계가 다시 시작된다(상하기 전 음식만): 모든 음식에 가열 온도(heat)를 두고 식는 규칙을 음식 종류로 올린다. 발효 음식 종류와 된장·양파·애호박을 더한다 (된장찌개 재료: 된장, 대파, 양파, 애호박, 두부). 김치와 요거트는 발효 음식이다. 수치(보관 기간)는 일반적인 값의 임시값이다.",
+  "why": "된장찌개 재료 (작가 2026-11-08): 된장·양파·애호박·두부·대파에 남은 양(amount)을 두고, 된장찌개를 만드는 날에만 칼과 도마로 썬다. 썰면 칼과 도마가 더러워진다. 수치는 임시값(tuned:false).",
   "defs": [
     {
       "id": "OBJ000001",
@@ -386,7 +386,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -412,7 +413,31 @@
         }
       ],
       "rules": {},
-      "offers": {},
+      "offers": {
+        "slice_for_stew": {
+          "label": "두부를 깍둑 썬다 (된장찌개)",
+          "verb": "slice",
+          "needs": [],
+          "when": [
+            "OBJ000003|cond:cut@=whole",
+            "OBJ000003|cond:amount@>=little",
+            "OBJ000029|body:dirt@<=dirty",
+            "OBJ000030|body:dirt@<=dirty"
+          ],
+          "effect": [
+            "OBJ000003|cond:cut@>=sliced",
+            "OBJ000029|body:dirt@>=dirty",
+            "OBJ000030|body:dirt@>=dirty"
+          ],
+          "minutes": 3,
+          "tuned": false,
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "when_meaning": "edible"
+        }
+      },
       "progress": {
         "decay": {
           "base_s": 1468800
@@ -425,7 +450,8 @@
         "cond:seal": "sealed",
         "cond:moisture": "liquid",
         "cond:cut": "whole",
-        "cond:temp": "fridge"
+        "cond:temp": "fridge",
+        "cond:amount": "full"
       },
       "desc": [
         "충전수에 담긴 포장 두부"
@@ -940,7 +966,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -968,11 +995,37 @@
         "cond:seal": "open",
         "cond:moisture": "dry",
         "cond:cut": "whole",
-        "cond:temp": "fridge"
+        "cond:temp": "fridge",
+        "cond:amount": "full"
       },
       "desc": [
         "다듬지 않은 대파"
-      ]
+      ],
+      "offers": {
+        "slice_for_stew": {
+          "label": "대파를 송송 썬다 (된장찌개)",
+          "verb": "slice",
+          "needs": [],
+          "when": [
+            "OBJ000011|cond:cut@=whole",
+            "OBJ000011|cond:amount@>=little",
+            "OBJ000029|body:dirt@<=dirty",
+            "OBJ000030|body:dirt@<=dirty"
+          ],
+          "effect": [
+            "OBJ000011|cond:cut@>=sliced",
+            "OBJ000029|body:dirt@>=dirty",
+            "OBJ000030|body:dirt@>=dirty"
+          ],
+          "minutes": 3,
+          "tuned": false,
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "when_meaning": "edible"
+        }
+      }
     },
     {
       "id": "OBJ000025",
@@ -1011,7 +1064,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -1049,7 +1103,8 @@
         "cond:seal": "half",
         "cond:moisture": "thick",
         "cond:cut": "whole",
-        "cond:temp": "fridge"
+        "cond:temp": "fridge",
+        "cond:amount": "full"
       },
       "desc": [
         "발효한 콩 장. 오래 두면 더 익는다"
@@ -1077,7 +1132,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -1115,11 +1171,37 @@
         "cond:seal": "open",
         "cond:moisture": "dry",
         "cond:cut": "whole",
-        "cond:temp": "winter_room"
+        "cond:temp": "winter_room",
+        "cond:amount": "full"
       },
       "desc": [
         "껍질째 실온에 둔 양파"
-      ]
+      ],
+      "offers": {
+        "slice_for_stew": {
+          "label": "양파를 썬다 (된장찌개)",
+          "verb": "slice",
+          "needs": [],
+          "when": [
+            "OBJ000027|cond:cut@=whole",
+            "OBJ000027|cond:amount@>=little",
+            "OBJ000029|body:dirt@<=dirty",
+            "OBJ000030|body:dirt@<=dirty"
+          ],
+          "effect": [
+            "OBJ000027|cond:cut@>=sliced",
+            "OBJ000029|body:dirt@>=dirty",
+            "OBJ000030|body:dirt@>=dirty"
+          ],
+          "minutes": 3,
+          "tuned": false,
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "when_meaning": "edible"
+        }
+      }
     },
     {
       "id": "OBJ000028",
@@ -1143,7 +1225,8 @@
             "moisture",
             "cut",
             "temp",
-            "heat"
+            "heat",
+            "amount"
           ]
         }
       },
@@ -1181,10 +1264,96 @@
         "cond:seal": "open",
         "cond:moisture": "dry",
         "cond:cut": "whole",
-        "cond:temp": "fridge"
+        "cond:temp": "fridge",
+        "cond:amount": "full"
       },
       "desc": [
         "통째로 냉장한 애호박"
+      ],
+      "offers": {
+        "slice_for_stew": {
+          "label": "애호박을 썬다 (된장찌개)",
+          "verb": "slice",
+          "needs": [],
+          "when": [
+            "OBJ000028|cond:cut@=whole",
+            "OBJ000028|cond:amount@>=little",
+            "OBJ000029|body:dirt@<=dirty",
+            "OBJ000030|body:dirt@<=dirty"
+          ],
+          "effect": [
+            "OBJ000028|cond:cut@>=sliced",
+            "OBJ000029|body:dirt@>=dirty",
+            "OBJ000030|body:dirt@>=dirty"
+          ],
+          "minutes": 3,
+          "tuned": false,
+          "during": [
+            "meal"
+          ],
+          "menu": "doenjang_jjigae",
+          "when_meaning": "edible"
+        }
+      }
+    },
+    {
+      "id": "OBJ000032",
+      "is_a": "OBJ000001",
+      "names": {
+        "ko": "국물용 멸치",
+        "en": "dried anchovy"
+      },
+      "aliases": [
+        "멸치"
+      ],
+      "slots": {
+        "body": {
+          "features": [
+            "smell",
+            "decay",
+            "odor"
+          ]
+        },
+        "cond": {
+          "features": [
+            "seal",
+            "moisture",
+            "cut",
+            "temp",
+            "heat",
+            "amount"
+          ]
+        }
+      },
+      "meanings": [
+        {
+          "label": "못 먹음 (부패)",
+          "when": [
+            "body:decay@>=spoiled"
+          ],
+          "means": "inedible"
+        },
+        {
+          "label": "먹을 수 있음",
+          "when": [],
+          "means": "edible"
+        }
+      ],
+      "rules": {},
+      "progress": {
+        "decay": {
+          "base_s": 15552000
+        }
+      },
+      "initial": {
+        "cond:seal": "half",
+        "cond:moisture": "dry",
+        "cond:cut": "whole",
+        "cond:temp": "fridge",
+        "cond:amount": "full"
+      },
+      "desc": [
+        "말린 국물용 멸치 한 봉지. 냉장 보관 기간은 일반적인 대략값의 임시값"
       ]
     }
   ]
