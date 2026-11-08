@@ -14,7 +14,7 @@ import type { GameEvent, JsonValue } from './events.ts';
 import { allRules, levelMatches } from './causal.ts';
 import type { Rule } from './causal.ts';
 import { defOf } from './ids.ts';
-import { rootOf } from './placement.ts';
+import { isLinked, visibleRoot } from './placement.ts';
 import { effectiveInitial, effectiveOffers, effectiveProgress, kindMembers } from './kinds.ts';
 import { formatStateKey, parsePattern, parseStateKey } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
@@ -99,16 +99,16 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const keyOf = (p: StatePattern, instance: string): string => formatStateKey({ subject: instance, slot: p.slot, feature: p.feature });
   const matches = (state: ReadonlyMap<string, string>, p: StatePattern, instance: string): boolean => levelMatches(vocab, p.feature, levelIn(state, keyOf(p, instance)), p.cond);
   /** 패턴이 걸리는 인스턴스: 선언한 정의면 그 인스턴스 하나, 아니면 그 정의의 종류 전부 (번호 순). */
-  const targets = (p: StatePattern, owner: string, at: string): string[] =>
-    p.def === owner ? [at] : [...instances.keys()].sort().filter((i) => kindOf(p.def).has(instances.get(i) ?? ''));
+  const targets = (p: StatePattern, rule: { readonly owner: string; readonly linked?: boolean }, at: string): string[] =>
+    p.def === rule.owner ? [at] : [...instances.keys()].sort().filter((i) => kindOf(p.def).has(instances.get(i) ?? '') && (rule.linked !== true || isLinked(placeMap, i, at)));
   const holds = (state: ReadonlyMap<string, string>, rule: Rule, at: string): boolean =>
-    rule.on.every((p) => targets(p, rule.owner, at).some((i) => matches(state, p, i))) &&
-    rule.onAll.every((p) => targets(p, rule.owner, at).every((i) => matches(state, p, i)));
+    rule.on.every((p) => targets(p, rule, at).some((i) => matches(state, p, i))) &&
+    rule.onAll.every((p) => targets(p, rule, at).every((i) => matches(state, p, i)));
   const isTerminal = (state: ReadonlyMap<string, string>, key: string, feature: string): boolean => ladder(feature).indexOf(levelIn(state, key)) < 0;
   /** emits가 이미 모두 이루어져 있는가 (종결 단계에 걸린 >=·<=은 할 일 없음으로 본다). */
   const done = (state: ReadonlyMap<string, string>, rule: Rule, at: string): boolean =>
     rule.emits.every((p) =>
-      targets(p, rule.owner, at).every((i) => matches(state, p, i) || (p.cond !== null && p.cond.op !== '=' && isTerminal(state, keyOf(p, i), p.feature))),
+      targets(p, rule, at).every((i) => matches(state, p, i) || (p.cond !== null && p.cond.op !== '=' && isTerminal(state, keyOf(p, i), p.feature))),
     );
   /** 결과 요청을 차례로 적용했을 때 생겨야 할 상태 변화 (이미 맞거나 종결 단계에서 >=·<=이면 없음). 같은 키를 두 번 쓰면 두 번 나온다. */
   const expectChanges = (state: ReadonlyMap<string, string>, wanted: readonly { key: string; feature: string; cond: StatePattern['cond'] }[]): Expected[] => {
@@ -260,8 +260,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           'cause',
           e.cause,
           latestSeq([
-            ...rule.on.flatMap((p) => targets(p, rule.owner, at).filter((i) => matches(levels, p, i)).map((i) => lastChangeOf(keyOf(p, i)))),
-            ...rule.onAll.flatMap((p) => targets(p, rule.owner, at).map((i) => lastChangeOf(keyOf(p, i)))),
+            ...rule.on.flatMap((p) => targets(p, rule, at).filter((i) => matches(levels, p, i)).map((i) => lastChangeOf(keyOf(p, i)))),
+            ...rule.onAll.flatMap((p) => targets(p, rule, at).map((i) => lastChangeOf(keyOf(p, i)))),
           ]),
           via,
         );
@@ -295,7 +295,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (e.type === 'delay_fired') {
           batchFired.add(e.seq);
           bump('effects');
-          const wanted = rule.emits.flatMap((p) => targets(p, rule.owner, at).map((i) => ({ key: keyOf(p, i), feature: p.feature, cond: p.cond })));
+          const wanted = rule.emits.flatMap((p) => targets(p, rule, at).map((i) => ({ key: keyOf(p, i), feature: p.feature, cond: p.cond })));
           const expect = expectChanges(levels, wanted);
           if (expect.length > 0) pending = { cause: e.seq, what: `${via} 발화`, expect };
         }
@@ -334,7 +334,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (ends !== e.t + offer.item.minutes) bad(e.seq, 'action', `끝나는 시각이 ${ends}분인데 행동은 ${offer.item.minutes}분 걸려 ${e.t + offer.item.minutes}분이다`);
         const effects = offer.item.effect.flatMap((text) => {
           const p = parsePattern(text);
-          return p === null ? [] : targets(p, pv.owner, at).map((i) => ({ key: keyOf(p, i), feature: p.feature, cond: p.cond }));
+          return p === null ? [] : targets(p, { owner: pv.owner }, at).map((i) => ({ key: keyOf(p, i), feature: p.feature, cond: p.cond }));
         });
         chosen.set(e.seq, { via, who, verb, at, ends, effects });
         // 원인: 이 행동의 조건을 채운 하루씨의 앎(awareness 사건). 어느 앎인지까지는 행동을 고른 이유를 다시 계산해야 안다 (LIM014)
@@ -388,7 +388,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           else {
             const stays = db.defs[defOf(who) ?? '']?.stays;
             if (stays !== undefined && k.subject.startsWith('PLC') && defOf(k.subject) !== stays) bad(e.seq, 'awareness', `${who}는 ${stays}에 머무는데 ${k.subject}의 ${k.feature}를 느꼈다`);
-            if (stays !== undefined && k.subject.startsWith('OBJ') && defOf(rootOf(placeMap, k.subject)) !== stays) {
+            if (stays !== undefined && k.subject.startsWith('OBJ') && defOf(visibleRoot(placeMap, k.subject)) !== stays) {
               bad(e.seq, 'awareness', `${who}는 ${stays}에 머무는데 ${k.subject}는 그곳에 놓여 있지 않은데 ${k.feature}를 저절로 느꼈다`);
             }
             const felt = ladder(k.feature).indexOf(now) >= notice;

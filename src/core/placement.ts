@@ -40,6 +40,35 @@ export function wouldCycle(map: PlaceMap, id: string, to: string): boolean {
   return false;
 }
 
+/** x가 포인터(받치는 것·담긴 곳)를 따라 올라가다 anc를 만나는가 (x가 anc 위·안에 있는가). */
+export function isUnder(map: PlaceMap, x: string, anc: string): boolean {
+  const seen = new Set<string>();
+  const stack = [...parents(map, x)];
+  while (stack.length > 0) {
+    const cur = stack.pop() as string;
+    if (cur === anc) return true;
+    if (seen.has(cur)) continue;
+    seen.add(cur);
+    stack.push(...parents(map, cur));
+  }
+  return false;
+}
+
+/** 서로 이어진 것인가: 한쪽이 다른 쪽 안이나 위에 있다. 규칙의 `linked` 범위가 쓴다. */
+export function isLinked(map: PlaceMap, a: string, b: string): boolean {
+  return a === b || isUnder(map, a, b) || isUnder(map, b, a);
+}
+
+/** 눈에 보이는 곳: 받치는 것(on)만 따라 올라간다. 어딘가의 안(in)에 든 물건은 닫힌 곳에 있어 보이지 않으므로 그 물건 자신에서 멈춘다. */
+export function visibleRoot(map: PlaceMap, id: string): string {
+  let cur = id;
+  for (;;) {
+    const p = map.get(cur);
+    if (p?.in !== undefined || p?.on === undefined) return cur;
+    cur = p.on;
+  }
+}
+
 /** 높이: 받치는 것(on)만 따라 맨 아래까지 가는 칸 수. 맨 아래(받치는 것이 없는 물건·장소)는 0. */
 export function height(map: PlaceMap, id: string): number {
   let n = 0;

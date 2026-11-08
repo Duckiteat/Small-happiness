@@ -81,6 +81,8 @@ export interface Rule {
   readonly onAll: readonly StatePattern[];
   readonly emits: readonly StatePattern[];
   readonly delayMin: number;
+  /** 선언한 정의가 아닌 정의의 패턴은 이 인스턴스와 이어진(안이나 위에 있는) 것에만 건다 */
+  readonly linked?: boolean;
 }
 
 interface Reservation {
@@ -99,7 +101,7 @@ function compileRules(db: Db): Rule[] {
         if (p === null) throw new CausalError(`${owner}.rules.${key}: 패턴 형식이 아니다 (${text}) — 관문을 지난 저장소만 쓴다`);
         return p;
       };
-      rules.push({ def, owner, key, on: r.on.map(parse), onAll: (r.on_all ?? []).map(parse), emits: r.emits.map(parse), delayMin: (r.delay_s ?? 0) / 60 });
+      rules.push({ def, owner, key, on: r.on.map(parse), onAll: (r.on_all ?? []).map(parse), emits: r.emits.map(parse), delayMin: (r.delay_s ?? 0) / 60, ...(r.linked === true ? { linked: true } : {}) });
     }
   }
   return rules;
@@ -220,16 +222,18 @@ export class Causal {
    * 조건이 처음부터 맞아서 한 번도 바뀐 적이 없으면 null (원인 사건이 없는 것이 맞다).
    */
   #why(world: World, rule: Rule, at: string): string | null {
-    const keys = (p: StatePattern): string[] => this.#targets(world, p, rule.owner, at).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
+    const keys = (p: StatePattern): string[] => this.#targets(world, p, rule, at).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
     return latestSeq([
-      ...rule.on.flatMap((p) => this.#targets(world, p, rule.owner, at).filter((i) => this.#matches(world, p, i)).map((i) => world.lastChange(formatStateKey({ subject: i, slot: p.slot, feature: p.feature })))),
+      ...rule.on.flatMap((p) => this.#targets(world, p, rule, at).filter((i) => this.#matches(world, p, i)).map((i) => world.lastChange(formatStateKey({ subject: i, slot: p.slot, feature: p.feature })))),
       ...rule.onAll.flatMap((p) => keys(p).map((k) => world.lastChange(k))),
     ]);
   }
 
   /** 패턴이 걸리는 인스턴스들: 규칙을 선언한 정의면 그 인스턴스 하나, 아니면 그 정의의 종류 전부. */
-  #targets(world: World, p: StatePattern, owner: string, at: string): string[] {
-    return p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def);
+  #targets(world: World, p: StatePattern, rule: { readonly owner: string; readonly linked?: boolean }, at: string): string[] {
+    if (p.def === rule.owner) return [at];
+    const all = instancesOfKind(world, this.#db, p.def);
+    return rule.linked === true ? all.filter((i) => world.linked(i, at)) : all;
   }
 
   #matches(world: World, p: StatePattern, instance: string): boolean {
@@ -239,8 +243,8 @@ export class Causal {
   /** on이 모두 맞는가 (다른 정의의 패턴은 하나라도), on_all도 모두 맞는가 (다른 정의의 패턴은 모두). */
   #holds(world: World, rule: Rule, at: string): boolean {
     return (
-      rule.on.every((p) => this.#targets(world, p, rule.owner, at).some((i) => this.#matches(world, p, i))) &&
-      rule.onAll.every((p) => this.#targets(world, p, rule.owner, at).every((i) => this.#matches(world, p, i)))
+      rule.on.every((p) => this.#targets(world, p, rule, at).some((i) => this.#matches(world, p, i))) &&
+      rule.onAll.every((p) => this.#targets(world, p, rule, at).every((i) => this.#matches(world, p, i)))
     );
   }
 
@@ -250,7 +254,7 @@ export class Causal {
    */
   #done(world: World, rule: Rule, at: string): boolean {
     return rule.emits.every((p) =>
-      this.#targets(world, p, rule.owner, at).every((i) => {
+      this.#targets(world, p, rule, at).every((i) => {
         if (this.#matches(world, p, i)) return true;
         const key = formatStateKey({ subject: i, slot: p.slot, feature: p.feature });
         return p.cond !== null && p.cond.op !== '=' && world.levelIndex(key) === null;
@@ -261,7 +265,7 @@ export class Causal {
   /** 결과를 세계 상태(주인)에 요청한다. */
   #emit(world: World, rule: Rule, at: string, cause: GameEvent): void {
     for (const p of rule.emits) {
-      for (const i of this.#targets(world, p, rule.owner, at)) {
+      for (const i of this.#targets(world, p, rule, at)) {
         const key = formatStateKey({ subject: i, slot: p.slot, feature: p.feature });
         applyLevel(world, this.#vocab, key, p.feature, p.cond, { t: cause.t, cause: cause.seq });
       }

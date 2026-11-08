@@ -210,5 +210,9 @@
   "device-no-off.json": {
     "stage": "gate",
     "match": "값을 낮추는 규칙이나 행동이 없다"
+  },
+  "linked-no-other.json": {
+    "stage": "gate",
+    "match": "걸 대상이 없는 범위"
   }
 }

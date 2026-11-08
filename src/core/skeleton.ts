@@ -18,7 +18,8 @@ import { defOf } from './ids.ts';
 import { chainPairs, parseChain } from './placement.ts';
 import { viaCheck } from './via.ts';
 import { effectiveInitial } from './kinds.ts';
-import { parseStateKey } from './statekey.ts';
+import { formatStateKey, parseStateKey } from './statekey.ts';
+import { HEAT_FEATURE, readTemperature, STORAGE_FEATURE } from './temperature.ts';
 import type { Db } from './db.ts';
 import { EventLog } from './log.ts';
 import { Rng } from './rng.ts';
@@ -41,10 +42,16 @@ function size(v: BoardValue): number {
  */
 function stateText(states: BoardValue, db: Db, vocab: Vocab): string {
   if (typeof states !== 'object' || Array.isArray(states)) return '';
+  const byKey = new Map<string, unknown>(Object.entries(states));
   const parts: string[] = [];
   for (const [key, level] of Object.entries(states)) {
     const k = parseStateKey(key);
     if (k === null || typeof level !== 'string') continue;
+    // 온도는 한 가지로 읽는다 (docs/온도-읽기.md): 가열 중이면 가열 온도만 보이고 보관 온도는 줄에서 뺀다
+    if (k.feature === STORAGE_FEATURE) {
+      const heat = byKey.get(formatStateKey({ subject: k.subject, slot: k.slot, feature: HEAT_FEATURE }));
+      if (readTemperature(vocab, level, typeof heat === 'string' ? heat : undefined).band === 'heat') continue;
+    }
     if (effectiveInitial(db, defOf(k.subject) ?? '')[`${k.slot}:${k.feature}`] === level) continue;
     const name = instanceName(db, k.subject);
     const feature = vocab.entry('feature', k.feature);

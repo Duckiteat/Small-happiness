@@ -1,0 +1,34 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 걸 대상이 없는 linked 범위",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "혼자 있는 기기"
+   },
+   "mobility": "portable",
+   "slots": {
+    "c": {
+     "features": [
+      "power"
+     ]
+    }
+   },
+   "rules": {
+    "r": {
+     "on": [
+      "OBJ+1|c:power@=on"
+     ],
+     "emits": [
+      "OBJ+1|c:power@<=off"
+     ],
+     "linked": true,
+     "delay_s": 60,
+     "tuned": false
+    }
+   }
+  }
+ ]
+}

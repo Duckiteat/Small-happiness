@@ -127,6 +127,9 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
   // 규칙 패턴: 형식, 대상 정의 존재, 부위·특징·단계 범위
   for (const [id, def] of Object.entries(db.defs)) {
     for (const [ruleKey, rule] of Object.entries(def.rules ?? {})) {
+      if (rule.linked === true && ![...rule.on, ...(rule.on_all ?? []), ...rule.emits].some((t) => (parsePattern(t)?.def ?? id) !== id)) {
+        error(`${id}.rules.${ruleKey}`, 'linked(이어진 것만)인데 자기 정의가 아닌 다른 정의를 가리키는 패턴이 없다 — 걸 대상이 없는 범위');
+      }
       for (const side of ['on', 'on_all', 'emits'] as const) {
         (rule[side] ?? []).forEach((text, i) => {
           const at = `${id}.rules.${ruleKey}.${side}[${i}]`;

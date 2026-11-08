@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "기기가 망가질 수 있다(설비가 끊기면 종류의 규칙으로 망가지고, 고칠 수 있다). 망가진 기기는 쓰이지 않는다. 냉장고는 정전(꺼짐)·문 열림이 지속되면 음식이 실온이 되고, 다시 차게 하면 돌아온다. 전자레인지는 남은 치킨을 데운다(가열 온도). 수치는 임시값.",
+  "why": "규칙이 놓임을 본다(linked): 기기의 망가짐은 그 기기가 있는 장소의 설비 끊김에만, 냉장고가 꺼지거나 열린 것은 그 냉장고 안의 음식에만 걸린다. 전자레인지가 망가졌을 때 하루씨는 남은 치킨을 가스레인지로 튀겨 데운다(가열 온도 튀김). 수치는 임시값.",
   "defs": [
     {
       "id": "OBJ000022",
@@ -25,7 +25,8 @@
           ],
           "emits": [
             "OBJ000022|body:order@>=broken"
-          ]
+          ],
+          "linked": true
         }
       },
       "offers": {
@@ -70,7 +71,8 @@
           ],
           "emits": [
             "OBJ000023|body:order@>=broken"
-          ]
+          ],
+          "linked": true
         }
       },
       "offers": {
@@ -115,7 +117,8 @@
           ],
           "emits": [
             "OBJ000024|body:order@>=broken"
-          ]
+          ],
+          "linked": true
         }
       },
       "offers": {
@@ -516,6 +519,44 @@
           ],
           "minutes": 1,
           "tuned": false
+        },
+        "ignite_chicken": {
+          "label": "전자레인지가 망가져 치킨을 튀기려고 가스레인지에 불을 붙인다",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000010|cond:heat@=none",
+            "OBJ000016|body:order@=broken",
+            "OBJ000019|body:order@=ok",
+            "OBJ000019|burner:flame@=out"
+          ],
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "minutes": 1,
+          "tuned": false
+        },
+        "fry_chicken": {
+          "label": "전자레인지가 망가져 남은 치킨을 튀겨 데운다",
+          "verb": "fry",
+          "needs": [],
+          "when": [
+            "OBJ000010|cond:heat@=none",
+            "OBJ000016|body:order@=broken",
+            "OBJ000019|body:order@=ok",
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000010|cond:heat@=fry"
+          ],
+          "minutes": 10,
+          "tuned": false
         }
       },
       "is_a": "OBJ000023"
@@ -636,7 +677,8 @@
           ],
           "emits": [
             "OBJ000021|cooling:power@>=on"
-          ]
+          ],
+          "linked": true
         },
         "warm_off": {
           "label": "꺼져 있으면 두 시간 뒤 음식이 실온이 된다",
@@ -647,7 +689,8 @@
             "OBJ000001|cond:temp@>=mild_room"
           ],
           "delay_s": 7200,
-          "tuned": false
+          "tuned": false,
+          "linked": true
         },
         "warm_door": {
           "label": "문이 열려 있으면 한 시간 뒤 음식이 실온이 된다",
@@ -658,7 +701,8 @@
             "OBJ000001|cond:temp@>=mild_room"
           ],
           "delay_s": 3600,
-          "tuned": false
+          "tuned": false,
+          "linked": true
         },
         "rechill": {
           "label": "켜져 있고 문이 닫혀 있으면 한 시간 뒤 음식이 다시 차가워진다",
@@ -670,7 +714,8 @@
             "OBJ000001|cond:temp@<=fridge"
           ],
           "delay_s": 3600,
-          "tuned": false
+          "tuned": false,
+          "linked": true
         }
       },
       "offers": {

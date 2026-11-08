@@ -28,7 +28,7 @@ export function sourceFields(kind: string): readonly string[] {
 const OVERRIDABLE: readonly string[] = ['mobility', 'slots', 'meanings', 'rules', 'offers'];
 
 /** 규칙 블록에서 받는 키. warn_before_s 는 명세 단계다. */
-const RULE_FIELDS: readonly string[] = ['label', 'on', 'on_all', 'emits', 'delay_s', 'tuned'];
+const RULE_FIELDS: readonly string[] = ['label', 'on', 'on_all', 'emits', 'delay_s', 'tuned', 'linked'];
 
 /** 명세 단계 필드가 쓰였을 때의 안내용 목록 (거부 메시지에 쓴다). */
 const SPEC_ONLY: readonly string[] = [

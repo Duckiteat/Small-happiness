@@ -73,6 +73,8 @@ export interface RuleDef {
   readonly on: readonly string[];
   /** 다른 정의를 가리키는 패턴이 그 정의(와 그 종류)의 **모든** 인스턴스에서 맞아야 한다 (없으면 참). */
   readonly on_all?: readonly string[];
+  /** true면 규칙을 선언한 정의가 아닌 다른 정의를 가리키는 패턴은, 이 인스턴스와 이어진(안이나 위에 있는) 것에만 걸린다. 없으면 그 종류 전부 */
+  readonly linked?: boolean;
   readonly emits: readonly string[];
   readonly note?: string;
   /** 지연(초). 게임 시간은 분이므로 60의 배수. 없으면 0 (즉시). */
@@ -293,7 +295,7 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ok = false;
       continue;
     }
-    onlyKeys(rule, ['label', 'on', 'on_all', 'emits', 'note', 'delay_s', 'tuned'], at, push);
+    onlyKeys(rule, ['label', 'on', 'on_all', 'emits', 'note', 'delay_s', 'tuned', 'linked'], at, push);
     const onAll = rule['on_all'] ?? [];
     if (!isStrArr(rule['on']) || !isStrArr(onAll) || rule['on'].length + onAll.length === 0 || !isStrArr(rule['emits']) || rule['emits'].length === 0) {
       push(at, 'on(또는 on_all)과 emits(패턴 문자열 목록, 1개 이상)가 필요하다');
@@ -334,6 +336,7 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ...(typeof rule['note'] === 'string' ? { note: rule['note'] } : {}),
       ...(typeof delay === 'number' ? { delay_s: delay } : {}),
       ...(typeof rule['tuned'] === 'boolean' ? { tuned: rule['tuned'] } : {}),
+      ...(rule['linked'] === true ? { linked: true } : {}),
     };
     out[key] = r;
   }

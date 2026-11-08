@@ -1376,6 +1376,44 @@
         }
       },
       "offers": {
+        "fry_chicken": {
+          "label": "전자레인지가 망가져 남은 치킨을 튀겨 데운다",
+          "verb": "fry",
+          "needs": [],
+          "when": [
+            "OBJ000010|cond:heat@=none",
+            "OBJ000016|body:order@=broken",
+            "OBJ000019|body:order@=ok",
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "effect": [
+            "OBJ000010|cond:heat@=fry"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 10,
+          "tuned": false
+        },
+        "ignite_chicken": {
+          "label": "전자레인지가 망가져 치킨을 튀기려고 가스레인지에 불을 붙인다",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000010|cond:heat@=none",
+            "OBJ000016|body:order@=broken",
+            "OBJ000019|body:order@=ok",
+            "OBJ000019|burner:flame@=out"
+          ],
+          "effect": [
+            "OBJ000019|burner:flame@=lit"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 1,
+          "tuned": false
+        },
         "ignite_egg": {
           "label": "요리하려고 가스레인지에 불을 붙인다 (계란)",
           "verb": "switch",
@@ -1525,7 +1563,8 @@
           ],
           "emits": [
             "OBJ000021|cooling:power@>=on"
-          ]
+          ],
+          "linked": true
         },
         "dies": {
           "label": "망가지면 꺼진다",
@@ -1546,7 +1585,8 @@
             "OBJ000001|cond:temp@<=fridge"
           ],
           "delay_s": 3600,
-          "tuned": false
+          "tuned": false,
+          "linked": true
         },
         "warm_door": {
           "label": "문이 열려 있으면 한 시간 뒤 음식이 실온이 된다",
@@ -1557,7 +1597,8 @@
             "OBJ000001|cond:temp@>=mild_room"
           ],
           "delay_s": 3600,
-          "tuned": false
+          "tuned": false,
+          "linked": true
         },
         "warm_off": {
           "label": "꺼져 있으면 두 시간 뒤 음식이 실온이 된다",
@@ -1568,7 +1609,8 @@
             "OBJ000001|cond:temp@>=mild_room"
           ],
           "delay_s": 7200,
-          "tuned": false
+          "tuned": false,
+          "linked": true
         }
       },
       "offers": {
@@ -1614,7 +1656,8 @@
           ],
           "emits": [
             "OBJ000022|body:order@>=broken"
-          ]
+          ],
+          "linked": true
         }
       },
       "offers": {
@@ -1660,7 +1703,8 @@
           ],
           "emits": [
             "OBJ000023|body:order@>=broken"
-          ]
+          ],
+          "linked": true
         }
       },
       "offers": {
@@ -1706,7 +1750,8 @@
           ],
           "emits": [
             "OBJ000024|body:order@>=broken"
-          ]
+          ],
+          "linked": true
         }
       },
       "offers": {

@@ -18,7 +18,7 @@ import type { GameEvent, JsonValue } from './events.ts';
 import { defOf, IdAllocator, parseId } from './ids.ts';
 import { effectiveInitial } from './kinds.ts';
 import type { EventLog } from './log.ts';
-import { distance, isRelation, parents, rootOf, wouldCycle } from './placement.ts';
+import { distance, isLinked, isRelation, isUnder, parents, rootOf, visibleRoot, wouldCycle } from './placement.ts';
 import type { PlaceMap, Relation } from './placement.ts';
 import { formatStateKey, parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
@@ -132,6 +132,16 @@ export class World {
   /** 있는 곳: 받치는 것·담긴 곳을 따라 올라가 닿는 맨 위 개체 (장소 개체면 그 장소). */
   whereIs(id: string): string {
     return rootOf(this.#place, id);
+  }
+
+  /** 눈에 보이는 곳 (받치는 것만 따라 올라간 맨 위). 어딘가의 안에 든 물건은 자기 자신이다. */
+  visiblePlace(id: string): string {
+    return visibleRoot(this.#place, id);
+  }
+
+  /** 서로 이어져 있는가: 한쪽이 다른 쪽 안이나 위에 있다 (같은 개체도 이어진 것). */
+  linked(a: string, b: string): boolean {
+    return isLinked(this.#place, a, b);
   }
 
   /** 두 개체 사이의 거리 (포인터를 방향 없이 이은 최단 칸 수). 이어지지 않으면 null. */
@@ -283,18 +293,8 @@ export class World {
     }
   }
 
-  /** x가 포인터를 따라 올라가다 anc를 만나는가 */
   #under(x: string, anc: string): boolean {
-    const seen = new Set<string>();
-    const stack = [...parents(this.#place, x)];
-    while (stack.length > 0) {
-      const cur = stack.pop() as string;
-      if (cur === anc) return true;
-      if (seen.has(cur)) continue;
-      seen.add(cur);
-      stack.push(...parents(this.#place, cur));
-    }
-    return false;
+    return isUnder(this.#place, x, anc);
   }
 
   #checkKey(key: string, at = key): { slot: string; feature: string } {
