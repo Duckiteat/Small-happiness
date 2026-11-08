@@ -215,6 +215,7 @@ const REFS: readonly (readonly [string, string, string])[] = [
   ['spreader', 'stimulus', 'sense'],
   ['spreader', 'feature', 'feature'], // 번짐이 바꾸는 장소의 특징
   ['feature', 'sense', 'sense'], // 이 특징을 어느 감각으로 느끼는가 (5층 지각)
+  ['feature', 'resource', 'resource'], // 이 특징이 담는 설비 자원 (물 양 → 물). 사라지는 길을 관문이 요구한다
   ['odor_kind', 'feature', 'feature'], // 냄새 종류가 들어가는 특징
   ['compound', 'odor', 'odor_kind'], // 이 화합물이 어떤 냄새인가
   ['odor_cause', 'feature', 'feature'], // 냄새 원인의 단계를 가진 특징

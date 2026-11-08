@@ -1067,6 +1067,74 @@
       "holds": [
         "water"
       ],
+      "slots": {
+        "pot": {
+          "features": [
+            "water",
+            "power",
+            "rice"
+          ]
+        }
+      },
+      "rules": {
+        "cook_rice": {
+          "label": "물을 담고 켜 두면 30분 뒤 밥이 되고, 물은 밥에 흡수되고, 스스로 꺼진다",
+          "on": [
+            "OBJ000017|pot:power@=on",
+            "OBJ000017|pot:water@>=some"
+          ],
+          "emits": [
+            "OBJ000017|pot:rice@>=cooked",
+            "OBJ000017|pot:water@<=none",
+            "OBJ000017|pot:power@<=off"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "pour": {
+          "label": "싱크대에 받은 물을 밥솥에 붓는다",
+          "verb": "fill",
+          "needs": [],
+          "when": [
+            "OBJ000017|pot:water@=none",
+            "OBJ000020|basin:water@>=some"
+          ],
+          "effect": [
+            "OBJ000017|pot:water@=full",
+            "OBJ000020|basin:water@=none"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 2,
+          "tuned": false
+        },
+        "start": {
+          "label": "물을 담은 밥솥을 켠다",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000017|pot:water@>=some",
+            "OBJ000017|pot:power@=off",
+            "OBJ000017|pot:rice@=raw"
+          ],
+          "effect": [
+            "OBJ000017|pot:power@=on"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 1,
+          "tuned": false
+        }
+      },
+      "initial": {
+        "pot:power": "off",
+        "pot:rice": "raw",
+        "pot:water": "none"
+      },
       "desc": []
     },
     "OBJ000018": {
@@ -1115,6 +1183,49 @@
       "holds": [
         "water"
       ],
+      "slots": {
+        "basin": {
+          "features": [
+            "water"
+          ]
+        }
+      },
+      "rules": {
+        "drain": {
+          "label": "싱크대에 남은 물은 한 시간 뒤 배수구로 빠진다",
+          "on": [
+            "OBJ000020|basin:water@>=some"
+          ],
+          "emits": [
+            "OBJ000020|basin:water@<=none"
+          ],
+          "delay_s": 3600,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "draw": {
+          "label": "수도를 틀어 싱크대에 물을 받는다",
+          "verb": "fill",
+          "needs": [],
+          "when": [
+            "OBJ000020|basin:water@=none",
+            "OBJ000017|pot:water@=none",
+            "OBJ000017|pot:rice@=raw"
+          ],
+          "effect": [
+            "OBJ000020|basin:water@=full"
+          ],
+          "during": [
+            "meal"
+          ],
+          "minutes": 2,
+          "tuned": false
+        }
+      },
+      "initial": {
+        "basin:water": "none"
+      },
       "desc": []
     },
     "OBJ000021": {

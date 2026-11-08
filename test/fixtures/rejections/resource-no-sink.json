@@ -1,0 +1,25 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 물을 담기만 하고 사라질 길이 없는 그릇",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "물통"
+   },
+   "mobility": "portable",
+   "role": "plain",
+   "holds": [
+    "water"
+   ],
+   "slots": {
+    "tank": {
+     "features": [
+      "water"
+     ]
+    }
+   }
+  }
+ ]
+}

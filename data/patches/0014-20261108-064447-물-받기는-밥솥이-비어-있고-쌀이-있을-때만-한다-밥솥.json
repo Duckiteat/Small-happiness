@@ -1,0 +1,280 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "물 받기는 밥솥이 비어 있고 쌀이 있을 때만 한다 (밥솥에 이미 부은 뒤 같은 물을 또 받지 않게). 나머지는 그대로다.",
+    "defs": [
+      {
+        "id": "OBJ000012",
+        "names": {
+          "ko": "식탁",
+          "en": "dining table"
+        },
+        "mobility": "fixed",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ000013",
+        "names": {
+          "ko": "의자",
+          "en": "chair"
+        },
+        "mobility": "portable",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ000014",
+        "names": {
+          "ko": "식탁보",
+          "en": "tablecloth"
+        },
+        "mobility": "portable",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ000015",
+        "names": {
+          "ko": "전자레인지 선반",
+          "en": "microwave shelf"
+        },
+        "mobility": "fixed",
+        "role": "plain"
+      },
+      {
+        "id": "OBJ000016",
+        "names": {
+          "ko": "전자레인지",
+          "en": "microwave"
+        },
+        "mobility": "portable",
+        "role": "device",
+        "utility": [
+          "electric"
+        ]
+      },
+      {
+        "id": "OBJ000017",
+        "names": {
+          "ko": "전기밥솥",
+          "en": "rice cooker"
+        },
+        "mobility": "portable",
+        "role": "device",
+        "utility": [
+          "electric"
+        ],
+        "holds": [
+          "water"
+        ],
+        "slots": {
+          "pot": {
+            "features": [
+              "water",
+              "power",
+              "rice"
+            ]
+          }
+        },
+        "initial": {
+          "pot:water": "none",
+          "pot:power": "off",
+          "pot:rice": "raw"
+        },
+        "rules": {
+          "cook_rice": {
+            "label": "물을 담고 켜 두면 30분 뒤 밥이 되고, 물은 밥에 흡수되고, 스스로 꺼진다",
+            "on": [
+              "OBJ000017|pot:power@=on",
+              "OBJ000017|pot:water@>=some"
+            ],
+            "emits": [
+              "OBJ000017|pot:rice@>=cooked",
+              "OBJ000017|pot:water@<=none",
+              "OBJ000017|pot:power@<=off"
+            ],
+            "delay_s": 1800,
+            "tuned": false
+          }
+        },
+        "offers": {
+          "pour": {
+            "label": "싱크대에 받은 물을 밥솥에 붓는다",
+            "verb": "fill",
+            "needs": [],
+            "when": [
+              "OBJ000017|pot:water@=none",
+              "OBJ000020|basin:water@>=some"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000017|pot:water@=full",
+              "OBJ000020|basin:water@=none"
+            ],
+            "minutes": 2,
+            "tuned": false
+          },
+          "start": {
+            "label": "물을 담은 밥솥을 켠다",
+            "verb": "switch",
+            "needs": [],
+            "when": [
+              "OBJ000017|pot:water@>=some",
+              "OBJ000017|pot:power@=off",
+              "OBJ000017|pot:rice@=raw"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000017|pot:power@=on"
+            ],
+            "minutes": 1,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ000018",
+        "names": {
+          "ko": "후드",
+          "en": "range hood"
+        },
+        "mobility": "fixed",
+        "role": "device",
+        "utility": [
+          "electric"
+        ]
+      },
+      {
+        "id": "OBJ000019",
+        "names": {
+          "ko": "가스레인지",
+          "en": "gas stove"
+        },
+        "mobility": "fixed",
+        "role": "device",
+        "utility": [
+          "gas"
+        ],
+        "holds": [
+          "gas"
+        ]
+      },
+      {
+        "id": "OBJ000020",
+        "names": {
+          "ko": "싱크대",
+          "en": "sink"
+        },
+        "mobility": "fixed",
+        "role": "device",
+        "utility": [
+          "water"
+        ],
+        "holds": [
+          "water"
+        ],
+        "slots": {
+          "basin": {
+            "features": [
+              "water"
+            ]
+          }
+        },
+        "initial": {
+          "basin:water": "none"
+        },
+        "rules": {
+          "drain": {
+            "label": "싱크대에 남은 물은 한 시간 뒤 배수구로 빠진다",
+            "on": [
+              "OBJ000020|basin:water@>=some"
+            ],
+            "emits": [
+              "OBJ000020|basin:water@<=none"
+            ],
+            "delay_s": 3600,
+            "tuned": false
+          }
+        },
+        "offers": {
+          "draw": {
+            "label": "수도를 틀어 싱크대에 물을 받는다",
+            "verb": "fill",
+            "needs": [],
+            "when": [
+              "OBJ000020|basin:water@=none",
+              "OBJ000017|pot:water@=none",
+              "OBJ000017|pot:rice@=raw"
+            ],
+            "during": [
+              "meal"
+            ],
+            "effect": [
+              "OBJ000020|basin:water@=full"
+            ],
+            "minutes": 2,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "OBJ000021",
+        "names": {
+          "ko": "냉장고",
+          "en": "refrigerator"
+        },
+        "mobility": "fixed",
+        "role": "device",
+        "utility": [
+          "electric"
+        ]
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {},
+  "mapped": [],
+  "report": {
+    "why": "물 받기는 밥솥이 비어 있고 쌀이 있을 때만 한다 (밥솥에 이미 부은 뒤 같은 물을 또 받지 않게). 나머지는 그대로다.",
+    "scope": {
+      "added": {},
+      "updated": {
+        "object": [
+          {
+            "id": "OBJ000020",
+            "fields": [
+              "names",
+              "mobility",
+              "role",
+              "utility",
+              "holds",
+              "slots",
+              "initial",
+              "rules",
+              "offers"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

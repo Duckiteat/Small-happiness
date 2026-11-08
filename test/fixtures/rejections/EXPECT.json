@@ -202,5 +202,13 @@
   "holds-electric.json": {
     "stage": "gate",
     "match": "담을 수 없는 자원"
+  },
+  "resource-no-sink.json": {
+    "stage": "gate",
+    "match": "값을 낮추는 규칙이나 행동이 없다"
+  },
+  "device-no-off.json": {
+    "stage": "gate",
+    "match": "값을 낮추는 규칙이나 행동이 없다"
   }
 }

@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "부엌 가구 10개를 정의로 들인다 (크기는 정하지 않음): 입출력이 있는 기기인지(role), 연결 설비(utility: 전기·수도·가스, 없으면 비전자제품), 담을 수 있는 자원(holds). 개체는 시나리오에서 놓을 때 생긴다.",
+  "why": "물 받기는 밥솥이 비어 있고 쌀이 있을 때만 한다 (밥솥에 이미 부은 뒤 같은 물을 또 받지 않게). 나머지는 그대로다.",
   "defs": [
     {
       "id": "OBJ000012",
@@ -64,7 +64,75 @@
       ],
       "holds": [
         "water"
-      ]
+      ],
+      "slots": {
+        "pot": {
+          "features": [
+            "water",
+            "power",
+            "rice"
+          ]
+        }
+      },
+      "initial": {
+        "pot:water": "none",
+        "pot:power": "off",
+        "pot:rice": "raw"
+      },
+      "rules": {
+        "cook_rice": {
+          "label": "물을 담고 켜 두면 30분 뒤 밥이 되고, 물은 밥에 흡수되고, 스스로 꺼진다",
+          "on": [
+            "OBJ000017|pot:power@=on",
+            "OBJ000017|pot:water@>=some"
+          ],
+          "emits": [
+            "OBJ000017|pot:rice@>=cooked",
+            "OBJ000017|pot:water@<=none",
+            "OBJ000017|pot:power@<=off"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "pour": {
+          "label": "싱크대에 받은 물을 밥솥에 붓는다",
+          "verb": "fill",
+          "needs": [],
+          "when": [
+            "OBJ000017|pot:water@=none",
+            "OBJ000020|basin:water@>=some"
+          ],
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000017|pot:water@=full",
+            "OBJ000020|basin:water@=none"
+          ],
+          "minutes": 2,
+          "tuned": false
+        },
+        "start": {
+          "label": "물을 담은 밥솥을 켠다",
+          "verb": "switch",
+          "needs": [],
+          "when": [
+            "OBJ000017|pot:water@>=some",
+            "OBJ000017|pot:power@=off",
+            "OBJ000017|pot:rice@=raw"
+          ],
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000017|pot:power@=on"
+          ],
+          "minutes": 1,
+          "tuned": false
+        }
+      }
     },
     {
       "id": "OBJ000018",
@@ -106,7 +174,50 @@
       ],
       "holds": [
         "water"
-      ]
+      ],
+      "slots": {
+        "basin": {
+          "features": [
+            "water"
+          ]
+        }
+      },
+      "initial": {
+        "basin:water": "none"
+      },
+      "rules": {
+        "drain": {
+          "label": "싱크대에 남은 물은 한 시간 뒤 배수구로 빠진다",
+          "on": [
+            "OBJ000020|basin:water@>=some"
+          ],
+          "emits": [
+            "OBJ000020|basin:water@<=none"
+          ],
+          "delay_s": 3600,
+          "tuned": false
+        }
+      },
+      "offers": {
+        "draw": {
+          "label": "수도를 틀어 싱크대에 물을 받는다",
+          "verb": "fill",
+          "needs": [],
+          "when": [
+            "OBJ000020|basin:water@=none",
+            "OBJ000017|pot:water@=none",
+            "OBJ000017|pot:rice@=raw"
+          ],
+          "during": [
+            "meal"
+          ],
+          "effect": [
+            "OBJ000020|basin:water@=full"
+          ],
+          "minutes": 2,
+          "tuned": false
+        }
+      }
     },
     {
       "id": "OBJ000021",

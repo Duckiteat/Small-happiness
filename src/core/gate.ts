@@ -225,6 +225,33 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
   }
 
+  // 설비 자원의 사라짐: 자원을 담는 특징(사전 feature의 resource)을 가진 부위는, 그 값을 낮추는 규칙 결과나 행동 효과가 어딘가에 있어야 한다.
+  // 들어오기만 하고 사라질 길이 없는 물그릇·켜지기만 하는 기기를 막는다 (사라지는 길 = 단계 0칸으로 내리기 `=`/`<=`, 또는 소멸)
+  const lowered = new Set<string>();
+  const noteLowering = (text: string): void => {
+    const p = parsePattern(text);
+    if (p === null || p.cond === null) return;
+    const { op, level } = p.cond;
+    const zero = vocab.levelOrder(p.feature)?.[0];
+    const lowers = op === '<=' || op === '<' || (op === '=' && (level === zero || vocab.has('terminal', level)));
+    if (lowers) lowered.add(`${p.def}|${p.slot}:${p.feature}`);
+  };
+  for (const d of Object.values(db.defs)) {
+    for (const r of Object.values(d.rules ?? {})) for (const t of r.emits) noteLowering(t);
+    for (const o of Object.values(d.offers ?? {})) for (const t of o.effect) noteLowering(t);
+  }
+  for (const [id, def] of Object.entries(db.defs)) {
+    for (const [slotKey, slot] of Object.entries(def.slots ?? {})) {
+      for (const f of slot.features) {
+        const resource = vocab.entry('feature', f)?.attrs['resource'];
+        if (typeof resource !== 'string') continue;
+        if (![id, ...ancestors(db, id)].some((x) => lowered.has(`${x}|${slotKey}:${f}`))) {
+          error(`${id}.slots.${slotKey}`, `"${f}"(${resource})를 담는데 그 값을 낮추는 규칙이나 행동이 없다 — 들어오기만 하고 사라질 길이 없는 자원은 거부`);
+        }
+      }
+    }
+  }
+
   // 공간 (1층): 환경 등급은 사전에, 통로는 있는 장소를 가리키고 종류·매질이 사전에 있으며, 한 쌍은 한 번만 적는다
   const pairs = new Set<string>();
   for (const [id, def] of Object.entries(db.defs)) {

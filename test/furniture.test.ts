@@ -89,3 +89,29 @@ test('사전: 자원은 사라지는 길(sinks)이 있어야 하고, 밀폐 자�
   assert.match(msgs({ attrs: { holdable: false, sealed: true, sinks: ['drain'] } }), /밀폐된 자원은 담을 수 있어야/);
   assert.equal(msgs({ attrs: { holdable: true, sealed: true, sinks: ['drain'] } }), '');
 });
+
+test('밥 짓기: 수도 → 싱크대 → 밥솥 → 전기로 지어짐까지 이어지고, 물과 전기는 끝에 모두 사라진다', () => {
+  const sc = parseScenario(JSON.parse(readFileSync(join(ROOT, 'content', 'scenarios', 'kitchen-furniture.json'), 'utf8')));
+  const trace = runScenario(db, vocab, sc);
+  const sink = `${byName('싱크대')}#1`, cooker = `${byName('전기밥솥')}#1`;
+  type E = { type: string; t: number; data: { key?: string; to?: string; verb?: string } };
+  const log = trace.log as E[];
+  const changes = log.filter((e) => e.type === 'state_changed').map((e) => `${e.data.key}=${e.data.to}`);
+  // 순서: 싱크대 가득 → 밥솥 가득(싱크대 비움) → 켜짐 → 밥 → 밥솥 물 없음·꺼짐
+  const at = (s: string): number => changes.indexOf(s);
+  assert.ok(at(`${sink}|basin:water=full`) >= 0);
+  assert.ok(at(`${cooker}|pot:water=full`) > at(`${sink}|basin:water=full`));
+  assert.ok(at(`${sink}|basin:water=none`) > at(`${sink}|basin:water=full`), '붓고 나면 싱크대 물이 줄어든다 (옮겨 간다)');
+  assert.ok(at(`${cooker}|pot:power=on`) > at(`${cooker}|pot:water=full`));
+  assert.ok(at(`${cooker}|pot:rice=cooked`) > at(`${cooker}|pot:power=on`));
+  const done = log.find((e) => e.type === 'state_changed' && e.data.key === `${cooker}|pot:rice` && e.data.to === 'cooked');
+  const on = log.find((e) => e.type === 'state_changed' && e.data.key === `${cooker}|pot:power` && e.data.to === 'on');
+  assert.equal((done?.t ?? 0) - (on?.t ?? 0), 30, '켠 뒤 30분 (임시값)');
+  // 마지막 상태: 물은 어디에도 남지 않고(밥이 흡수·배수), 전기는 꺼졌다
+  const last = trace.steps.at(-1)?.values['world.state'] as Record<string, string>;
+  assert.equal(last[`${cooker}|pot:rice`], 'cooked');
+  for (const [k, v] of Object.entries(last)) {
+    if (k.endsWith(':water')) assert.equal(v, 'none', `${k}: 끝에 물이 남아 있다`);
+    if (k.endsWith(':power')) assert.equal(v, 'off', `${k}: 끝에 켜져 있다`);
+  }
+});
