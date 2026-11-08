@@ -1,0 +1,91 @@
+// 가구와 설비 (docs/물건-관계-명세.md 5장): 기기인가, 연결된 설비(전기·수도·가스)가 있는가, 없으면 비전자제품.
+// 설비를 쓰는 가구는 놓이는 장소가 그 설비를 공급해야 한다 (출처 확인). 크기는 정하지 않는다.
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { EventLog } from '../src/core/log.ts';
+import { parseScenario, runScenario } from '../src/core/skeleton.ts';
+import { validateVocab } from '../src/core/vocab.ts';
+import type { VocabCategoryRaw } from '../src/core/vocab.ts';
+import { World } from '../src/core/world.ts';
+import { loadDb } from '../src/node/clerk.ts';
+import { loadVocabDir } from '../src/node/vocab-files.ts';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const vocab = loadVocabDir(join(ROOT, 'data', 'vocab'));
+const db = loadDb(ROOT);
+const byName = (ko: string): string => Object.values(db.defs).find((d) => d.names.ko === ko)?.id ?? `없음:${ko}`;
+
+test('가구: 부엌 가구 10개가 정의로 있고, 기기·설비·담을 수 있는 것이 데이터로 갈린다', () => {
+  const row = (ko: string): string => {
+    const d = db.defs[byName(ko)];
+    return `${d?.role}|${(d?.utility ?? []).join('+') || '-'}|${(d?.holds ?? []).join('+') || '-'}`;
+  };
+  assert.equal(row('식탁'), 'plain|-|-');
+  assert.equal(row('의자'), 'plain|-|-');
+  assert.equal(row('식탁보'), 'plain|-|-');
+  assert.equal(row('전자레인지 선반'), 'plain|-|-');
+  assert.equal(row('전자레인지'), 'device|electric|-');
+  assert.equal(row('전기밥솥'), 'device|electric|water');
+  assert.equal(row('후드'), 'device|electric|-');
+  assert.equal(row('가스레인지'), 'device|gas|gas');
+  assert.equal(row('싱크대'), 'device|water|water');
+  assert.equal(row('냉장고'), 'device|electric|-');
+});
+
+test('가구: 설비가 하나도 없는 가구는 전부 그냥 가구(비전자제품)이고, 크기는 정의에 없다', () => {
+  const furniture = Object.values(db.defs).filter((d) => d.role !== undefined);
+  assert.equal(furniture.length, 10);
+  for (const d of furniture) {
+    if ((d.utility ?? []).length === 0) assert.equal(d.role, 'plain', `${d.names.ko}: 설비가 없으면 그냥 가구`);
+    assert.equal('size' in d, false);
+  }
+  assert.deepEqual(db.defs['PLC000002']?.supplies, ['electric', 'water', 'gas']);
+});
+
+function world(): World {
+  const w = new World(db, vocab, new EventLog({ isKnownType: (t) => vocab.has('event_type', t) }));
+  for (const d of ['PLC000002', 'PLC000003', byName('식탁'), byName('후드'), byName('전자레인지'), byName('전자레인지 선반')]) w.spawn(d, { t: 0 });
+  return w;
+}
+
+test('출처 확인: 전기를 쓰는 기기는 전기가 들어오는 장소에만 놓이고, 안 들어오는 장소는 거부한다', () => {
+  const w = world();
+  const hood = `${byName('후드')}#1`;
+  assert.throws(() => w.place(hood, 'on', 'PLC000003#1', { t: 1 }), /출처 없음/); // 거실은 공급하지 않는다
+  assert.ok(w.place(hood, 'on', 'PLC000002#1', { t: 1 })); // 주방은 공급한다
+  // 그냥 가구는 어디든 놓인다
+  assert.ok(w.place(`${byName('식탁')}#1`, 'on', 'PLC000003#1', { t: 1 }));
+});
+
+test('출처 확인: 기기 위의 물건과 선반 위 기기도 닿는 장소로 본다 (옮기면 함께 본다)', () => {
+  const w = world();
+  const shelf = `${byName('전자레인지 선반')}#1`, oven = `${byName('전자레인지')}#1`;
+  w.place(oven, 'on', shelf, { t: 1 }); // 아직 장소에 닿지 않은 중간 단계
+  assert.throws(() => w.place(shelf, 'on', 'PLC000003#1', { t: 2 }), /출처 없음/); // 선반을 거실로 옮기면 그 위의 전자레인지도 걸린다
+  assert.ok(w.place(shelf, 'on', 'PLC000002#1', { t: 2 }));
+  assert.equal(w.whereIs(oven), 'PLC000002#1');
+});
+
+test('부엌 가구 시나리오: 처음 놓임이 세워지고 하루가 돈다 (냉장고·싱크대는 주방 바닥에 놓임)', () => {
+  const sc = parseScenario(JSON.parse(readFileSync(join(ROOT, 'content', 'scenarios', 'kitchen-furniture.json'), 'utf8')));
+  const trace = runScenario(db, vocab, sc);
+  assert.ok(trace.steps.length > 0);
+  const layout = (trace.steps[0]?.values['world.place'] as { layout: Record<string, { on?: string }> }).layout;
+  assert.equal(layout[`${byName('전자레인지')}#1`]?.on, `${byName('전자레인지 선반')}#1`);
+  assert.equal(layout[`${byName('식탁보')}#1`]?.on, `${byName('식탁')}#1`);
+});
+
+test('사전: 자원은 사라지는 길(sinks)이 있어야 하고, 밀폐 자원은 담을 수 있어야 한다', () => {
+  const raw = (resource: object): VocabCategoryRaw[] => [
+    { category: 'sink', entries: [{ key: 'drain', ko: '배수' }] },
+    { category: 'resource', entries: [{ key: 'x', ko: '엑스', ...resource }] },
+  ];
+  const msgs = (r: object): string => validateVocab(raw(r)).map((i) => `${i.path}: ${i.message}`).join('\n');
+  assert.match(msgs({ attrs: { holdable: true, sealed: false, sinks: [] } }), /사라지는 길/);
+  assert.match(msgs({ attrs: { holdable: true, sealed: false, sinks: ['nowhere'] } }), /sink 분류에 없는 키/);
+  assert.match(msgs({ attrs: { holdable: false, sealed: true, sinks: ['drain'] } }), /밀폐된 자원은 담을 수 있어야/);
+  assert.equal(msgs({ attrs: { holdable: true, sealed: true, sinks: ['drain'] } }), '');
+});

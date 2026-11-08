@@ -11,7 +11,7 @@
       "FRG": 1,
       "HAB": 1,
       "ITM": 1,
-      "OBJ": 12,
+      "OBJ": 22,
       "PLC": 7,
       "RUL": 1
     }
@@ -994,6 +994,143 @@
         "다듬지 않은 대파"
       ]
     },
+    "OBJ000012": {
+      "id": "OBJ000012",
+      "names": {
+        "ko": "식탁",
+        "en": "dining table"
+      },
+      "aliases": [],
+      "mobility": "fixed",
+      "role": "plain",
+      "desc": []
+    },
+    "OBJ000013": {
+      "id": "OBJ000013",
+      "names": {
+        "ko": "의자",
+        "en": "chair"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "role": "plain",
+      "desc": []
+    },
+    "OBJ000014": {
+      "id": "OBJ000014",
+      "names": {
+        "ko": "식탁보",
+        "en": "tablecloth"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "role": "plain",
+      "desc": []
+    },
+    "OBJ000015": {
+      "id": "OBJ000015",
+      "names": {
+        "ko": "전자레인지 선반",
+        "en": "microwave shelf"
+      },
+      "aliases": [],
+      "mobility": "fixed",
+      "role": "plain",
+      "desc": []
+    },
+    "OBJ000016": {
+      "id": "OBJ000016",
+      "names": {
+        "ko": "전자레인지",
+        "en": "microwave"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "role": "device",
+      "utility": [
+        "electric"
+      ],
+      "desc": []
+    },
+    "OBJ000017": {
+      "id": "OBJ000017",
+      "names": {
+        "ko": "전기밥솥",
+        "en": "rice cooker"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "role": "device",
+      "utility": [
+        "electric"
+      ],
+      "holds": [
+        "water"
+      ],
+      "desc": []
+    },
+    "OBJ000018": {
+      "id": "OBJ000018",
+      "names": {
+        "ko": "후드",
+        "en": "range hood"
+      },
+      "aliases": [],
+      "mobility": "fixed",
+      "role": "device",
+      "utility": [
+        "electric"
+      ],
+      "desc": []
+    },
+    "OBJ000019": {
+      "id": "OBJ000019",
+      "names": {
+        "ko": "가스레인지",
+        "en": "gas stove"
+      },
+      "aliases": [],
+      "mobility": "fixed",
+      "role": "device",
+      "utility": [
+        "gas"
+      ],
+      "holds": [
+        "gas"
+      ],
+      "desc": []
+    },
+    "OBJ000020": {
+      "id": "OBJ000020",
+      "names": {
+        "ko": "싱크대",
+        "en": "sink"
+      },
+      "aliases": [],
+      "mobility": "fixed",
+      "role": "device",
+      "utility": [
+        "water"
+      ],
+      "holds": [
+        "water"
+      ],
+      "desc": []
+    },
+    "OBJ000021": {
+      "id": "OBJ000021",
+      "names": {
+        "ko": "냉장고",
+        "en": "refrigerator"
+      },
+      "aliases": [],
+      "mobility": "fixed",
+      "role": "device",
+      "utility": [
+        "electric"
+      ],
+      "desc": []
+    },
     "PLC000001": {
       "id": "PLC000001",
       "names": {
@@ -1037,6 +1174,11 @@
       },
       "aliases": [
         "부엌"
+      ],
+      "supplies": [
+        "electric",
+        "water",
+        "gas"
       ],
       "slots": {
         "space": {

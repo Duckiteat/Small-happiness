@@ -1,0 +1,18 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: holds-gas-free.json",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "가스병 선반"
+   },
+   "mobility": "fixed",
+   "role": "plain",
+   "holds": [
+    "gas"
+   ]
+  }
+ ]
+}

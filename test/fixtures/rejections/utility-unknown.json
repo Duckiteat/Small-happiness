@@ -1,0 +1,18 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: utility-unknown.json",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "증기솥"
+   },
+   "mobility": "portable",
+   "role": "device",
+   "utility": [
+    "steam"
+   ]
+  }
+ ]
+}

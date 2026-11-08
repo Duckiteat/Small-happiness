@@ -1,0 +1,47 @@
+[
+  {
+    "category": "resource",
+    "entries": [
+      {
+        "key": "electric",
+        "ko": "전기",
+        "en": "electricity",
+        "aliases": ["전력"],
+        "desc": "장소의 설비로 들어온다. 머물지 않고 켜진 동안만 흘러, 쓰이는 즉시 열·냉기·바람 같은 효과가 된다",
+        "attrs": { "holdable": false, "sealed": false, "sinks": ["effect"] }
+      },
+      {
+        "key": "water",
+        "ko": "물",
+        "en": "water",
+        "aliases": ["수도", "수돗물"],
+        "desc": "수도에서 나와 그릇·싱크대·음식에 머물다가 배수·증발·흡수로 사라진다",
+        "attrs": { "holdable": true, "sealed": false, "sinks": ["drain", "absorb", "evaporate"] }
+      },
+      {
+        "key": "gas",
+        "ko": "가스",
+        "en": "gas",
+        "desc": "설비로 들어와 기기 안에서만 존재한다(밀폐). 쓰이려면 불이 붙어 연소로 사라진다",
+        "attrs": { "holdable": true, "sealed": true, "sinks": ["burn"] }
+      }
+    ]
+  },
+  {
+    "category": "sink",
+    "entries": [
+      { "key": "effect", "ko": "효과가 됨", "desc": "쓰이는 즉시 열·냉기·바람 같은 효과로 바뀌어 사라진다" },
+      { "key": "drain", "ko": "배수", "desc": "배수구로 흘러 나간다" },
+      { "key": "absorb", "ko": "흡수", "desc": "음식·천에 스며들어 그 물건의 수분이 된다" },
+      { "key": "evaporate", "ko": "증발", "desc": "공기 중으로 날아간다" },
+      { "key": "burn", "ko": "연소", "desc": "불이 붙어 열이 되고 사라진다" }
+    ]
+  },
+  {
+    "category": "device_role",
+    "entries": [
+      { "key": "plain", "ko": "그냥 가구", "aliases": ["가구"], "desc": "입력과 출력이 없다 (식탁, 의자, 선반, 식탁보)" },
+      { "key": "device", "ko": "기기", "desc": "입력을 받아 출력을 낸다. 설비(전기·수도·가스)를 쓰면 반드시 기기다. 설비가 없으면 비전자제품(완전한 아날로그)" }
+    ]
+  }
+]

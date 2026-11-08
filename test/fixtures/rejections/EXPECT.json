@@ -182,5 +182,25 @@
   "offer-during-unobserved.json": {
     "stage": "gate",
     "match": "플레이어가 함께 보지 않는 상황"
+  },
+  "utility-not-device.json": {
+    "stage": "gate",
+    "match": "기기\\(device\\)여야 한다"
+  },
+  "utility-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 설비: steam"
+  },
+  "role-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 역할: magic"
+  },
+  "holds-gas-free.json": {
+    "stage": "gate",
+    "match": "밀폐 자원"
+  },
+  "holds-electric.json": {
+    "stage": "gate",
+    "match": "담을 수 없는 자원"
   }
 }

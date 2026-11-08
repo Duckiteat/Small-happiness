@@ -1,0 +1,124 @@
+{
+  "format_version": 1,
+  "file_kind": "objects",
+  "why": "부엌 가구 10개를 정의로 들인다 (크기는 정하지 않음): 입출력이 있는 기기인지(role), 연결 설비(utility: 전기·수도·가스, 없으면 비전자제품), 담을 수 있는 자원(holds). 개체는 시나리오에서 놓을 때 생긴다.",
+  "defs": [
+    {
+      "id": "OBJ000012",
+      "names": {
+        "ko": "식탁",
+        "en": "dining table"
+      },
+      "mobility": "fixed",
+      "role": "plain"
+    },
+    {
+      "id": "OBJ000013",
+      "names": {
+        "ko": "의자",
+        "en": "chair"
+      },
+      "mobility": "portable",
+      "role": "plain"
+    },
+    {
+      "id": "OBJ000014",
+      "names": {
+        "ko": "식탁보",
+        "en": "tablecloth"
+      },
+      "mobility": "portable",
+      "role": "plain"
+    },
+    {
+      "id": "OBJ000015",
+      "names": {
+        "ko": "전자레인지 선반",
+        "en": "microwave shelf"
+      },
+      "mobility": "fixed",
+      "role": "plain"
+    },
+    {
+      "id": "OBJ000016",
+      "names": {
+        "ko": "전자레인지",
+        "en": "microwave"
+      },
+      "mobility": "portable",
+      "role": "device",
+      "utility": [
+        "electric"
+      ]
+    },
+    {
+      "id": "OBJ000017",
+      "names": {
+        "ko": "전기밥솥",
+        "en": "rice cooker"
+      },
+      "mobility": "portable",
+      "role": "device",
+      "utility": [
+        "electric"
+      ],
+      "holds": [
+        "water"
+      ]
+    },
+    {
+      "id": "OBJ000018",
+      "names": {
+        "ko": "후드",
+        "en": "range hood"
+      },
+      "mobility": "fixed",
+      "role": "device",
+      "utility": [
+        "electric"
+      ]
+    },
+    {
+      "id": "OBJ000019",
+      "names": {
+        "ko": "가스레인지",
+        "en": "gas stove"
+      },
+      "mobility": "fixed",
+      "role": "device",
+      "utility": [
+        "gas"
+      ],
+      "holds": [
+        "gas"
+      ]
+    },
+    {
+      "id": "OBJ000020",
+      "names": {
+        "ko": "싱크대",
+        "en": "sink"
+      },
+      "mobility": "fixed",
+      "role": "device",
+      "utility": [
+        "water"
+      ],
+      "holds": [
+        "water"
+      ]
+    },
+    {
+      "id": "OBJ000021",
+      "names": {
+        "ko": "냉장고",
+        "en": "refrigerator"
+      },
+      "mobility": "fixed",
+      "role": "device",
+      "utility": [
+        "electric"
+      ]
+    }
+  ]
+}

@@ -17,7 +17,7 @@ import type { GameEvent, JsonValue } from './events.ts';
 import { defOf, IdAllocator, parseId } from './ids.ts';
 import { effectiveInitial } from './kinds.ts';
 import type { EventLog } from './log.ts';
-import { distance, isRelation, rootOf, wouldCycle } from './placement.ts';
+import { distance, isRelation, parents, rootOf, wouldCycle } from './placement.ts';
 import type { PlaceMap, Relation } from './placement.ts';
 import { formatStateKey, parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
@@ -258,6 +258,40 @@ export class World {
     if (!this.#instances.has(to)) throw new WorldError(`${at}: ${rel}가 가리키는 인스턴스가 없다: ${to}`);
     if (to === id) throw new WorldError(`${at}: ${id}가 자기 자신을 ${rel}로 가리킨다`);
     if (wouldCycle(this.#place, id, to)) throw new WorldError(`${at}: ${id}의 ${rel}를 ${to}로 하면 놓임이 돌아온다 (순환)`);
+    this.#checkSupply(id, to, at);
+  }
+
+  /**
+   * 출처 확인: 설비(전기·수도·가스)를 쓰는 물건은, 놓이는 곳이 장소에 닿았을 때 그 장소가 그 설비를 공급해야 한다.
+   * 옮기는 물건 안에 든 물건(담긴 곳·받치는 것)도 함께 본다. 아직 장소에 닿지 않은 중간 단계는 보지 않는다.
+   */
+  #checkSupply(id: string, to: string, at: string): void {
+    const root = rootOf(this.#place, to);
+    const rootDef = this.#db.defs[this.#instances.get(root) ?? ''];
+    if (rootDef === undefined || !root.startsWith('PLC')) return;
+    const moving = [id, ...[...this.#instances.keys()].filter((x) => x !== id && this.#under(x, id))];
+    for (const m of moving) {
+      const def = this.#db.defs[this.#instances.get(m) ?? ''];
+      for (const r of def?.utility ?? []) {
+        if (!(rootDef.supplies ?? []).includes(r)) {
+          throw new WorldError(`${at}: ${m}는 설비 "${r}"를 쓰는데 ${root}(${rootDef.names.ko})는 그 설비를 공급하지 않는다 (출처 없음)`);
+        }
+      }
+    }
+  }
+
+  /** x가 포인터를 따라 올라가다 anc를 만나는가 */
+  #under(x: string, anc: string): boolean {
+    const seen = new Set<string>();
+    const stack = [...parents(this.#place, x)];
+    while (stack.length > 0) {
+      const cur = stack.pop() as string;
+      if (cur === anc) return true;
+      if (seen.has(cur)) continue;
+      seen.add(cur);
+      stack.push(...parents(this.#place, cur));
+    }
+    return false;
   }
 
   #checkKey(key: string, at = key): { slot: string; feature: string } {

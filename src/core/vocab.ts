@@ -188,6 +188,17 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       }
       break;
     }
+    case 'resource': {
+      // 설비 자원: 담을 수 있는가(holdable), 밀폐인가(sealed: 기기 안에서만), 사라지는 길(sinks, sink 분류의 키 목록)
+      if (typeof attrs['holdable'] !== 'boolean') push(`${path}.attrs.holdable`, 'holdable(담을 수 있는가)을 true/false로 적어야 한다');
+      if (typeof attrs['sealed'] !== 'boolean') push(`${path}.attrs.sealed`, 'sealed(밀폐인가)를 true/false로 적어야 한다');
+      else if (attrs['sealed'] === true && attrs['holdable'] !== true) push(`${path}.attrs.sealed`, '밀폐된 자원은 담을 수 있어야 한다 (기기 안에 담긴다)');
+      const sinks = attrs['sinks'];
+      if (!Array.isArray(sinks) || sinks.length === 0 || !sinks.every((x) => typeof x === 'string')) {
+        push(`${path}.attrs.sinks`, '사라지는 길(sinks)이 하나 이상 있어야 한다 — 쓰고 남는 것이 사라질 곳이 없는 자원은 거부');
+      }
+      break;
+    }
     case 'env_level': {
       const r = attrs['rank'];
       if (!isInt(r) || r < 0) push(`${path}.attrs.rank`, '환경 등급의 순서(rank)는 0 이상의 정수여야 한다');
@@ -286,6 +297,10 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
   }
 
   checkOdorKnowledge(grouped, keysByCategory, push);
+  for (const e of grouped.get('resource') ?? []) {
+    const sinks = e.attrs?.['sinks'];
+    if (Array.isArray(sinks)) for (const x of sinks) if (!(keysByCategory.get('sink')?.has(String(x)) ?? false)) push(`resource.${e.key}.attrs.sinks`, `"${String(x)}"는 sink 분류에 없는 키다`);
+  }
   return issues;
 }
 

@@ -90,6 +90,17 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
       else if (!vocab.has('mobility', def.mobility)) error(`${id}.mobility`, `사전에 없는 값: ${def.mobility}`);
     }
 
+    if (def.role !== undefined && !vocab.has('device_role', def.role)) error(`${id}.role`, `사전에 없는 역할: ${def.role}`);
+    for (const r of def.utility ?? []) if (!vocab.has('resource', r)) error(`${id}.utility`, `사전에 없는 설비: ${r}`);
+    for (const r of def.supplies ?? []) if (!vocab.has('resource', r)) error(`${id}.supplies`, `사전에 없는 설비: ${r}`);
+    if ((def.utility ?? []).length > 0 && def.role !== 'device') error(`${id}.utility`, '설비를 쓰는 가구는 role이 기기(device)여야 한다 — 입력과 출력이 없는 가구는 설비가 없는 비전자제품이다');
+    for (const r of def.holds ?? []) {
+      const e = vocab.entry('resource', r);
+      if (e === undefined) error(`${id}.holds`, `사전에 없는 설비: ${r}`);
+      else if (e.attrs['holdable'] !== true) error(`${id}.holds`, `${r}는 담을 수 없는 자원이다 (머물지 않고 흐른다)`);
+      else if (e.attrs['sealed'] === true && !(def.utility ?? []).includes(r)) error(`${id}.holds`, `${r}는 밀폐 자원이라 그 설비를 쓰는 기기만 담을 수 있다 (자유롭게 담기지 않는다)`);
+    }
+
     for (const [slotKey, slot] of Object.entries(def.slots ?? {})) {
       for (const f of slot.features) {
         if (!vocab.has('feature', f)) error(`${id}.slots.${slotKey}`, `사전에 없는 특징: ${f}`);

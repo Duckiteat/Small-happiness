@@ -228,9 +228,31 @@ function mapDefinition(db: Db, vocab: Vocab | undefined, def: Definition, errors
     }
   }
 
+  // 사전 이름(전기·기기 등)으로 쓴 것은 키로 바꾼다
+  const viaVocab = (category: string, v: string | undefined, at: string): string | undefined => {
+    if (vocab === undefined || v === undefined) return v;
+    const k = vocab.resolve(category, v);
+    if (k !== null && k !== v) {
+      notes.push({ where: at, from: v, to: k });
+      changed = true;
+      return k;
+    }
+    return v;
+  };
+  const role = viaVocab('device_role', def.role, `${def.id}.role`);
+  const list = (category: string, field: 'utility' | 'holds' | 'supplies'): readonly string[] | undefined =>
+    def[field]?.map((v, i) => viaVocab(category, v, `${def.id}.${field}[${i}]`) as string);
+  const utility = list('resource', 'utility');
+  const holds = list('resource', 'holds');
+  const supplies = list('resource', 'supplies');
+
   if (!changed) return def;
   return {
     ...def,
+    ...(role !== undefined ? { role } : {}),
+    ...(utility !== undefined ? { utility } : {}),
+    ...(holds !== undefined ? { holds } : {}),
+    ...(supplies !== undefined ? { supplies } : {}),
     ...(mobility !== undefined ? { mobility } : {}),
     ...(stays !== undefined ? { stays } : {}),
     ...(environment !== undefined ? { environment } : {}),

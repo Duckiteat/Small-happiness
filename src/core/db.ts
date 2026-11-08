@@ -34,8 +34,8 @@ export const PREFIX_KIND: Readonly<Record<DefPrefix, string>> = {
 
 const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
-  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
-  PLC: [...COMMON_FIELDS, 'environment', 'passages', 'slots', 'meanings', 'rules', 'offers'],
+  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
+  PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'rules', 'offers'],
   CHR: [...COMMON_FIELDS, 'senses', 'stays'],
 };
 
@@ -142,6 +142,14 @@ export interface Definition {
   readonly aliases: readonly string[];
   readonly desc: readonly string[];
   readonly mobility?: string;
+  /** 가구의 역할: 사전 device_role (그냥 가구 / 기기). 설비를 쓰면 기기다 */
+  readonly role?: string;
+  /** 연결된 설비(전기·수도·가스, 사전 resource). 비어 있으면 비전자제품(완전한 아날로그). 그 장소가 공급해야 한다(출처 확인) */
+  readonly utility?: readonly string[];
+  /** 이 물건이 담을 수 있는 자원 (사전 resource). 밀폐 자원(가스)은 그 설비를 쓰는 기기만 담는다 */
+  readonly holds?: readonly string[];
+  /** 장소가 공급하는 설비 (사전 resource) */
+  readonly supplies?: readonly string[];
   readonly slots?: { readonly [key: string]: SlotDef };
   readonly meanings?: readonly MeaningDef[];
   readonly rules?: { readonly [key: string]: RuleDef };
@@ -497,6 +505,10 @@ export type Fields = Partial<{
   aliases: string[];
   desc: string[];
   mobility: string;
+  role: string;
+  utility: string[];
+  holds: string[];
+  supplies: string[];
   slots: Record<string, SlotDef>;
   meanings: MeaningDef[];
   rules: Record<string, RuleDef>;
@@ -550,6 +562,17 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (typeof value !== 'string' || value.trim() === '') push(at, 'mobility는 문자열이어야 한다');
         else out.mobility = value.trim();
         break;
+      case 'role':
+        if (typeof value !== 'string' || value.trim() === '') push(at, 'role은 문자열이어야 한다');
+        else out.role = value.trim();
+        break;
+      case 'utility':
+      case 'holds':
+      case 'supplies': {
+        const v = fieldStringList(value, key, at, push);
+        if (v !== undefined) out[key] = v;
+        break;
+      }
       case 'slots': {
         const v = fieldSlots(value, at, push);
         if (v !== undefined) out.slots = v;
@@ -625,6 +648,10 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
     ...(f.is_a !== undefined ? { is_a: f.is_a } : {}),
     aliases: f.aliases ?? [],
     ...(f.mobility !== undefined ? { mobility: f.mobility } : {}),
+    ...(f.role !== undefined ? { role: f.role } : {}),
+    ...(f.utility !== undefined ? { utility: f.utility } : {}),
+    ...(f.holds !== undefined ? { holds: f.holds } : {}),
+    ...(f.supplies !== undefined ? { supplies: f.supplies } : {}),
     ...(f.slots !== undefined ? { slots: f.slots } : {}),
     ...(f.meanings !== undefined ? { meanings: f.meanings } : {}),
     ...(f.rules !== undefined ? { rules: f.rules } : {}),
