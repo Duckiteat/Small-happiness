@@ -277,6 +277,11 @@ export interface SceneDef {
   readonly rung: string;
   readonly day_part?: string;
   readonly mode?: string;
+  /**
+   * 그 밖의 조건 (scene.ts, 모두 맞아야 한다): `came_home` · `urgent` · `card:카드` · `concept:개념` · `kind:종류` · `inner:특징@조건`.
+   * 맞는 조건이 많을수록 구체적이다.
+   */
+  readonly conds?: readonly string[];
   readonly lines: readonly string[];
   readonly anchors: readonly { readonly line: number; readonly text: string; readonly verb: string; readonly label?: string }[];
 }
@@ -554,13 +559,13 @@ function fieldScenes(v: unknown, where: string, push: Push): SceneDef[] | undefi
   for (const [i, sc] of v.entries()) {
     const at = `${where}[${i}]`;
     const anchorsOk = (x: unknown): boolean => Array.isArray(x) && x.every((a) => isObj(a) && typeof a['line'] === 'number' && Number.isInteger(a['line']) && typeof a['text'] === 'string' && a['text'] !== '' && typeof a['verb'] === 'string' && (a['label'] === undefined || typeof a['label'] === 'string') && Object.keys(a).every((k) => ['line', 'text', 'verb', 'label'].includes(k)));
-    if (!isObj(sc) || typeof sc['name'] !== 'string' || sc['name'].trim() === '' || typeof sc['sense'] !== 'string' || typeof sc['rung'] !== 'string' || !isStrArr(sc['lines']) || sc['lines'].length === 0 || !anchorsOk(sc['anchors']) || (sc['day_part'] !== undefined && typeof sc['day_part'] !== 'string') || (sc['mode'] !== undefined && typeof sc['mode'] !== 'string')) {
-      push(at, '장면은 { name, sense, rung, day_part?, mode?, lines: 원문 줄(하나 이상), anchors: [{ line, text, verb, label? }] }이어야 한다');
+    if (!isObj(sc) || typeof sc['name'] !== 'string' || sc['name'].trim() === '' || typeof sc['sense'] !== 'string' || typeof sc['rung'] !== 'string' || !isStrArr(sc['lines']) || sc['lines'].length === 0 || !anchorsOk(sc['anchors']) || (sc['day_part'] !== undefined && typeof sc['day_part'] !== 'string') || (sc['mode'] !== undefined && typeof sc['mode'] !== 'string') || (sc['conds'] !== undefined && !isStrArr(sc['conds']))) {
+      push(at, '장면은 { name, sense, rung, day_part?, mode?, conds?: 조건 목록, lines: 원문 줄(하나 이상), anchors: [{ line, text, verb, label? }] }이어야 한다');
       continue;
     }
-    onlyKeys(sc, ['name', 'sense', 'rung', 'day_part', 'mode', 'lines', 'anchors'], at, push);
+    onlyKeys(sc, ['name', 'sense', 'rung', 'day_part', 'mode', 'conds', 'lines', 'anchors'], at, push);
     const anchors = (sc['anchors'] as Record<string, unknown>[]).map((a) => ({ line: a['line'] as number, text: String(a['text']), verb: String(a['verb']), ...(typeof a['label'] === 'string' ? { label: a['label'] } : {}) }));
-    out.push({ name: sc['name'].trim(), sense: sc['sense'], rung: sc['rung'], ...(typeof sc['day_part'] === 'string' ? { day_part: sc['day_part'] } : {}), ...(typeof sc['mode'] === 'string' ? { mode: sc['mode'] } : {}), lines: [...(sc['lines'] as string[])], anchors });
+    out.push({ name: sc['name'].trim(), sense: sc['sense'], rung: sc['rung'], ...(typeof sc['day_part'] === 'string' ? { day_part: sc['day_part'] } : {}), ...(typeof sc['mode'] === 'string' ? { mode: sc['mode'] } : {}), ...(isStrArr(sc['conds']) && sc['conds'].length > 0 ? { conds: [...sc['conds']] } : {}), lines: [...(sc['lines'] as string[])], anchors });
   }
   return out;
 }

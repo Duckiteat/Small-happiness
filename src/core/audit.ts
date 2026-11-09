@@ -18,7 +18,8 @@ import { actionClass, ADVICE_GIVEN, ADVICE_IGNORED, OPTIONS_FORMED } from './age
 import { afterDone, conditionFeature, stepped, hasCondition, MODE_CHANGED, modeCause, modeDefs, modeMinutes, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 import type { ModeDef } from './condition.ts';
 import { cardChanges, doorKey, OUTSIDE_DAY_DONE, PASSED_DOOR } from './outside.ts';
-import { closeKeys, coreOf, dayPartOf, EVENT_CLOSED, EVENT_OPENED, pickScene, SCENE_SHOWN, senseOf } from './scene.ts';
+import { closeKeys, coreOf, dayPartOf, EVENT_CLOSED, EVENT_OPENED, pickSceneWhy, SCENE_SHOWN, senseOf } from './scene.ts';
+import type { SceneContext } from './scene.ts';
 import { ACTION_STOPPED, againstOdor, enduredTotal, isHabituated, URGENCY_ENDURED, URGENCY_FELT, urgencySense } from './urgency.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
@@ -294,6 +295,26 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const stoppedA = new Set<string>(); // 끝나기 전에 그만둔 행동 (고른 사건)
   // 장면 (scene.ts): 열린 이벤트와 지금 보이는 장면
   const openEventsA = new Map<string, { scene: string | null; lastSeq: string }>(); // `${인물}|${이벤트}|${장소}`
+  const cameHomeA = new Map<string, { t: number; seq: string }>(); // 인물 → 마지막으로 들어온 때
+  const cardsA = new Map<string, { cards: string[]; seq: string }>(); // 인물 → 오늘의 밖의 하루 카드 (깨면 지운다)
+  const sceneCtxA = (who: string, place: string, feature: string): SceneContext => {
+    const keys = viewA.keysOf(who);
+    const st = laddersA.get(`${who}|${place}|${feature}`)?.state;
+    const concept = st?.concepts[0];
+    const kind = believed(st) ?? undefined;
+    const ch = cameHomeA.get(who), cd = cardsA.get(who), ur = urgentOf(who);
+    return {
+      inner: (f) => {
+        const k = keys.find((x) => x.endsWith(`:${f}`));
+        return k === undefined ? undefined : { level: levelIn(levels, k), seq: lastChangeOf(k) };
+      },
+      ...(concept !== undefined ? { concept } : {}),
+      ...(kind !== undefined ? { kind } : {}),
+      ...(ch !== undefined ? { cameHome: ch } : {}),
+      ...(cd !== undefined ? { cards: cd } : {}),
+      ...(ur !== undefined ? { urgent: ur } : {}),
+    };
+  };
   const instancesOfA = (d: string): string[] => [...instances.keys()].filter((i) => instances.get(i) === d).sort();
   const closesHoldA = (id: string, place: string): { holds: boolean; keys: string[] } => {
     const def = db.defs[id];
@@ -931,12 +952,13 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         }
         const sense = senseOf(vocab, core.feature);
         const m = modesA.get(who);
-        const sc = lad === undefined || sense === null ? null : pickScene(def.scenes ?? [], sense, lad.state.rung, dayPartOf(vocab, e.t), m?.mode ?? null);
+        const picked = lad === undefined || sense === null ? null : pickSceneWhy(def.scenes ?? [], sense, lad.state.rung, dayPartOf(vocab, e.t), m?.mode ?? null, { vocab, t: e.t, ctx: sceneCtxA(who, place, core.feature) });
+        const sc = picked?.scene ?? null;
         const lines = Array.isArray(e.data['lines']) ? e.data['lines'].map(String) : [];
         if (sc === null || lad === undefined || sc.name !== str(e.data['scene']) || sc.name === cur.scene) bad(e.seq, 'awareness', `그때의 칸·하루 구간·모드로는 장면이 ${sc?.name ?? '없음'}이다 (기록: ${str(e.data['scene'])}, 앞 장면 ${cur.scene ?? '없음'})`);
         else {
           if (lines.length !== sc.lines.length || lines.some((l, i) => l !== sc.lines[i])) bad(e.seq, 'awareness', '장면의 문장이 작가의 원문과 바이트까지 같지 않다');
-          expectCause(e.seq, 'cause', e.cause, latestSeq([lad.seq, m?.seq]), '장면');
+          expectCause(e.seq, 'cause', e.cause, latestSeq([lad.seq, m?.seq, ...(picked?.seqs ?? [])]), '장면');
           cur.scene = sc.name;
           cur.lastSeq = lad.seq;
         }
@@ -951,6 +973,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           bad(e.seq, 'state', '현관문을 지난 것은 있는 인물이, 원인 없이, 집의 문을, 나가거나(out) 들어오며(in)');
           break;
         }
+        if (dir === 'in') cameHomeA.set(who, { t: e.t, seq: e.seq });
         if (levelIn(levels, door.key) !== door.open) pending = { cause: e.seq, what: '현관문을 지남', expect: [{ key: door.key, to: door.open }] };
         break;
       }
@@ -1035,6 +1058,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           bad(e.seq, 'state', '밖의 하루는 있는 인물에게, 원인 없이, 사전의 카드를 겹치지 않게 정한다');
           break;
         }
+        cardsA.set(who, { cards: [...cards], seq: e.seq });
         const keys = viewA.keysOf(who);
         const changes = cardChanges(vocab, db.defs[instances.get(who) ?? '']?.mind, who, cards, keys, (k) => levelIn(levels, k));
         if (changes.length > 0) pending = { cause: e.seq, what: '밖의 하루', expect: [...changes] };
@@ -1048,6 +1072,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           bad(e.seq, 'state', '잠에서 깬 이는 있는 인물이고 원인이 없다');
           break;
         }
+        cardsA.delete(who);
         const changes = wakeChanges(db, vocab, who, instances.get(who) ?? '', (k) => levelIn(levels, k));
         if (changes.length === 0) bad(e.seq, 'state', '깨어도 돌아올 컨디션이 없는데 잠에서 깼다고 적었다');
         else pending = { cause: e.seq, what: '잠에서 깸', expect: [...changes] };

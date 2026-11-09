@@ -34,6 +34,7 @@ import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_M
 import type { LadderState, LadderView } from './ladder.ts';
 import { skillKey } from './skill.ts';
 import { cardChanges, doorKey, PASSED_DOOR } from './outside.ts';
+import type { SceneContext } from './scene.ts';
 import { enduredTotal, isHabituated, URGENCY_ENDURED, URGENCY_FELT, urgencySense } from './urgency.ts';
 import { conditionFeature, hasCondition, MODE_CHANGED, stepped, modeCause, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 
@@ -110,6 +111,8 @@ export class Perception {
   readonly #seenDefs = new Map<string, Map<string, string>>(); // 인물 → 본 적 있는 정의 → 처음 안 사건 (아는 개념)
   readonly #modes = new Map<string, { readonly mode: string; readonly seq: string }>(); // 인물 → 지금의 모드와 그 사건
   #lastPresence: string | null = null; // 직전 단계의 상황 (잠에서 깼는지)
+  readonly #cameHome = new Map<string, { t: number; seq: string }>(); // 인물 → 마지막으로 들어온 때 (장면 조건)
+  readonly #cards = new Map<string, { cards: string[]; seq: string }>(); // 인물 → 오늘(마지막으로 깬 뒤)의 밖의 하루 카드
   readonly #urgent = new Map<string, { readonly since: number; readonly seq: string; bumps: number }>(); // `${인물}|${상태 키}` → 못 참는 중
   readonly #dulled = new Set<string>(); // `${인물}|${상태 키}`: 오래 맡아 둔해진 것 (못 참는 칸 아래로 내려가면 풀린다)
 
@@ -126,6 +129,7 @@ export class Perception {
     // 밖의 하루 (outside.ts): 귀가하며 그날의 카드가 내면에 들어온다 (원인: 카드가 정해진 사건). 영향은 내면으로만
     for (const a of arrivals) {
       if (!world.instances().includes(a.who)) continue;
+      this.#cards.set(a.who, { cards: [...a.cards], seq: a.event });
       const keys = world.keysOf(a.who);
       for (const c of cardChanges(this.#vocab, this.#db.defs[defOf(a.who) ?? '']?.mind, a.who, a.cards, keys, (k) => world.level(k))) world.set(c.key, c.to, { t, cause: a.event });
     }
@@ -135,6 +139,7 @@ export class Perception {
       for (const who of world.instances().filter((i) => i.startsWith('CHR'))) {
         const changes = wakeChanges(this.#db, this.#vocab, who, defOf(who) ?? '', (k) => world.level(k));
         if (changes.length === 0) continue;
+        this.#cards.delete(who);
         const e = this.#log.append({ t, type: WOKE, src: PERCEPTION_SRC, cause: null, data: { who } });
         for (const c of changes) world.set(c.key, c.to, { t, cause: e.seq });
       }
@@ -497,6 +502,7 @@ export class Perception {
     if (door === null) return;
     for (const who of world.instances().filter((i) => i.startsWith('CHR'))) {
       const e = this.#log.append({ t, type: PASSED_DOOR, src: PERCEPTION_SRC, cause: null, data: { who, dir, door: door.key } });
+      if (dir === 'in') this.#cameHome.set(who, { t, seq: e.seq });
       if (world.level(door.key) !== door.open) world.set(door.key, door.open, { t, cause: e.seq });
     }
   }
@@ -558,6 +564,31 @@ export class Perception {
   ladderOf(who: string, place: string, feature: string): { readonly rung: string; readonly seq: string } | undefined {
     const l = this.#ladders.get(`${who}|${place}|${feature}`);
     return l === undefined ? undefined : { rung: l.state.rung, seq: l.seq };
+  }
+
+  /** 7층이 읽는 장면 조건의 맥락 (scene.ts): 내면 특징, 방금 들어온 때, 오늘의 카드, 못 참는 냄새. */
+  sceneContext(world: World, who: string): Omit<SceneContext, 'concept' | 'kind'> {
+    const keys = world.instances().includes(who) ? world.keysOf(who) : [];
+    const cameHome = this.#cameHome.get(who);
+    const cards = this.#cards.get(who);
+    const urgent = [...this.#urgent].filter(([id]) => id.startsWith(`${who}|`)).map(([, a]) => a.seq).sort().at(-1);
+    return {
+      inner: (f) => {
+        const k = keys.find((x) => x.endsWith(`:${f}`));
+        return k === undefined ? undefined : { level: world.level(k), seq: world.lastChange(k) };
+      },
+      ...(cameHome !== undefined ? { cameHome } : {}),
+      ...(cards !== undefined ? { cards } : {}),
+      ...(urgent !== undefined ? { urgent } : {}),
+    };
+  }
+
+  /** 7층이 읽는 사다리의 떠올린 개념과 믿는 종류 (scene.ts). */
+  ladderMind(who: string, place: string, feature: string): { concept?: string; kind?: string } {
+    const l = this.#ladders.get(`${who}|${place}|${feature}`)?.state;
+    const concept = l?.concepts[0];
+    const kind = believed(l) ?? undefined;
+    return { ...(concept !== undefined ? { concept } : {}), ...(kind !== undefined ? { kind } : {}) };
   }
 
   /** 7층이 읽는 지금의 모드와 그 사건 (scene.ts). */

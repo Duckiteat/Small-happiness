@@ -199,7 +199,8 @@ function main(): void {
       const sources = files.map((f) => {
         const text = readFileSync(resolve(f), 'utf8');
         if (!f.endsWith('.ev')) return JSON.parse(text) as unknown;
-        const r = parseScript(text, loadVocabDir(join(root, 'data', 'vocab')));
+        const dbNow = loadDb(root);
+        const r = parseScript(text, loadVocabDir(join(root, 'data', 'vocab')), (name) => Object.values(dbNow.defs).find((d) => d.names.ko === name || d.aliases.includes(name))?.id ?? null);
         if (r.source === null) {
           for (const i of r.issues) console.error(`  오류 ${f}:${i.line}: ${i.msg}`);
           process.exit(1);

@@ -196,6 +196,150 @@
             "찾았다. 이거였구나."
           ],
           "anchors": []
+        },
+        {
+          "name": "지친 퇴근길 끝에",
+          "sense": "smell",
+          "rung": "feel",
+          "conds": [
+            "came_home"
+          ],
+          "lines": [
+            "지친 몸으로 현관을 열었는데, {꼬릿한 냄새?|킁킁}."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "꼬릿한 냄새?",
+              "verb": "sniff"
+            }
+          ]
+        },
+        {
+          "name": "요리 냄새인가",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "concept:cooking"
+          ],
+          "lines": [
+            "킁킁. 뭘 해 먹은 냄새 같은데. {어디서 나지|탐색}"
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "어디서 나지",
+              "verb": "search"
+            }
+          ]
+        },
+        {
+          "name": "상한 건가",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "concept:decay"
+          ],
+          "lines": [
+            "이건 상한 냄새다. 어딘가에서 뭔가 {썩고 있다|탐색}."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "썩고 있다",
+              "verb": "search"
+            }
+          ]
+        },
+        {
+          "name": "김치인가",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "concept:OBJ000005"
+          ],
+          "lines": [
+            "김치 냄새 같다. {냉장고|열어보기} 문이 덜 닫혔나."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "냉장고",
+              "verb": "peek"
+            }
+          ]
+        },
+        {
+          "name": "칭찬 받은 날",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "card:praise"
+          ],
+          "lines": [
+            "기분 좋은 날인데, 이 냄새는 {뭐지|탐색}."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "뭐지",
+              "verb": "search"
+            }
+          ]
+        },
+        {
+          "name": "예민한 날",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "inner:tension@>=built"
+          ],
+          "lines": [
+            "오늘따라 냄새가 더 거슬린다. {어디야|탐색}"
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "어디야",
+              "verb": "search"
+            }
+          ]
+        },
+        {
+          "name": "못 견디겠다",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "urgent"
+          ],
+          "lines": [
+            "도저히 못 참겠다. 창문부터 {열자|환기}."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "열자",
+              "verb": "ventilate"
+            }
+          ]
+        },
+        {
+          "name": "썩는 냄새",
+          "sense": "smell",
+          "rung": "narrow",
+          "conds": [
+            "kind:putrid"
+          ],
+          "lines": [
+            "썩는 냄새다. 틀림없다. {어디서|탐색}"
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "어디서",
+              "verb": "search"
+            }
+          ]
         }
       ],
       "desc": [

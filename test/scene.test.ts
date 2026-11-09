@@ -9,8 +9,8 @@ import { compileSources } from '../src/core/compile.ts';
 import type { Db } from '../src/core/db.ts';
 import { parseEvent } from '../src/core/events.ts';
 import type { GameEvent } from '../src/core/events.ts';
-import { dayPartOf, pickScene } from '../src/core/scene.ts';
-import { parseScript, renderLine } from '../src/core/script.ts';
+import { dayPartOf, pickScene, pickSceneWhy } from '../src/core/scene.ts';
+import { parseScript, renderLine, sceneCond } from '../src/core/script.ts';
 import { parseScenario, runScenario } from '../src/core/skeleton.ts';
 import { loadDb, scenarioDb } from '../src/node/clerk.ts';
 import { loadVocabDir } from '../src/node/vocab-files.ts';
@@ -24,6 +24,7 @@ const KITCHEN = 'PLC000002#1';
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 const of = (es: readonly GameEvent[], type: string): GameEvent[] => es.filter((e) => e.type === type);
 const scenes = db.defs['EVT000001']?.scenes ?? [];
+const byName = (name: string): string | null => Object.values(db.defs).find((d) => d.names.ko === name || d.aliases.includes(name))?.id ?? null;
 
 const evening = (): Record<string, unknown> => JSON.parse(readFileSync(join(ROOT, 'content', 'scenarios', 'home-evening.json'), 'utf8')) as Record<string, unknown>;
 const run = (r: Record<string, unknown>, d: Db = db): { events: GameEvent[]; start: number } => {
@@ -42,7 +43,7 @@ const smellAt = (t: number, smell: string, odor: string, sets: { key: string; le
 };
 
 test('줄글 문법: 머리·장면·앵커를 읽어 이벤트 원본을 만들고, 저장소의 냉장고 냄새와 같다', () => {
-  const r = parseScript(EV, vocab);
+  const r = parseScript(EV, vocab, byName);
   assert.deepEqual(r.issues, []);
   const compiled = compileSources([r.source]);
   assert.ok(compiled.patch !== null, JSON.stringify(compiled.issues));
@@ -86,7 +87,7 @@ test('첫 주: 주방 냄새의 사다리가 열리면 이벤트가 열리고, �
   assert.equal(opened.length, of(es, 'event_closed').length, '열린 만큼 닫힌다');
   for (const o of opened) assert.equal(es.find((x) => x.seq === o.cause)?.type, 'ladder_moved');
   const shown = of(es, 'scene_shown');
-  assert.deepEqual([...new Set(shown.map((e) => str(e.data['scene'])))], ['무슨 냄새지', '찾았다'], '짐작 → (살펴서) 정체');
+  assert.deepEqual([...new Set(shown.map((e) => str(e.data['scene'])))], ['요리 냄새인가', '상한 건가', '찾았다'], '떠올린 개념으로: 요리 냄새 → 상한 냄새 → (살펴서) 정체');
   const srcLines = EV.split('\n');
   for (const e of shown) for (const l of e.data['lines'] as string[]) assert.ok(srcLines.includes(l), `원문에 없는 줄: ${l}`);
   assert.deepEqual(auditLog(es, sdb, vocab, { externalUntil: sc.start }).findings, []);
@@ -124,3 +125,41 @@ test('감사: 장면을 그때의 칸·하루 구간·모드로 다시 고르고
   ];
   for (const c of cases) assert.ok(auditLog(c.mutate(structuredClone(es)), db, vocab, opts).findings.length > 0, c.name);
 });
+
+test('장면 조건: 떠올린 개념 · 믿는 종류 · 내면 특징 · 방금 들어옴 · 오늘의 카드 · 못 참음, 맞는 조건이 많을수록 구체적', () => {
+  const base = { inner: (f: string) => (f === 'tension' ? { level: 'none', seq: null } : undefined) };
+  const pick = (rung: string, ctx: Record<string, unknown>, t = 1200): string | undefined => pickSceneWhy(scenes, 'smell', rung, dayPartOf(vocab, t), 'steady', { vocab, t, ctx: { ...base, ...ctx } })?.scene.name;
+  assert.equal(pick('guess', {}), '무슨 냄새지', '조건이 없으면 기본');
+  assert.equal(pick('guess', { concept: 'OBJ000005' }), '김치인가');
+  assert.equal(pick('guess', { concept: 'decay' }), '상한 건가');
+  assert.equal(pick('guess', { cards: { cards: ['praise'], seq: 'L000001' } }), '칭찬 받은 날');
+  assert.equal(pick('guess', { inner: (f: string) => (f === 'tension' ? { level: 'built', seq: 'L000002' } : undefined) }), '예민한 날');
+  assert.equal(pick('guess', { urgent: 'L000003' }), '못 견디겠다');
+  assert.equal(pick('narrow', { kind: 'putrid' }), '썩는 냄새');
+  assert.equal(pick('narrow', { kind: 'sour' }), '이 냄새다');
+  assert.equal(pick('feel', { cameHome: { t: 580, seq: 'L000004' } }, 600), '지친 퇴근길 끝에', '아침, 들어온 지 30분 안');
+  assert.equal(pick('feel', { cameHome: { t: 500, seq: 'L000004' } }, 600), '냄새가 남', '30분이 지나면 기본');
+  assert.equal(pick('feel', { cameHome: { t: 1180, seq: 'L000004' } }), '현관을 열자', '저녁의 귀가는 두 장면이 조건 하나씩으로 같아 파일 순서 (작가가 귀가·저녁을 함께 쓰면 그것이 앞선다)');
+  const why = pickSceneWhy(scenes, 'smell', 'guess', 'evening', 'steady', { vocab, t: 1200, ctx: { ...base, cards: { cards: ['praise'], seq: 'L000009' } } });
+  assert.deepEqual(why?.seqs, ['L000009'], '조건을 참이게 한 사건이 장면의 원인에 들어간다');
+});
+
+test('줄글 문법: 장면 조건의 표기를 표준 모양으로 읽고, 못 읽으면 줄 번호 오류', () => {
+  const read = (w: string): string | null => {
+    const r = sceneCond(w, vocab, byName);
+    return r === null ? null : `${r.kind}:${r.value}`;
+  };
+  assert.equal(read('저녁'), 'day_part:evening');
+  assert.equal(read('방전'), 'mode:drained');
+  assert.equal(read('귀가'), 'cond:came_home');
+  assert.equal(read('못 참음'), 'cond:urgent');
+  assert.equal(read('카드:칭찬'), 'cond:card:praise');
+  assert.equal(read('떠올림:김치'), 'cond:concept:OBJ000005');
+  assert.equal(read('떠올림:부패'), 'cond:concept:decay');
+  assert.equal(read('종류:썩는 냄새'), 'cond:kind:putrid');
+  assert.equal(read('긴장>=쌓임'), 'cond:inner:tension@>=built');
+  assert.equal(read('카드:복권'), null);
+  assert.equal(read('냄새>=지독함'), null, '내면 특징이 아니다');
+  assert.equal(read('떠올림:우주선'), null);
+});
+

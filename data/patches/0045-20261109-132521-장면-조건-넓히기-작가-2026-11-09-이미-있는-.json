@@ -1,0 +1,289 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "장면 조건 넓히기 (작가 2026-11-09: 이미 있는 것 잇기 먼저) — 떠올린 개념·냄새 종류·긴장·귀가·카드·못 참음으로 고르는 장면을 더한다. 문장은 Claude의 초안",
+    "defs": [
+      {
+        "id": "EVT000001",
+        "names": {
+          "ko": "냉장고 냄새"
+        },
+        "desc": [
+          "주방에 냄새가 나기 시작해 정체를 알 때까지. 심상 사다리의 칸(느낌 → 짐작 → 좁힘 → 정체)마다 장면이 바뀐다"
+        ],
+        "core": "PLC000002|space:odor",
+        "closes": [
+          "PLC000002|space:smell@<=none"
+        ],
+        "scenes": [
+          {
+            "name": "냄새가 남",
+            "sense": "smell",
+            "rung": "feel",
+            "lines": [
+              "어디선가 {꼬릿한 냄새?|킁킁}가 난다."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "꼬릿한 냄새?",
+                "verb": "sniff"
+              }
+            ]
+          },
+          {
+            "name": "현관을 열자",
+            "sense": "smell",
+            "rung": "feel",
+            "lines": [
+              "현관을 열자 {꼬릿한 냄새?|킁킁}가 훅 끼쳤다."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "꼬릿한 냄새?",
+                "verb": "sniff"
+              }
+            ],
+            "day_part": "evening"
+          },
+          {
+            "name": "무슨 냄새지",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "킁킁. 이게 무슨 냄새지. {어디지.|탐색}",
+              "아는 냄새 같은데, 딱 이거라고는 못 하겠다."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "어디지.",
+                "verb": "search"
+              }
+            ]
+          },
+          {
+            "name": "무슨 냄새지 (지침)",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "냄새가 나는데, 지금은 아무것도 하기 싫다."
+            ],
+            "anchors": [],
+            "mode": "drained"
+          },
+          {
+            "name": "이 냄새다",
+            "sense": "smell",
+            "rung": "narrow",
+            "lines": [
+              "이 냄새는 안다. 문제는 어디서 나느냐다.",
+              "주방 쪽이다. {냉장고|열어보기} 쪽인가."
+            ],
+            "anchors": [
+              {
+                "line": 1,
+                "text": "냉장고",
+                "verb": "peek"
+              }
+            ]
+          },
+          {
+            "name": "찾았다",
+            "sense": "smell",
+            "rung": "thing",
+            "lines": [
+              "찾았다. 이거였구나."
+            ],
+            "anchors": []
+          },
+          {
+            "name": "지친 퇴근길 끝에",
+            "sense": "smell",
+            "rung": "feel",
+            "lines": [
+              "지친 몸으로 현관을 열었는데, {꼬릿한 냄새?|킁킁}."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "꼬릿한 냄새?",
+                "verb": "sniff"
+              }
+            ],
+            "conds": [
+              "came_home"
+            ]
+          },
+          {
+            "name": "요리 냄새인가",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "킁킁. 뭘 해 먹은 냄새 같은데. {어디서 나지|탐색}"
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "어디서 나지",
+                "verb": "search"
+              }
+            ],
+            "conds": [
+              "concept:cooking"
+            ]
+          },
+          {
+            "name": "상한 건가",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "이건 상한 냄새다. 어딘가에서 뭔가 {썩고 있다|탐색}."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "썩고 있다",
+                "verb": "search"
+              }
+            ],
+            "conds": [
+              "concept:decay"
+            ]
+          },
+          {
+            "name": "김치인가",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "김치 냄새 같다. {냉장고|열어보기} 문이 덜 닫혔나."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "냉장고",
+                "verb": "peek"
+              }
+            ],
+            "conds": [
+              "concept:OBJ000005"
+            ]
+          },
+          {
+            "name": "칭찬 받은 날",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "기분 좋은 날인데, 이 냄새는 {뭐지|탐색}."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "뭐지",
+                "verb": "search"
+              }
+            ],
+            "conds": [
+              "card:praise"
+            ]
+          },
+          {
+            "name": "예민한 날",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "오늘따라 냄새가 더 거슬린다. {어디야|탐색}"
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "어디야",
+                "verb": "search"
+              }
+            ],
+            "conds": [
+              "inner:tension@>=built"
+            ]
+          },
+          {
+            "name": "못 견디겠다",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "도저히 못 참겠다. 창문부터 {열자|환기}."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "열자",
+                "verb": "ventilate"
+              }
+            ],
+            "conds": [
+              "urgent"
+            ]
+          },
+          {
+            "name": "썩는 냄새",
+            "sense": "smell",
+            "rung": "narrow",
+            "lines": [
+              "썩는 냄새다. 틀림없다. {어디서|탐색}"
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "어디서",
+                "verb": "search"
+              }
+            ],
+            "conds": [
+              "kind:putrid"
+            ]
+          }
+        ]
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {},
+  "mapped": [],
+  "report": {
+    "why": "장면 조건 넓히기 (작가 2026-11-09: 이미 있는 것 잇기 먼저) — 떠올린 개념·냄새 종류·긴장·귀가·카드·못 참음으로 고르는 장면을 더한다. 문장은 Claude의 초안",
+    "scope": {
+      "added": {},
+      "updated": {
+        "event": [
+          {
+            "id": "EVT000001",
+            "fields": [
+              "names",
+              "desc",
+              "core",
+              "closes",
+              "scenes"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

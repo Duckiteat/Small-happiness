@@ -313,7 +313,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       // 하루씨가 집에 깨어 있을 때만 장면을 보고 이벤트를 열고 닫는다 (보지 않는 시간의 단계 간격에 기록이 매이지 않게)
       run: (c) => {
         const where = awayUntil > c.t ? AWAY : presenceAt(parsePlan(c.read('plan'), vocab), c.t);
-        c.write('scene', isObserved(vocab, where) ? stage.step(world, c.t, { ladder: (w, p, f) => perception.ladderOf(w, p, f), mode: (w) => perception.modeOf(w) }) : {});
+        c.write('scene', isObserved(vocab, where) ? stage.step(world, c.t, { ladder: (w, p, f) => perception.ladderOf(w, p, f), mode: (w) => perception.modeOf(w), context: (w) => perception.sceneContext(world, w), ladderMind: (w, p, f) => perception.ladderMind(w, p, f) }) : {});
       },
     },
     {

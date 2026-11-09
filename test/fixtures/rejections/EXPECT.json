@@ -322,5 +322,9 @@
   "event-no-default-scene.json": {
     "stage": "gate",
     "match": "조건 없는 기본 장면이 없다"
+  },
+  "event-bad-scene-cond.json": {
+    "stage": "gate",
+    "match": "장면 조건 \"card:lottery\": 사전에 없는 카드"
   }
 }

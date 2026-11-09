@@ -264,6 +264,13 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '구간이 조정된 값인지 tuned를 적어야 한다');
       break;
     }
+    case 'scene_cond': {
+      // 장면 조건 (scene.ts): value — 값의 종류 (none · outside_card · concept · kind), window_min — 시간 창(분)
+      if (!['none', 'outside_card', 'concept', 'kind'].includes(String(attrs['value']))) push(`${path}.attrs.value`, 'value는 none · outside_card · concept · kind 중 하나여야 한다');
+      const w = attrs['window_min'];
+      if (w !== undefined && (!isInt(w) || w < 1 || typeof attrs['tuned'] !== 'boolean')) push(`${path}.attrs.window_min`, 'window_min은 1 이상 정수이고 tuned를 함께 적는다');
+      break;
+    }
     case 'rung': {
       // 심상 사다리의 칸 (ladder.ts): 순서(rank)로 올라가기만 한다
       const r = attrs['rank'];

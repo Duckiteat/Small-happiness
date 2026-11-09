@@ -30,21 +30,70 @@ export function dayPartOf(vocab: Vocab, t: number): string | null {
   return null;
 }
 
-/** 가장 구체적인 장면: 감각·칸이 맞고, 하루 구간·모드 조건은 없거나 맞는 것 중 맞는 조건이 가장 많은 것 (같으면 파일 순서). */
-export function pickScene(scenes: readonly SceneDef[], sense: string, rung: string, dayPart: string | null, mode: string | null): SceneDef | null {
+/** 장면 조건을 볼 맥락 (7층은 지각에서, 감사는 따라간 기록에서). 각 조건이 참이게 한 사건 번호도 준다 (장면의 원인). */
+export interface SceneContext {
+  /** 맨 앞에 떠올린 개념, 믿는 종류 (사다리) */
+  readonly concept?: string;
+  readonly kind?: string;
+  /** 인물의 내면 특징 단계와 그것을 정한 사건 */
+  readonly inner: (feature: string) => { readonly level: string; readonly seq: string | null } | undefined;
+  /** 방금 들어온 때 (현관문을 지남 in) */
+  readonly cameHome?: { readonly t: number; readonly seq: string };
+  /** 오늘(마지막으로 깬 뒤)의 밖의 하루 카드 */
+  readonly cards?: { readonly cards: readonly string[]; readonly seq: string };
+  /** 못 참는 냄새의 시작 사건 */
+  readonly urgent?: string;
+}
+
+/** 장면 조건 하나가 맞으면 그것을 참이게 한 사건(없으면 null), 안 맞으면 false. */
+export function condHolds(vocab: Vocab, c: string, t: number, ctx: SceneContext): string | null | false {
+  const colon = c.indexOf(':');
+  const key = colon < 0 ? c : c.slice(0, colon);
+  const val = colon < 0 ? '' : c.slice(colon + 1);
+  if (key === 'came_home') {
+    const w = vocab.entry('scene_cond', 'came_home')?.attrs['window_min'];
+    return ctx.cameHome !== undefined && t - ctx.cameHome.t <= (typeof w === 'number' ? w : 0) ? ctx.cameHome.seq : false;
+  }
+  if (key === 'urgent') return ctx.urgent ?? false;
+  if (key === 'card') return ctx.cards !== undefined && ctx.cards.cards.includes(val) ? ctx.cards.seq : false;
+  if (key === 'concept') return ctx.concept === val ? null : false;
+  if (key === 'kind') return ctx.kind === val ? null : false;
+  if (key === 'inner') {
+    const at = val.indexOf('@');
+    const f = val.slice(0, at);
+    const m = /^(>=|<=|=)(.+)$/.exec(val.slice(at + 1));
+    const cur = ctx.inner(f);
+    if (m === null || cur === undefined) return false;
+    return levelMatches(vocab, f, cur.level, { op: m[1] as '=' | '>=' | '<=', level: m[2] ?? '' }) ? cur.seq : false;
+  }
+  return false;
+}
+
+/** 가장 구체적인 장면: 감각·칸이 맞고, 하루 구간·모드·그 밖의 조건이 없거나 모두 맞는 것 중 맞는 조건이 가장 많은 것 (같으면 파일 순서). 조건을 참이게 한 사건들도. */
+export function pickScene(scenes: readonly SceneDef[], sense: string, rung: string, dayPart: string | null, mode: string | null, ctx?: { readonly vocab: Vocab; readonly t: number; readonly ctx: SceneContext }): SceneDef | null {
+  return pickSceneWhy(scenes, sense, rung, dayPart, mode, ctx)?.scene ?? null;
+}
+
+export function pickSceneWhy(scenes: readonly SceneDef[], sense: string, rung: string, dayPart: string | null, mode: string | null, ctx?: { readonly vocab: Vocab; readonly t: number; readonly ctx: SceneContext }): { scene: SceneDef; seqs: (string | null)[] } | null {
   let best: SceneDef | null = null;
+  let bestSeqs: (string | null)[] = [];
   let bestScore = -1;
   for (const sc of scenes) {
     if (sc.sense !== sense || sc.rung !== rung) continue;
     if (sc.day_part !== undefined && sc.day_part !== dayPart) continue;
     if (sc.mode !== undefined && sc.mode !== mode) continue;
-    const score = (sc.day_part !== undefined ? 1 : 0) + (sc.mode !== undefined ? 1 : 0);
+    const conds = sc.conds ?? [];
+    if (conds.length > 0 && ctx === undefined) continue;
+    const held = conds.map((c) => (ctx === undefined ? false : condHolds(ctx.vocab, c, ctx.t, ctx.ctx)));
+    if (held.some((h) => h === false)) continue;
+    const score = (sc.day_part !== undefined ? 1 : 0) + (sc.mode !== undefined ? 1 : 0) + conds.length;
     if (score > bestScore) {
       best = sc;
       bestScore = score;
+      bestSeqs = held.filter((h): h is string | null => h !== false);
     }
   }
-  return best;
+  return best === null ? null : { scene: best, seqs: bestSeqs };
 }
 
 /** 이벤트의 핵심 패턴 (정의|부위:특징). */
@@ -76,6 +125,10 @@ export const SCENE_SRC = 'scene';
 export interface StageView {
   readonly ladder: (who: string, place: string, feature: string) => { readonly rung: string; readonly seq: string } | undefined;
   readonly mode: (who: string) => { readonly mode: string; readonly seq: string } | undefined;
+  /** 장면 조건의 맥락 (사다리의 개념·종류는 7층이 채운다) */
+  readonly context: (who: string) => Omit<SceneContext, 'concept' | 'kind'>;
+  /** 사다리의 떠올린 개념·믿는 종류 */
+  readonly ladderMind: (who: string, place: string, feature: string) => { readonly concept?: string; readonly kind?: string };
 }
 
 /** 이벤트를 열고 닫고, 열린 동안 장면을 고른다. 판의 scene 값(인물 → 열린 이벤트의 장면)을 돌려준다. */
@@ -120,13 +173,15 @@ export class Stage {
           if (state === undefined || lad === undefined || sense === null) continue;
           state.lastSeq = lad.seq;
           const m = view.mode(who);
-          const sc = pickScene(def.scenes ?? [], sense, lad.rung, dayPartOf(this.#vocab, t), m?.mode ?? null);
+          const ctx: SceneContext = { ...view.context(who), ...view.ladderMind(who, place, core.feature) };
+          const picked = pickSceneWhy(def.scenes ?? [], sense, lad.rung, dayPartOf(this.#vocab, t), m?.mode ?? null, { vocab: this.#vocab, t, ctx });
+          const sc = picked?.scene ?? null;
           if (sc !== null && sc.name !== state.scene) {
             this.#log.append({
               t,
               type: SCENE_SHOWN,
               src: SCENE_SRC,
-              cause: latestSeq([lad.seq, m?.seq]),
+              cause: latestSeq([lad.seq, m?.seq, ...(picked?.seqs ?? [])]),
               data: { who, event: id, place, scene: sc.name, rung: lad.rung, ...(dayPartOf(this.#vocab, t) !== null ? { day_part: dayPartOf(this.#vocab, t) as string } : {}), ...(m !== undefined ? { mode: m.mode } : {}), lines: [...sc.lines] },
             });
             state.scene = sc.name;

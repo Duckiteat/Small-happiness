@@ -48,6 +48,27 @@ function slotCheck(
   if (r === null || r.min > r.max) push(where, `조건 "${cond.op}${cond.level}"는 빈 범위다`);
 }
 
+/** 장면 조건 하나의 문제 (없으면 null): 사전의 장면 조건·카드·원인·종류·내면 특징과 단계. */
+function sceneCondIssue(c: string, db: Db, vocab: Vocab, coreFeature: string | undefined): string | null {
+  const colon = c.indexOf(':');
+  const key = colon < 0 ? c : c.slice(0, colon);
+  const val = colon < 0 ? '' : c.slice(colon + 1);
+  if (key === 'inner') {
+    const at = val.indexOf('@');
+    const f = val.slice(0, at);
+    const m = /^(>=|<=|=)(.+)$/.exec(val.slice(at + 1));
+    if (at < 0 || m === null || vocab.entry('feature', f)?.attrs['inner'] !== true) return '내면 특징의 조건(특징@=|>=|<=단계)이 아니다';
+    return (vocab.levelOrder(f) ?? []).includes(m[2] ?? '') && !vocab.isLocked(f, m[2] ?? '') ? null : `"${f}"의 쓸 수 있는 단계가 아니다`;
+  }
+  const kind = vocab.entry('scene_cond', key)?.attrs['value'];
+  if (kind === undefined) return '사전 scene_cond에 없다';
+  if (kind === 'none') return colon < 0 ? null : '값을 받지 않는 조건이다';
+  if (kind === 'outside_card') return vocab.has('outside_card', val) ? null : '사전에 없는 카드';
+  if (kind === 'concept') return vocab.has('odor_cause', val) || (val.startsWith('OBJ') && db.defs[val] !== undefined) ? null : '물건 정의도 냄새 원인도 아니다';
+  if (kind === 'kind') return coreFeature !== undefined && (vocab.levelOrder(coreFeature) ?? []).includes(val) ? null : '핵심 특징의 단계가 아니다';
+  return '알 수 없는 조건';
+}
+
 /** 저장소 하나가 규칙을 지키는지 검사한다 (이전 상태와의 비교는 runGate). */
 export function checkDb(db: Db, vocab: Vocab): Issue[] {
   const issues: Issue[] = [];
@@ -197,6 +218,10 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
       if (!vocab.has('rung', sc.rung)) error(w, `사전에 없는 사다리 칸: ${sc.rung}`);
       if (sc.day_part !== undefined && !vocab.has('day_part', sc.day_part)) error(w, `사전에 없는 하루 구간: ${sc.day_part}`);
       if (sc.mode !== undefined && !vocab.has('mode', sc.mode)) error(w, `사전에 없는 모드: ${sc.mode}`);
+      for (const c of sc.conds ?? []) {
+        const bad = sceneCondIssue(c, db, vocab, core?.feature);
+        if (bad !== null) error(w, `장면 조건 "${c}": ${bad}`);
+      }
       for (const a of sc.anchors) {
         if (a.line < 0 || a.line >= sc.lines.length || !(sc.lines[a.line] ?? '').includes(`{${a.text}|`)) error(w, `앵커 "${a.text}"가 그 줄에 없다`);
       }
@@ -207,7 +232,7 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
       }
     });
     const pairs = new Set(scenes.map((sc) => `${sc.sense}/${sc.rung}`));
-    for (const pr of pairs) if (!scenes.some((sc) => `${sc.sense}/${sc.rung}` === pr && sc.day_part === undefined && sc.mode === undefined)) error(at('scenes'), `${pr}에 조건 없는 기본 장면이 없다 (구체성 우선: 모든 장면에 기본 문장)`);
+    for (const pr of pairs) if (!scenes.some((sc) => `${sc.sense}/${sc.rung}` === pr && sc.day_part === undefined && sc.mode === undefined && (sc.conds ?? []).length === 0)) error(at('scenes'), `${pr}에 조건 없는 기본 장면이 없다 (구체성 우선: 모든 장면에 기본 문장)`);
   }
 
   // 종류(is_a): 같은 종류의 정의를 가리키고(여러 단계 가능, 돌아오면 안 된다), 모든 조상에게서 물려받는 규칙·행동이 쓰는 부위·특징을 갖는다
