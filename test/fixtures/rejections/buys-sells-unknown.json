@@ -1,0 +1,30 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 없는 정의를 파는 가게",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "시험 가게"
+   },
+   "mobility": "fixed",
+   "offers": {
+    "buy": {
+     "label": "산다",
+     "verb": "shop",
+     "needs": [],
+     "effect": [],
+     "buys": {
+      "sells": [
+       "OBJ999999"
+      ],
+      "on": "OBJ000012"
+     },
+     "minutes": 10,
+     "tuned": false
+    }
+   }
+  }
+ ]
+}

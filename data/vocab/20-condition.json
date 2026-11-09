@@ -3,7 +3,7 @@
     "category": "presence",
     "entries": [
       { "key": "home", "ko": "집에 있음", "en": "home", "desc": "하루씨가 집에 깨어 있다. 플레이어가 함께 본다. 단계는 행동·장면이 끝날 때마다 돈다", "attrs": { "observed": true } },
-      { "key": "meal", "ko": "식사 준비", "en": "meal", "aliases": ["요리 시간"], "desc": "하루씨가 집에서 식사를 준비하는 시간. 집에 있는 것과 같이 본다. 요리하기는 이 시간에만 한다", "attrs": { "observed": true } },
+      { "key": "meal", "ko": "식사 준비", "en": "meal", "aliases": ["요리 시간"], "desc": "하루씨가 집에서 식사를 준비하는 시간. 집에 있는 것과 같이 본다. 요리하기는 이 시간에만 한다. 이 구간이 시작되면 하루씨가 아는 재료로 메뉴를 구상한다 (요리-설계 10장)", "attrs": { "observed": true, "plans_menu": true } },
       { "key": "out", "ko": "외출", "en": "out", "aliases": ["출근", "부재"], "desc": "하루씨가 집에 없다. 플레이어도 보지 않는다. 일정한 간격으로 변화를 계산한다", "attrs": { "observed": false } },
       { "key": "asleep", "ko": "잠", "en": "asleep", "aliases": ["수면"], "desc": "하루씨가 자고 있다. 플레이어가 보지 않는 시간으로 친다 (외출과 같은 간격)", "attrs": { "observed": false } }
     ]
@@ -28,7 +28,7 @@
   {
     "category": "action",
     "entries": [
-      { "key": "rest", "ko": "쉬기", "en": "rest", "desc": "아무것도 안 하기도 포함. 여유를 올릴 수 있다" },
+      { "key": "rest", "ko": "쉬기", "en": "rest", "desc": "아무것도 안 하기도 포함. 앉아 쉬기. 여유를 올릴 수 있다 (쉼: 할 일이 없을 때 하루씨가 스스로 고른다, 내면-설계 12장)", "attrs": { "pastime": true } },
       { "key": "cry", "ko": "울기", "en": "cry", "desc": "긴장의 방출. 라벨 없이 상태로만 그린다" }
     ]
   }

@@ -1,0 +1,220 @@
+[
+  {
+    "category": "feature",
+    "entries": [
+      {
+        "key": "pleasure",
+        "ko": "쾌",
+        "en": "pleasure",
+        "desc": "감정의 축 하나 (내면-설계 10장). 좋은 쪽으로 쌓인 정도. 불쾌와 따로 쌓인다 (그리움처럼 함께 오를 수 있다)",
+        "attrs": {
+          "inner": true,
+          "axis": "pleasure",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "faint",
+              "ko": "은근함"
+            },
+            {
+              "key": "mild",
+              "ko": "조금"
+            },
+            {
+              "key": "clear",
+              "ko": "뚜렷함"
+            },
+            {
+              "key": "strong",
+              "ko": "큼"
+            },
+            {
+              "key": "full",
+              "ko": "벅참"
+            }
+          ],
+          "tuned": false
+        }
+      },
+      {
+        "key": "displeasure",
+        "ko": "불쾌",
+        "en": "displeasure",
+        "desc": "감정의 축 하나. 싫은 쪽으로 쌓인 정도. 안정이 낮으면(긴장) 한 칸 더 오른다",
+        "attrs": {
+          "inner": true,
+          "axis": "displeasure",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "faint",
+              "ko": "꺼림칙함"
+            },
+            {
+              "key": "mild",
+              "ko": "언짢음"
+            },
+            {
+              "key": "clear",
+              "ko": "뚜렷함"
+            },
+            {
+              "key": "strong",
+              "ko": "큼"
+            },
+            {
+              "key": "full",
+              "ko": "견딜 수 없음"
+            }
+          ],
+          "tuned": false
+        }
+      },
+      {
+        "key": "stability",
+        "ko": "안정",
+        "en": "stability",
+        "desc": "감정의 축 하나. 예측할 수 있음에 대한 안정: 감정이 아니라 생각으로 움직인다 (by_thought: 처음이면 내려가고, 며칠 안에 겪어 봤거나 기억대로면 오르고, 기억과 어긋나면 내려간다). 낮을수록 긴장",
+        "attrs": {
+          "inner": true,
+          "axis": "stability",
+          "levels": [
+            {
+              "key": "shaken",
+              "ko": "흔들림"
+            },
+            {
+              "key": "uneasy",
+              "ko": "불안정"
+            },
+            {
+              "key": "wary",
+              "ko": "조심스러움"
+            },
+            {
+              "key": "steady",
+              "ko": "안정"
+            },
+            {
+              "key": "settled",
+              "ko": "편안함"
+            },
+            {
+              "key": "secure",
+              "ko": "든든함"
+            }
+          ],
+          "tuned": false,
+          "by_thought": {
+            "new": -1,
+            "familiar": 1,
+            "recalled": 1,
+            "against": -1
+          }
+        }
+      }
+    ]
+  },
+  {
+    "category": "emotion",
+    "entries": [
+      {
+        "key": "comfort",
+        "ko": "포근함",
+        "desc": "좋은 심상을, 며칠 안에 겪어 본 것에서 느낌",
+        "attrs": {
+          "tone": "pleasant",
+          "shifts": {
+            "pleasure": 1
+          },
+          "tuned": false,
+          "thought": "familiar"
+        }
+      },
+      {
+        "key": "flutter",
+        "ko": "설렘",
+        "desc": "좋은 심상을 처음(또는 잊은 뒤에) 겪음",
+        "attrs": {
+          "tone": "pleasant",
+          "shifts": {
+            "pleasure": 1
+          },
+          "tuned": false,
+          "thought": "new"
+        }
+      },
+      {
+        "key": "annoyance",
+        "ko": "언짢음",
+        "desc": "싫은 심상을, 겪어 본 것에서 다시 느낌",
+        "attrs": {
+          "tone": "unpleasant",
+          "shifts": {
+            "displeasure": 1
+          },
+          "tuned": false,
+          "thought": "familiar"
+        }
+      },
+      {
+        "key": "unease",
+        "ko": "불안",
+        "desc": "싫은 심상을 처음 겪거나 무엇에서 오는지 모름",
+        "attrs": {
+          "tone": "unpleasant",
+          "shifts": {
+            "displeasure": 1
+          },
+          "tuned": false,
+          "thought": "new"
+        }
+      },
+      {
+        "key": "disappointment",
+        "ko": "실망",
+        "desc": "좋은 감정이 붙은 기억이 있는 것에서 싫은 심상이 옴 (기억을 덧씌운다)",
+        "attrs": {
+          "tone": "unpleasant",
+          "shifts": {
+            "displeasure": 1
+          },
+          "tuned": false,
+          "thought": "against"
+        }
+      },
+      {
+        "key": "relief",
+        "ko": "안도",
+        "desc": "싫은 감정이 붙은 기억이 있는 것에서 좋은 심상이 옴 (기억을 덧씌운다)",
+        "attrs": {
+          "tone": "pleasant",
+          "shifts": {
+            "pleasure": 1
+          },
+          "tuned": false,
+          "thought": "against"
+        }
+      },
+      {
+        "key": "longing",
+        "ko": "그리움",
+        "desc": "기억에서만 온다 (이야기가 정하는 지난 일). 좋으면서 조금 아프다",
+        "attrs": {
+          "tone": "pleasant",
+          "shifts": {
+            "pleasure": 1,
+            "displeasure": 1
+          },
+          "tuned": false
+        }
+      }
+    ]
+  }
+]

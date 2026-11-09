@@ -37,7 +37,7 @@ test('가구: 부엌 가구 10개가 정의로 있고, 기기·설비·담을 �
 
 test('가구: 설비가 하나도 없는 가구는 전부 그냥 가구(비전자제품)이고, 크기는 정의에 없다', () => {
   const furniture = Object.values(db.defs).filter((d) => d.role !== undefined);
-  assert.equal(furniture.length, 10);
+  assert.equal(furniture.length, 14, '부엌 가구 10 · 칼 · 도마 · 냄비 · 반찬통');
   for (const d of furniture) {
     if ((d.utility ?? []).length === 0) assert.equal(d.role, 'plain', `${d.names.ko}: 설비가 없으면 그냥 가구`);
     assert.equal('size' in d, false);

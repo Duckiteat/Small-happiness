@@ -10,25 +10,56 @@
 // 본 적 없는 상태는 살 때의 상태(initial)로, 그것도 없으면 사다리 0칸으로 믿는다. 앎이 낡으면 판단도 낡는다.
 // 다만 결과가 이미 세계에서 이루어졌는지(버린 것을 또 버리지 않기)는 몸이 하는 일이라 세계로 본다.
 //
+// 끼니가 시작되면 아는 재료로 메뉴를 구상하고(conceive.ts), 요리법의 단계(offer.menu)는 그 메뉴일 때만 후보가 된다. 쓰는 양(offer.uses)은 세계의 남은 양에서 칸을 내린다.
+//
 // 고르는 방식 (기본안, 18번 점수 매기기 전까지): 할 수 있는 후보 중 정의 번호·행동 키 순서로 첫 번째. 난수 없음.
 
+import { pickUse } from './amount.ts';
+import { pointerChanges, refInstance, targetPointers } from './moves.ts';
+import type { PointerChange } from './moves.ts';
+import { isRelation } from './placement.ts';
+import type { Relation } from './placement.ts';
 import { levelMatches, stateMatches } from './causal.ts';
 import type { BoardValue } from './board.ts';
 import { formatVia } from './via.ts';
 import { latestSeq } from './events.ts';
+import { menusOf } from './db.ts';
 import type { Db } from './db.ts';
 import { effectiveInitial, effectiveOffers, instancesOfKind } from './kinds.ts';
 import { meaningOf } from './meaning.ts';
 import type { EventLog } from './log.ts';
 import type { AwareMap } from './perception.ts';
 import { isObserved } from './schedule.ts';
+import type { Meal } from './schedule.ts';
+import { conceive } from './conceive.ts';
+import { canBuy, readyAt, shoppingList } from './shopping.ts';
+import { practiceGain, skilledMinutes, skillKey } from './skill.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
+import { isOverwhelmed, MOOD_SLOT } from './emotion.ts';
 import type { World } from './world.ts';
 
 export const AGENCY_SRC = 'agency';
 export const ACTION_CHOSEN = 'action_chosen';
+export const MENU_PLANNED = 'menu_planned';
+export const OPTIONS_FORMED = 'options_formed';
+export const ADVICE_GIVEN = 'advice_given';
+export const ADVICE_IGNORED = 'advice_ignored';
+export const FAIRY_SRC = 'fairy';
+
+/** 요정의 작은 조언 (내면-설계 12장): 그 시각에 하루씨의 선택지 중 하나(제공 행동 offer, 그것을 내놓는 개체 at)를 권한다. */
+export interface Advice {
+  readonly t: number;
+  readonly offer: string;
+  readonly at: string;
+}
+
+/** 행동의 갈래 (사전 action): pastime 쉼 · upkeep 집안일 · 나머지는 할 일. */
+export function actionClass(vocab: Vocab, verb: string): 'task' | 'pastime' | 'upkeep' {
+  const a = vocab.entry('action', verb)?.attrs ?? {};
+  return a['pastime'] === true ? 'pastime' : a['upkeep'] === true ? 'upkeep' : 'task';
+}
 
 export interface Effect {
   readonly key: string;
@@ -47,6 +78,14 @@ export interface RecentAction {
   readonly ends: number;
   readonly effects: readonly Effect[];
   readonly reveals?: string;
+  /** 만들 개체: 정의와 놓을 곳(포인터 하나). */
+  readonly creates?: readonly { readonly def: string; readonly rel?: Relation; readonly to?: string; readonly at?: number }[];
+  /** 이 행동을 하는 동안 집을 비운다. */
+  readonly away?: boolean;
+  /** 놓임의 변화 (포인터 하나씩). */
+  readonly moves?: readonly PointerChange[];
+  /** 끝나면 쌓이는 숙련과 그 양 (skill.ts). */
+  readonly trains?: readonly { readonly feature: string; readonly gain: number }[];
 }
 
 function isObj(v: unknown): v is { readonly [key: string]: unknown } {
@@ -65,6 +104,14 @@ export function parseRecent(value: BoardValue | undefined): RecentAction[] {
     ends: Number(r['ends']),
     effects: (Array.isArray(r['effects']) ? r['effects'] : []).filter(isObj).map((e) => ({ key: String(e['key']), op: String(e['op']), level: String(e['level']) })),
     ...(typeof r['reveals'] === 'string' ? { reveals: r['reveals'] } : {}),
+    ...(Array.isArray(r['creates'])
+      ? { creates: r['creates'].filter(isObj).map((c) => ({ def: String(c['def']), ...(isRelation(c['rel']) && typeof c['to'] === 'string' ? { rel: c['rel'], to: c['to'] } : {}), ...(typeof c['at'] === 'number' ? { at: c['at'] } : {}) })) }
+      : {}),
+    ...(r['away'] === true ? { away: true } : {}),
+    ...(Array.isArray(r['trains']) ? { trains: r['trains'].filter(isObj).map((x) => ({ feature: String(x['feature']), gain: Number(x['gain']) })) } : {}),
+    ...(Array.isArray(r['moves'])
+      ? { moves: r['moves'].filter(isObj).flatMap((m) => (isRelation(m['rel']) ? [{ id: String(m['id']), rel: m['rel'], to: typeof m['to'] === 'string' ? m['to'] : null }] : [])) }
+      : {}),
   }));
 }
 
@@ -80,6 +127,16 @@ export class Agency {
   readonly #log: EventLog;
   readonly #tried = new Set<string>();
   #busyUntil = -1;
+  /** 끼니(구간 시작 시각) → 구상한 메뉴. 한 끼에 한 번 정하면 그 끼니 동안 바꾸지 않는다. */
+  readonly #menus = new Map<number, string>();
+  /** 주문해 오는 중인 재료 → 오는 시각 (그때까지 다시 사지 않는다). */
+  readonly #ordered = new Map<string, number>();
+  /** 요정의 조언 (아직 닿지 않은 것, 시각 순). */
+  readonly #advice: Advice[] = [];
+  /** 쉼 → 마지막으로 한 시각 (덜 한 것부터 고른다). */
+  readonly #lastPastime = new Map<string, number>();
+  /** 마지막으로 기록한 선택지 (같으면 다시 적지 않는다). */
+  #lastOptions = '';
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -87,8 +144,14 @@ export class Agency {
     this.#log = log;
   }
 
+  /** 요정의 조언을 받아 둔다 (시나리오의 advice). 하루씨가 다음에 고를 때 닿는다. */
+  advise(list: readonly Advice[]): void {
+    this.#advice.push(...list);
+    this.#advice.sort((a, b) => a.t - b.t);
+  }
+
   /** 한 단계의 행동 선택. 고르지 않으면 빈 목록. */
-  step(world: World, t: number, presence: string, aware: AwareMap): RecentAction[] {
+  step(world: World, t: number, presence: string, aware: AwareMap, meal?: Meal): RecentAction[] {
     if (!isObserved(this.#vocab, presence) || t < this.#busyUntil) return [];
     const instances = world.instances();
     const who = instances.find((i) => i.startsWith('CHR'));
@@ -119,10 +182,47 @@ export class Agency {
       const r = this.#vocab.entry('awareness', k)?.attrs['rank'];
       return typeof r === 'number' ? r : 0;
     };
+    /** 자기 숙련 단계 (자기 솜씨는 안다). 숙련 부위가 없는 인물은 빈 값. */
+    const skillOf = (f: string): string => (world.keysOf(who).includes(skillKey(who, f)) ? world.level(skillKey(who, f)) : '');
+    const lastPlanned = (m: string): number => Math.max(-1, ...[...this.#menus].filter(([, x]) => x === m).map(([from]) => from));
+    const knownIds = new Set(Object.keys(knows).map((k) => k.slice(0, k.indexOf('|'))));
+    const known = (d: string): string[] => instancesOfKind(world, this.#db, d).filter((i) => knownIds.has(i)).sort();
+    // 끼니가 시작되면 메뉴를 구상한다: 있는 줄 아는 재료(앎이 하나라도 있는 개체)와 믿는 남은 양으로. 못 정하면 다음 단계에 다시 본다
+    if (meal !== undefined && !this.#menus.has(meal.from)) {
+      const pick = conceive(this.#db, this.#vocab, {
+        known,
+        level: believed,
+        skill: skillOf,
+        lastPlanned,
+      });
+      if (pick !== null) {
+        this.#menus.set(meal.from, pick.menu);
+        this.#log.append({ t, type: MENU_PLANNED, src: AGENCY_SRC, cause: latestSeq(pick.keys.map((k) => knows[k]?.seq)), data: { who, menu: pick.menu, meal: meal.from } });
+      }
+    }
+    const menu = meal === undefined ? undefined : this.#menus.get(meal.from);
+    // 장보기 (shopping.ts): 아는 것으로 만들 수 있는 요리가 없으면 모자란 재료를 산다. 오는 중인 주문은 빼고, 다 파는 곳 중 가장 빨리 손에 들어오는 곳
+    for (const [d, due] of [...this.#ordered]) if (due <= t) this.#ordered.delete(d);
+    const shop = menu !== undefined ? null : shoppingList(this.#db, this.#vocab, { known, level: believed, skill: skillOf, lastPlanned, ordered: (d) => this.#ordered.has(d) });
+    let bestBuy: { readonly id: string; readonly ready: number } | null = null;
+    if (shop !== null) {
+      for (const def of Object.keys(this.#db.defs).sort()) {
+        for (const { owner, key, item: offer } of effectiveOffers(this.#db, def)) {
+          if (offer.buys === undefined || (offer.during !== undefined && !offer.during.includes(presence)) || !canBuy(offer, shop.items, t)) continue;
+          for (const at of instances.filter((i) => world.defOfInstance(i) === def).sort()) {
+            const ready = readyAt(offer, t + skilledMinutes(this.#vocab, offer, skillOf));
+            if (bestBuy === null || ready < bestBuy.ready) bestBuy = { id: `${owner}/${key}@${at}`, ready };
+          }
+        }
+      }
+    }
+    const cands: { readonly id: string; readonly offer: string; readonly at: string; readonly verb: string; readonly cls: 'task' | 'pastime' | 'upkeep'; readonly cause: string | null; readonly commit: (advised: string | null) => RecentAction[] }[] = [];
     for (const def of Object.keys(this.#db.defs).sort()) {
       for (const { owner, key, item: offer } of effectiveOffers(this.#db, def)) {
         for (const at of instances.filter((i) => world.defOfInstance(i) === def)) {
           if (offer.during !== undefined && !offer.during.includes(presence)) continue; // 정해진 시간에만 하는 행동 (요리는 식사 준비 시간)
+          if (offer.menu !== undefined && (menu === undefined || !menusOf(offer).includes(menu))) continue; // 요리법의 단계는 하루씨가 그 끼니에 구상한 메뉴일 때만
+          if (offer.buys !== undefined && (shop === null || bestBuy?.id !== `${owner}/${key}@${at}`)) continue; // 장보기는 고른 가게 하나에서만
           const targets = (p: StatePattern): string[] =>
             (p.def === owner ? [at] : instancesOfKind(world, this.#db, p.def)).map((i) => formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
           const needs = offer.needs.map((n) => ({ keys: targets(pattern(n.aware)), min: rank(n.at_least) }));
@@ -142,22 +242,58 @@ export class Agency {
             const p = pattern(text);
             return targets(p).map((k) => ({ key: k, feature: p.feature, cond: p.cond }));
           });
-          if (effects.length > 0 && effects.every((e) => stateMatches(world, this.#vocab, e.key, e.feature, e.cond))) continue;
+          if (effects.length > 0 && (offer.places ?? []).length === 0 && (offer.creates ?? []).length === 0 && effects.every((e) => stateMatches(world, this.#vocab, e.key, e.feature, e.cond))) continue;
+          // 쓰는 양: 남은 양은 몸이 보는 것이라 세계로 본다. 모자라면 하지 않고, 있으면 steps칸 내린 단계가 결과에 더해진다
+          const used = (offer.uses ?? []).map((u) => {
+            const p = pattern(u.key);
+            // 같은 정의의 조건(썬 양파)에 맞는 것에서 먼저 덜어 낸다
+            const sameDef = when.filter((w) => w.def === p.def);
+            const fits = (k: string): boolean => sameDef.every((w) => levelMatches(this.#vocab, w.feature, world.level(`${k.slice(0, k.indexOf('|'))}|${w.slot}:${w.feature}`), w.cond));
+            return pickUse(this.#vocab, targets(p), p.feature, u.steps, (k) => world.level(k), fits);
+          });
+          if (used.some((u) => u === null)) continue;
+          // 놓임: 조건·옮기기·만들기의 참조는 인스턴스 하나여야 한다. 어디에 두었는지는 몸이 아는 것이라 세계로 본다
+          const one = (ref: string): string | null => refInstance(ref, owner, at, (d) => instancesOfKind(world, this.#db, d));
+          const whereOk = (offer.where ?? []).every((w) => {
+            const a = one(w.what), b = one(w.in ?? w.on ?? '');
+            return a !== null && b !== null && world.placeOf(a)?.[w.in !== undefined ? 'in' : 'on'] === b;
+          });
+          if (!whereOk) continue;
+          const moveSpecs = (offer.places ?? []).map((p) => ({ id: one(p.what), to: p.out === true ? null : one(p.in ?? p.on ?? ''), p }));
+          if (moveSpecs.some((m) => m.id === null || (m.p.out !== true && m.to === null))) continue;
+          const moves = moveSpecs.flatMap((m) => pointerChanges(m.id ?? '', world.placeOf(m.id ?? ''), targetPointers(m.p, m.to)));
+          const creates = (offer.creates ?? []).map((c) => ({ def: c.def, rel: c.in !== undefined ? ('in' as const) : c.on !== undefined ? ('on' as const) : undefined, to: c.in ?? c.on }));
+          const createTo = creates.map((c) => (c.to === undefined ? undefined : one(c.to)));
+          if (createTo.some((x) => x === null)) continue;
+          // 산 것: 장보기 목록의 재료가 손에 들어오는 시각에 새 개체로 생겨 그곳에 놓인다
+          const shelf = offer.buys === undefined ? null : one(offer.buys.on);
+          if (offer.buys !== undefined && shelf === null) continue;
+          const bought = offer.buys === undefined || shop === null || shelf === null ? [] : shop.items.map((d) => ({ def: d, rel: 'on' as const, to: shelf, at: bestBuy?.ready ?? t }));
+          // 이미 이루어졌으면 하지 않는다: 결과가 다 맞고, 옮길 것이 이미 그곳에 있고, 만들 것이 없을 때
+          if (creates.length === 0 && moveSpecs.length > 0 && moves.length === 0 && (effects.length === 0 || effects.every((e) => stateMatches(world, this.#vocab, e.key, e.feature, e.cond)))) continue;
           // 같은 앎에서는 되풀이하지 않는다: 필요한 앎과 그 물건에 대한 앎(본 단계)이 바뀌면 다시 할 수 있다
           const knowing = (k: string): string => `${knows[k]?.aw ?? 'unknown'}:${knows[k]?.level ?? ''}`;
-          const signature = `${owner}/${key}@${at}|${JSON.stringify([needs.map((n) => n.keys.map(knowing)), world.keysOf(at).map(knowing)])}`;
+          // 요리법의 단계는 한 끼(일정 구간)에 한 번: 끝나고 시간이 남아도 같은 메뉴를 다시 만들지 않는다
+          const cls = actionClass(this.#vocab, offer.verb);
+          const signature = offer.buys !== undefined || cls === 'pastime' // 장보기와 쉼은 되풀이할 수 있다
+            ? `${owner}/${key}@${at}|again@${t}`
+            : offer.menu !== undefined
+            ? `${owner}/${key}@${at}|meal@${meal?.from ?? ''}`
+            : `${owner}/${key}@${at}|${JSON.stringify([needs.map((n) => n.keys.map(knowing)), world.keysOf(at).map(knowing)])}`;
           if (this.#tried.has(signature)) continue;
-
-          this.#tried.add(signature);
-          const ends = t + offer.minutes;
-          this.#busyUntil = ends;
           // 원인: 이 행동의 조건을 채운 앎들 중 가장 최근에 생긴 것 (needs · when · 상태 의미를 만든 앎)
           const why = latestSeq([
             ...needs.flatMap((n) => n.keys.filter((k) => rank(effective(k)) >= n.min).map((k) => knows[k]?.seq)),
             ...when.flatMap((p) => targets(p).filter((k) => levelMatches(this.#vocab, p.feature, believed(k), p.cond)).map((k) => knows[k]?.seq)),
             ...(offer.when_meaning !== undefined ? world.keysOf(at).map((k) => knows[k]?.seq) : []),
           ]);
-          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends } });
+          const commit = (advised: string | null): RecentAction[] => {
+          this.#tried.add(signature);
+          const ends = t + skilledMinutes(this.#vocab, offer, skillOf);
+          for (const b of bought) if (b.at > ends) this.#ordered.set(b.def, b.at);
+          this.#busyUntil = ends;
+          if (cls === 'pastime') this.#lastPastime.set(`${formatVia(owner, 'offer', key)}@${at}`, t);
+          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends, ...(offer.menu !== undefined && menu !== undefined ? { menu, meal: meal?.from ?? null } : {}), ...(shop !== null && bought.length > 0 ? { buys: [...shop.items], for: shop.menu, ready: bestBuy?.ready ?? ends } : {}), ...(advised !== null ? { advised } : {}) } });
           return [
             {
               event: e.seq,
@@ -166,13 +302,63 @@ export class Agency {
               via: formatVia(owner, 'offer', key),
               at,
               ends,
-              effects: effects.map((x) => ({ key: x.key, op: x.cond?.op ?? '=', level: x.cond?.level ?? '' })),
+              effects: [
+                ...effects.map((x) => ({ key: x.key, op: x.cond?.op ?? '=', level: x.cond?.level ?? '' })),
+                ...used.flatMap((u) => (u === null ? [] : [{ key: u.key, op: '=', level: u.to }])),
+              ],
               ...(offer.reveals === true ? { reveals: at } : {}),
+              ...(creates.length + bought.length > 0
+                ? { creates: [...creates.map((c, i) => ({ def: c.def, ...(c.rel !== undefined && typeof createTo[i] === 'string' ? { rel: c.rel, to: createTo[i] } : {}) })), ...bought.map((b) => ({ def: b.def, rel: b.rel, to: b.to, ...(b.at > ends ? { at: b.at } : {}) }))] }
+                : {}),
+              ...(offer.away === true ? { away: true } : {}),
+              ...(moves.length > 0 ? { moves } : {}),
+              // 숙련 부위가 없는 인물은 쌓지 않는다
+              ...((offer.trains ?? []).some((f) => world.keysOf(who).includes(skillKey(who, f)))
+                ? { trains: (offer.trains ?? []).filter((f) => world.keysOf(who).includes(skillKey(who, f))).map((f) => ({ feature: f, gain: practiceGain(offer) })) }
+                : {}),
             },
           ];
+          };
+          cands.push({ id: `${formatVia(owner, 'offer', key)}@${at}`, offer: formatVia(owner, 'offer', key), at, verb: offer.verb, cls, cause: why, commit });
         }
       }
     }
-    return [];
+    return this.#choose(world, t, who, cands);
+  }
+
+  /**
+   * ⓒ 해석 후 행동 (내면-설계 12장): 하루씨가 떠올린 선택지 중 하나를 고른다.
+   *   - 할 일(요리·설거지·장보기 …)이 있으면 하루씨가 먼저 한다 (정의 순).
+   *   - 없으면 쉼(앉아 쉬기·눕기·드라마·웹툰) 중 덜 한 것을 고른다. 집안일(바닥 닦기·버리기)은 쉴 거리가 없을 때만 스스로 한다.
+   *   - 할 일이 없는 때의 선택지가 둘 이상이면 선택지를 남긴다 (요정이 보는 것, 바뀔 때만).
+   *   - 요정의 조언: 그 시각이 지난 조언 하나가 다음에 고를 때 닿는다. 선택지 중 하나면 그것을 고르고, 아니면 듣지 않는다.
+   *     스트레스 임계(생각이 멈춤)에 있으면 해석하지 못해 듣지 않는다.
+   */
+  #choose(world: World, t: number, who: string, cands: readonly { readonly id: string; readonly offer: string; readonly at: string; readonly verb: string; readonly cls: 'task' | 'pastime' | 'upkeep'; readonly cause: string | null; readonly commit: (advised: string | null) => RecentAction[] }[]): RecentAction[] {
+    const tasks = cands.filter((c) => c.cls === 'task');
+    const free = cands.filter((c) => c.cls !== 'task');
+    if (tasks.length === 0 && free.length >= 2) {
+      const options = free.map((c) => ({ offer: c.offer, at: c.at, verb: c.verb, kind: c.cls }));
+      const sig = JSON.stringify(options);
+      if (sig !== this.#lastOptions) {
+        this.#lastOptions = sig;
+        this.#log.append({ t, type: OPTIONS_FORMED, src: AGENCY_SRC, cause: latestSeq(free.map((c) => c.cause ?? undefined)), data: { who, options } });
+      }
+    }
+    const adv = this.#advice[0];
+    if (adv !== undefined && adv.t <= t) {
+      this.#advice.shift();
+      const given = this.#log.append({ t, type: ADVICE_GIVEN, src: FAIRY_SRC, cause: null, data: { who, offer: adv.offer, at: adv.at, asked: adv.t } });
+      const def = this.#db.defs[world.defOfInstance(who) ?? ''];
+      const mind = def?.mind;
+      const stuck = mind !== undefined && def?.slots?.[MOOD_SLOT] !== undefined && isOverwhelmed(this.#vocab, mind, who, (k) => world.level(k));
+      const pick = cands.find((c) => c.id === `${adv.offer}@${adv.at}`);
+      if (stuck || pick === undefined) this.#log.append({ t, type: ADVICE_IGNORED, src: AGENCY_SRC, cause: given.seq, data: { who, reason: stuck ? 'overwhelmed' : 'not_option' } });
+      else return pick.commit(given.seq);
+    }
+    const last = (c: { readonly id: string }): number => this.#lastPastime.get(c.id) ?? -1;
+    const rest = cands.filter((c) => c.cls === 'pastime').sort((a, b) => last(a) - last(b))[0];
+    const first = tasks[0] ?? rest ?? cands.find((c) => c.cls === 'upkeep');
+    return first === undefined ? [] : first.commit(null);
   }
 }

@@ -3,8 +3,9 @@
 // 병합 결과가 규칙을 어기면 패치 전체를 거부한다. 새 오류가 없어도 새 경고가 생기면 거부하고,
 // 경고는 allowWarnings로만 통과시킬 수 있다 (사용자 허락이 있을 때).
 
+import { openLadder } from './amount.ts';
 import { DEF_PREFIXES, parseId } from './ids.ts';
-import { PREFIX_KIND } from './db.ts';
+import { menusOf, PREFIX_KIND } from './db.ts';
 import type { Db, Definition, Issue } from './db.ts';
 import { collectRules, selfLoops } from './chains.ts';
 import { condRange, parseLocalCondition, parsePattern } from './statekey.ts';
@@ -108,6 +109,21 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
 
     // 상태 의미: 위에서부터 첫 일치. 기본값(빈 when)이 없으면 경고, 기본값 뒤의 의미는 닿지 않는다
+    // 감각 자체: 사전의 감각질, 그 정의(종류면 그 종류)의 부위·특징
+    (def.feels ?? []).forEach((f, i) => {
+      const at = `${id}.feels[${i}]`;
+      if (!vocab.has('sensation', f.sensation)) error(at, `사전에 없는 감각질: ${f.sensation}`);
+      if (f.by !== undefined) {
+        const c = parseLocalCondition(f.by);
+        if (c === null || c.cond !== null) error(at, `세기(by)는 조건 없는 부위:특징이어야 한다: ${f.by}`);
+        else slotCheck(def, c.slot, c.feature, null, vocab, at, error);
+      }
+      for (const w of f.when) {
+        const c = parseLocalCondition(w);
+        if (c === null) error(at, `조건 형식이 아니다: ${w}`);
+        else slotCheck(def, c.slot, c.feature, c.cond, vocab, at, error);
+      }
+    });
     const meanings = def.meanings ?? [];
     meanings.forEach((m, i) => {
       const at = `${id}.meanings[${i}]`;
@@ -168,7 +184,7 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
       if (a === undefined) continue;
       const inherited = [
         ...Object.values(a.rules ?? {}).flatMap((r) => [...r.on, ...(r.on_all ?? []), ...r.emits]),
-        ...Object.values(a.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect]),
+        ...Object.values(a.offers ?? {}).flatMap((o) => [...o.needs.map((n) => n.aware), ...(o.when ?? []), ...o.effect, ...(o.uses ?? []).map((u) => u.key)]),
       ];
       const need = new Set<string>();
       for (const text of inherited) {
@@ -320,6 +336,48 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
         if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
         slotCheck(target, p.slot, p.feature, p.cond, vocab, w, error);
       });
+      for (const m of menusOf(offer)) if (!vocab.has('menu', m)) error(`${at}.menu`, `사전에 없는 메뉴: ${m}`);
+      // 숙련: 내면 특징이어야 하고, 시간을 줄이는 숙련은 시간 표(minutes_pct)가 있어야 한다
+      for (const f of [...(offer.trains ?? []), ...(offer.minutes_by !== undefined ? [offer.minutes_by] : [])]) {
+        if (vocab.entry('feature', f)?.attrs['inner'] !== true) error(`${at}`, `숙련은 사전의 내면 특징(inner)이어야 한다: ${f}`);
+      }
+      for (const f of offer.trains ?? []) if (!Array.isArray(vocab.entry('feature', f)?.attrs['practice'])) error(`${at}.trains`, `해 본 횟수로 오르는 표(practice)가 없는 특징을 쌓는다: ${f}`);
+      if (offer.minutes_by !== undefined && !Array.isArray(vocab.entry('feature', offer.minutes_by)?.attrs['minutes_pct'])) error(`${at}.minutes_by`, `시간 표(minutes_pct)가 없는 숙련으로 시간을 줄인다: ${offer.minutes_by}`);
+      // 놓임 조건·옮기기·만들기: 가리키는 정의가 있어야 하고, 놓이는 것은 물건, 놓는 곳은 물건이나 장소다
+      const ref = (w: string, r: string, what: boolean): void => {
+        const d = db.defs[r];
+        if (d === undefined) error(w, `없는 정의를 가리킨다: ${r}`);
+        else if (what && !r.startsWith('OBJ')) error(w, `놓이는 것은 물건(OBJ)이어야 한다: ${r}`);
+        else if (!what && !r.startsWith('OBJ') && !r.startsWith('PLC')) error(w, `놓는 곳은 물건이나 장소여야 한다: ${r}`);
+      };
+      (offer.where ?? []).forEach((x, i) => {
+        ref(`${at}.where[${i}].what`, x.what, true);
+        ref(`${at}.where[${i}]`, x.in ?? x.on ?? '', false);
+      });
+      (offer.places ?? []).forEach((x, i) => {
+        ref(`${at}.places[${i}].what`, x.what, true);
+        if (x.out !== true) ref(`${at}.places[${i}]`, x.in ?? x.on ?? '', false);
+        if (x.what === (x.in ?? x.on)) error(`${at}.places[${i}]`, `물건을 자기 자신에 놓는다: ${x.what}`);
+      });
+      if (offer.buys !== undefined) {
+        offer.buys.sells.forEach((d, i) => ref(`${at}.buys.sells[${i}]`, d, true));
+        ref(`${at}.buys.on`, offer.buys.on, false);
+      }
+      (offer.creates ?? []).forEach((x, i) => {
+        ref(`${at}.creates[${i}].def`, x.def, true);
+        if (x.in !== undefined || x.on !== undefined) ref(`${at}.creates[${i}]`, x.in ?? x.on ?? '', false);
+      });
+      (offer.uses ?? []).forEach((u, i) => {
+        const w = `${at}.uses[${i}]`;
+        const p = parsePattern(u.key);
+        if (p === null) return void error(w, `패턴 형식이 아니다 (번호로 쓴다): ${u.key}`);
+        if (p.cond !== null) error(w, `쓰는 양에는 단계 조건을 쓰지 않는다 (steps칸 내린다): ${u.key}`);
+        const target = db.defs[p.def];
+        if (target === undefined) return void error(w, `없는 정의를 가리킨다: ${p.def}`);
+        slotCheck(target, p.slot, p.feature, null, vocab, w, error);
+        const open = openLadder(vocab, p.feature).length;
+        if (u.steps >= open) error(w, `쓰는 양(${u.steps}칸)이 사다리의 열린 칸(${open}칸)으로 한 번도 쓸 수 없다`);
+      });
       offer.effect.forEach((text, i) => {
         const w = `${at}.effect[${i}]`;
         const p = parsePattern(text);
@@ -337,6 +395,13 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
     for (const sense of Object.keys(def.senses ?? {})) {
       if (!vocab.has('sense', sense)) error(`${id}.senses.${sense}`, `사전에 없는 감각: ${sense}`);
+    }
+    // 생각과 감정의 문턱(mind)이 있으면 감정의 축 세 개가 인물의 mood 부위에 있어야 한다 (내면-설계 10장)
+    if (def.mind !== undefined) {
+      const axes = vocab.keys('feature').filter((f) => vocab.entry('feature', f)?.attrs['axis'] !== undefined).sort();
+      const have = def.slots?.['mood']?.features ?? [];
+      const missing = axes.filter((f) => !have.includes(f));
+      if (missing.length > 0) error(`${id}.mind`, `생각과 감정이 있는 인물은 mood 부위에 감정의 축이 있어야 한다 (빠짐: ${missing.join(', ')})`);
     }
   }
 

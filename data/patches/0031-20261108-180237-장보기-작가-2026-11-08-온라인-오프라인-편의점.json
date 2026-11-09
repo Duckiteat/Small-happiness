@@ -1,0 +1,245 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "장보기 (작가 2026-11-08: 온라인, 오프라인(편의점, 마트, 시장)): 가게마다 파는 재료·다녀오는 시간·여는 시간을, 온라인은 배송 시각을 둔다. 산 것은 식탁에 놓인다. 파는 목록과 시간은 일반적인 대략값의 기본안이며 확인하지 않은 임시값(tuned:false). 돈은 아직 없다.",
+    "defs": [
+      {
+        "id": "OBJ+1",
+        "names": {
+          "ko": "가게",
+          "en": "shop"
+        },
+        "aliases": [
+          "상점"
+        ],
+        "mobility": "fixed",
+        "desc": [
+          "장보기를 하는 곳의 종류. 집에 놓이지 않는다 (집의 장소 그래프 밖)"
+        ]
+      },
+      {
+        "id": "OBJ+2",
+        "mobility": "fixed",
+        "names": {
+          "ko": "편의점",
+          "en": "convenience store"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "가까운 편의점. 24시간, 다녀오는 데 15분. 채소와 국물 재료는 없다"
+        ],
+        "offers": {
+          "buy": {
+            "label": "편의점에서 모자란 재료를 산다",
+            "verb": "shop",
+            "needs": [],
+            "during": [
+              "home",
+              "meal"
+            ],
+            "effect": [],
+            "buys": {
+              "sells": [
+                "OBJ000002",
+                "OBJ000003",
+                "OBJ000004",
+                "OBJ000005",
+                "OBJ000008",
+                "OBJ000009"
+              ],
+              "on": "OBJ000012"
+            },
+            "minutes": 15,
+            "tuned": false,
+            "away": true
+          }
+        }
+      },
+      {
+        "id": "OBJ+3",
+        "mobility": "fixed",
+        "names": {
+          "ko": "시장",
+          "en": "market"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "동네 시장. 09:00~19:00, 다녀오는 데 50분. 채소·두부·장·건어물"
+        ],
+        "offers": {
+          "buy": {
+            "label": "시장에서 모자란 재료를 산다",
+            "verb": "shop",
+            "needs": [],
+            "during": [
+              "home",
+              "meal"
+            ],
+            "effect": [],
+            "buys": {
+              "sells": [
+                "OBJ000003",
+                "OBJ000004",
+                "OBJ000005",
+                "OBJ000006",
+                "OBJ000007",
+                "OBJ000011",
+                "OBJ000026",
+                "OBJ000027",
+                "OBJ000028",
+                "OBJ000032"
+              ],
+              "on": "OBJ000012",
+              "opens": [
+                540,
+                1140
+              ]
+            },
+            "minutes": 50,
+            "tuned": false,
+            "away": true
+          }
+        }
+      },
+      {
+        "id": "OBJ+4",
+        "mobility": "fixed",
+        "names": {
+          "ko": "마트",
+          "en": "supermarket"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "대형 마트. 10:00~22:00, 다녀오는 데 60분. 다 판다"
+        ],
+        "offers": {
+          "buy": {
+            "label": "마트에서 모자란 재료를 산다",
+            "verb": "shop",
+            "needs": [],
+            "during": [
+              "home",
+              "meal"
+            ],
+            "effect": [],
+            "buys": {
+              "sells": [
+                "OBJ000002",
+                "OBJ000003",
+                "OBJ000004",
+                "OBJ000005",
+                "OBJ000006",
+                "OBJ000007",
+                "OBJ000008",
+                "OBJ000009",
+                "OBJ000011",
+                "OBJ000026",
+                "OBJ000027",
+                "OBJ000028",
+                "OBJ000032"
+              ],
+              "on": "OBJ000012",
+              "opens": [
+                600,
+                1320
+              ]
+            },
+            "minutes": 60,
+            "tuned": false,
+            "away": true
+          }
+        }
+      },
+      {
+        "id": "OBJ+5",
+        "mobility": "fixed",
+        "names": {
+          "ko": "온라인 장보기",
+          "en": "online grocery"
+        },
+        "is_a": "OBJ+1",
+        "desc": [
+          "온라인 새벽배송. 23:00까지 주문하면 다음 07:00에 온다 (주문 5분, 집을 비우지 않는다)"
+        ],
+        "offers": {
+          "buy": {
+            "label": "온라인 장보기에서 모자란 재료를 산다",
+            "verb": "order",
+            "needs": [],
+            "during": [
+              "home",
+              "meal"
+            ],
+            "effect": [],
+            "buys": {
+              "sells": [
+                "OBJ000002",
+                "OBJ000003",
+                "OBJ000004",
+                "OBJ000005",
+                "OBJ000006",
+                "OBJ000007",
+                "OBJ000008",
+                "OBJ000009",
+                "OBJ000011",
+                "OBJ000026",
+                "OBJ000027",
+                "OBJ000028",
+                "OBJ000032"
+              ],
+              "on": "OBJ000012",
+              "opens": [
+                0,
+                1380
+              ],
+              "arrives_at": 420
+            },
+            "minutes": 5,
+            "tuned": false
+          }
+        }
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {
+    "OBJ+1": "OBJ000037",
+    "OBJ+2": "OBJ000038",
+    "OBJ+3": "OBJ000039",
+    "OBJ+4": "OBJ000040",
+    "OBJ+5": "OBJ000041"
+  },
+  "mapped": [],
+  "report": {
+    "why": "장보기 (작가 2026-11-08: 온라인, 오프라인(편의점, 마트, 시장)): 가게마다 파는 재료·다녀오는 시간·여는 시간을, 온라인은 배송 시각을 둔다. 산 것은 식탁에 놓인다. 파는 목록과 시간은 일반적인 대략값의 기본안이며 확인하지 않은 임시값(tuned:false). 돈은 아직 없다.",
+    "scope": {
+      "added": {
+        "object": [
+          "OBJ000037",
+          "OBJ000038",
+          "OBJ000039",
+          "OBJ000040",
+          "OBJ000041"
+        ]
+      },
+      "updated": {},
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

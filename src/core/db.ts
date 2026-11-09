@@ -34,9 +34,9 @@ export const PREFIX_KIND: Readonly<Record<DefPrefix, string>> = {
 
 const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
-  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'rules', 'offers', 'progress', 'initial'],
-  PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'rules', 'offers'],
-  CHR: [...COMMON_FIELDS, 'senses', 'stays'],
+  OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'feels', 'rules', 'offers', 'progress', 'initial'],
+  PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'feels', 'rules', 'offers'],
+  CHR: [...COMMON_FIELDS, 'senses', 'stays', 'slots', 'initial', 'mind'],
 };
 
 /** 이 종류의 정의가 가질 수 있는 최상위 필드. 아직 설계되지 않은 종류는 공통 필드만 쓴다. */
@@ -56,6 +56,15 @@ export interface SlotDef {
 }
 
 /** 상태 의미: 위에서부터 보아 처음 맞는 규칙이 그 상태의 뜻이다. `when`이 비면 기본값. */
+/** 감각 자체 (내면-설계 2장): 이 물건·장소가 자기 상태(when, 소유자 안의 조건)일 때 주는 감각질(사전 sensation). 종류로 물려받는다. */
+export interface FeelDef {
+  readonly sensation: string;
+  readonly when: readonly string[];
+  /** 세기를 정하는 자기 상태 (`부위:특징`, 사다리 칸이 높을수록 세다). reverse면 낮을수록 세다 (차가움 ← 온도). 없으면 늘 가장 센 칸. */
+  readonly by?: string;
+  readonly reverse?: boolean;
+}
+
 export interface MeaningDef {
   readonly label: string;
   readonly when: readonly string[]; // 소유자 안의 조건 (예: body:rot@<=1)
@@ -82,6 +91,42 @@ export interface RuleDef {
   readonly tuned?: boolean;
 }
 
+/** 행동의 메뉴 목록 (하나만 적으면 문자열이다). */
+export function menusOf(offer: { readonly menu?: string | readonly string[] }): readonly string[] {
+  const m = offer.menu;
+  return m === undefined ? [] : typeof m === 'string' ? [m] : m;
+}
+
+/** 장보기 (shopping.ts): 파는 재료, 산 것을 놓을 곳, 여는 시간(하루 중 분 [시작, 끝)), 온라인이면 배송 시각(하루 중 분). */
+export interface BuysSpec {
+  readonly sells: readonly string[];
+  readonly on: string;
+  readonly opens?: readonly [number, number];
+  readonly arrives_at?: number;
+}
+
+/** 행동이 물건을 놓는 요청: what을 in(안에)·on(위에) 두거나 out(꺼내 놓임을 푼다). 셋 중 하나만. 참조는 정의 번호. */
+export interface PlaceSpec {
+  readonly what: string;
+  readonly in?: string;
+  readonly on?: string;
+  readonly out?: boolean;
+}
+
+/** 행동이 새 개체를 만드는 요청: 그 정의의 인스턴스 하나, in·on을 주면 그곳에 놓는다. */
+export interface CreateSpec {
+  readonly def: string;
+  readonly in?: string;
+  readonly on?: string;
+}
+
+/** 놓임 조건: what이 in(안에)·on(위에) 바로 놓여 있을 때. 둘 중 하나만. */
+export interface WhereSpec {
+  readonly what: string;
+  readonly in?: string;
+  readonly on?: string;
+}
+
 /**
  * 제공 행동 (상호작용-명세 3장): 물건·장소가 자기가 줄 수 있는 행동을 선언한다. 인물은 앎(needs)이 갖춰진 것만 고른다.
  * `effect`는 효과 요청(세계 상태의 주인이 행동이 끝날 때 기록), `reveals`는 살피기(다음 단계 지각에서 그 장소의 물건까지 본다).
@@ -98,6 +143,30 @@ export interface OfferDef {
   readonly reveals?: boolean;
   /** 이 상태(사전 presence)일 때만 하는 행동. 없으면 보는 시간 내내 (예: 요리는 식사 준비 시간에만) */
   readonly during?: readonly string[];
+  /**
+   * 쓰는 양: 그 상태를 지금 단계에서 steps칸 내린다 (된장 한 숟갈). 패턴은 단계 조건 없이 쓴다.
+   * 그만큼 남아 있지 않으면 하지 않는다. 남은 양은 몸이 보는 것이라 세계로 본다 (요리-설계 3장).
+   */
+  readonly uses?: readonly { readonly key: string; readonly steps: number; readonly ingredient?: boolean }[];
+  /**
+   * 하루씨가 구상한 이 메뉴(사전 menu)를 만드는 끼니에만 하는 행동 (요리법의 한 단계). 없으면 메뉴와 상관없다.
+   * 요리법은 이 메뉴를 가진 행동들이다. 그 행동의 uses 중 ingredient인 것이 구상할 때 있어야 하는 재료다 (요리-설계 10장).
+   */
+  readonly menu?: string | readonly string[];
+  /** 이 행동을 끝내면 쌓이는 숙련 (사전 내면 특징). 재료를 쓰는 행동은 재료 하나에 한 번, 아니면 한 번 (요리-설계 11장). */
+  readonly trains?: readonly string[];
+  /** 걸리는 시간이 이 숙련(내면 특징의 minutes_pct)에 따라 줄어든다. */
+  readonly minutes_by?: string;
+  /** 장보기: 이 가게에서 장보기 목록을 산다 (산 것은 새 개체로 생긴다). */
+  readonly buys?: BuysSpec;
+  /** 이 행동을 하는 동안 집을 비운다 (지각하지 않는다). */
+  readonly away?: boolean;
+  /** 놓임 조건 (몸이 놓은 곳이라 세계로 본다). */
+  readonly where?: readonly WhereSpec[];
+  /** 새 개체를 만든다 (덜어 담은 찌개). */
+  readonly creates?: readonly CreateSpec[];
+  /** 물건을 옮긴다 (반찬통을 냉장고에). */
+  readonly places?: readonly PlaceSpec[];
   readonly minutes: number;
   readonly tuned: boolean;
 }
@@ -130,6 +199,23 @@ export interface PassageDef {
 
 export interface SenseDef {
   readonly notice: number;
+  /** 이 감각으로 세기를 몇 단계로 구분해 느끼나 (2~5, 신체 능력). 없으면 3 (내면-설계 8장). */
+  readonly levels?: number;
+  readonly tuned: boolean;
+}
+
+/**
+ * 인물의 생각과 감정의 문턱 (내면-설계 10장). 칸은 감정 축 사다리의 칸 번호(0~5).
+ *   - thought_days: 감정이 붙지 않은 일(생각)을 기억하는 날 수. 날에 따라 min~max (작가: 3일일 때도 5일일 때도). 무엇이 그날을 정하는지는 미정이라 지금은 min
+ *   - binds_at: 감정으로 쾌·불쾌가 이 칸 이상이 되면 그 일이 감정과 이어져 잊지 않는다
+ *   - tense_at: 안정이 이 칸 이하면 긴장 — 안심되지 않을수록 불쾌가 한 칸 더 오른다
+ *   - overwhelm: 불쾌가 이 칸 이상이고 안정이 이 칸 이하면 스트레스 임계 — 생각하고 해석하지 못한다
+ */
+export interface MindDef {
+  readonly thought_days: { readonly min: number; readonly max: number };
+  readonly binds_at: number;
+  readonly tense_at: number;
+  readonly overwhelm: { readonly displeasure_at_least: number; readonly stability_at_most: number };
   readonly tuned: boolean;
 }
 
@@ -154,9 +240,12 @@ export interface Definition {
   readonly supplies?: readonly string[];
   readonly slots?: { readonly [key: string]: SlotDef };
   readonly meanings?: readonly MeaningDef[];
+  readonly feels?: readonly FeelDef[];
   readonly rules?: { readonly [key: string]: RuleDef };
   readonly offers?: { readonly [key: string]: OfferDef };
   readonly senses?: { readonly [sense: string]: SenseDef };
+  /** 인물의 생각과 감정의 문턱 (내면-설계 10장) */
+  readonly mind?: MindDef;
   /** 인물이 집에 있는 동안 머무는 장소 (번호 또는 이름). 그 장소의 냄새만 맡는다. 없으면 모든 장소 (위치를 아직 안 둔 것) */
   readonly stays?: string;
   /** 장소의 환경 특성: 사전 env_trait → 사전 env_level */
@@ -362,7 +451,20 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
       bad(at, '제공 행동은 객체여야 한다');
       continue;
     }
-    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'minutes', 'tuned'], at, push);
+    onlyKeys(o, ['label', 'verb', 'needs', 'when', 'when_meaning', 'effect', 'reveals', 'during', 'uses', 'menu', 'trains', 'minutes_by', 'where', 'creates', 'places', 'buys', 'away', 'minutes', 'tuned'], at, push);
+    const bu = o['buys'];
+    const minuteOfDay = (x: unknown): boolean => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= 1440;
+    const buysOk = bu === undefined || (isObj(bu) && Object.keys(bu).every((k) => ['sells', 'on', 'opens', 'arrives_at'].includes(k)) && isStrArr(bu['sells']) && bu['sells'].length > 0 && typeof bu['on'] === 'string'
+      && (bu['opens'] === undefined || (Array.isArray(bu['opens']) && bu['opens'].length === 2 && bu['opens'].every(minuteOfDay) && (bu['opens'][0] as number) < (bu['opens'][1] as number)))
+      && (bu['arrives_at'] === undefined || (minuteOfDay(bu['arrives_at']) && (bu['arrives_at'] as number) < 1440)));
+    const refsOk = (v: unknown, keys: readonly string[], pick: (x: { readonly [k: string]: unknown }) => number): boolean =>
+      v === undefined || (Array.isArray(v) && v.length > 0 && v.every((x) => isObj(x) && Object.keys(x).every((k) => keys.includes(k)) && Object.entries(x).every(([k, y]) => (k === 'out' ? y === true : typeof y === 'string')) && pick(x) === 1));
+    const relCount = (x: { readonly [k: string]: unknown }): number => ['in', 'on', 'out'].filter((k) => x[k] !== undefined).length;
+    const whereOk = refsOk(o['where'], ['what', 'in', 'on'], (x) => (typeof x['what'] === 'string' ? relCount(x) : 0));
+    const placesOk = refsOk(o['places'], ['what', 'in', 'on', 'out'], (x) => (typeof x['what'] === 'string' ? relCount(x) : 0));
+    const createsOk = refsOk(o['creates'], ['def', 'in', 'on'], (x) => (typeof x['def'] === 'string' && relCount(x) <= 1 ? 1 : 0));
+    const uses = o['uses'];
+    const usesOk = uses === undefined || (Array.isArray(uses) && uses.length > 0 && uses.every((u) => isObj(u) && typeof u['key'] === 'string' && typeof u['steps'] === 'number' && Number.isInteger(u['steps']) && u['steps'] > 0 && (u['ingredient'] === undefined || u['ingredient'] === true) && Object.keys(u).every((k) => ['key', 'steps', 'ingredient'].includes(k))));
     const needs = o['needs'];
     const needsOk = Array.isArray(needs) && needs.every((n) => isObj(n) && typeof n['aware'] === 'string' && typeof n['at_least'] === 'string' && Object.keys(n).length === 2);
     if (typeof o['verb'] !== 'string') bad(at, 'verb(사전 action 키)가 필요하다');
@@ -372,6 +474,15 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
     else if (o['when_meaning'] !== undefined && (typeof o['when_meaning'] !== 'string' || !TOKEN_RE.test(o['when_meaning']))) bad(at, 'when_meaning은 상태 의미(means) 토큰이어야 한다');
     else if (o['reveals'] !== undefined && typeof o['reveals'] !== 'boolean') bad(at, 'reveals는 true/false여야 한다');
     else if (o['during'] !== undefined && !(isStrArr(o['during']) && o['during'].length > 0)) bad(at, 'during은 상태(사전 presence) 키의 비어 있지 않은 목록이어야 한다');
+    else if (!usesOk) bad(at, 'uses는 { key, steps, ingredient? } 목록이어야 한다 (steps는 양의 정수, ingredient는 true이거나 없음)');
+    else if (o['menu'] !== undefined && !(typeof o['menu'] === 'string' ? TOKEN_RE.test(o['menu']) : isStrArr(o['menu']) && o['menu'].length > 0 && o['menu'].every((m) => TOKEN_RE.test(m)))) bad(at, 'menu는 사전 menu 키나 그 목록이어야 한다');
+    else if (o['trains'] !== undefined && !(isStrArr(o['trains']) && o['trains'].length > 0)) bad(at, 'trains는 내면 특징 키의 비어 있지 않은 목록이어야 한다');
+    else if (o['minutes_by'] !== undefined && typeof o['minutes_by'] !== 'string') bad(at, 'minutes_by는 내면 특징 키여야 한다');
+    else if (!buysOk) bad(at, 'buys는 { sells: 정의 목록, on: 놓을 곳, opens?: [시작, 끝](하루 중 분), arrives_at?: 하루 중 분 }이어야 한다');
+    else if (o['away'] !== undefined && o['away'] !== true) bad(at, 'away는 true이거나 없어야 한다');
+    else if (!whereOk) bad(at, 'where는 { what, in 또는 on } 목록이어야 한다 (관계는 하나만)');
+    else if (!placesOk) bad(at, 'places는 { what, in 또는 on 또는 out: true } 목록이어야 한다 (관계는 하나만)');
+    else if (!createsOk) bad(at, 'creates는 { def, in 또는 on (없어도 됨) } 목록이어야 한다');
     else if (typeof o['minutes'] !== 'number' || !Number.isInteger(o['minutes']) || o['minutes'] <= 0) bad(at, 'minutes(걸리는 시간, 분)는 양의 정수여야 한다');
     else if (typeof o['tuned'] !== 'boolean') bad(at, 'tuned(걸리는 시간이 조정된 값인지)를 true/false로 적어야 한다');
     else if (o['label'] !== undefined && typeof o['label'] !== 'string') bad(at, 'label은 문자열이어야 한다');
@@ -385,12 +496,45 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
         effect: (o['effect'] as string[]).map((s) => s.trim()),
         ...(o['reveals'] === true ? { reveals: true } : {}),
         ...(isStrArr(o['during']) ? { during: o['during'].map((s) => s.trim()) } : {}),
+        ...(Array.isArray(uses) ? { uses: (uses as { key: string; steps: number; ingredient?: boolean }[]).map((u) => ({ key: u.key.trim(), steps: u.steps, ...(u.ingredient === true ? { ingredient: true } : {}) })) } : {}),
+        ...(typeof o['menu'] === 'string' || isStrArr(o['menu']) ? { menu: o['menu'] } : {}),
+        ...(isStrArr(o['trains']) ? { trains: o['trains'] } : {}),
+        ...(isObj(bu) && isStrArr(bu['sells']) && typeof bu['on'] === 'string'
+          ? {
+              buys: {
+                sells: bu['sells'],
+                on: bu['on'],
+                ...(Array.isArray(bu['opens']) ? { opens: [Number(bu['opens'][0]), Number(bu['opens'][1])] as const } : {}),
+                ...(typeof bu['arrives_at'] === 'number' ? { arrives_at: bu['arrives_at'] } : {}),
+              },
+            }
+          : {}),
+        ...(o['away'] === true ? { away: true } : {}),
+        ...(typeof o['minutes_by'] === 'string' ? { minutes_by: o['minutes_by'] } : {}),
+        ...(Array.isArray(o['where']) ? { where: o['where'] as WhereSpec[] } : {}),
+        ...(Array.isArray(o['creates']) ? { creates: o['creates'] as CreateSpec[] } : {}),
+        ...(Array.isArray(o['places']) ? { places: o['places'] as PlaceSpec[] } : {}),
         minutes: o['minutes'],
         tuned: o['tuned'],
       };
     }
   }
   return ok ? out : undefined;
+}
+
+function fieldMind(v: unknown, where: string, push: Push): MindDef | undefined {
+  const rung = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= 5;
+  if (!isObj(v)) return void push(where, 'mind는 객체여야 한다');
+  onlyKeys(v, ['thought_days', 'binds_at', 'tense_at', 'overwhelm', 'tuned'], where, push);
+  const td = v['thought_days'], ow = v['overwhelm'];
+  if (!isObj(td) || typeof td['min'] !== 'number' || typeof td['max'] !== 'number' || !Number.isInteger(td['min']) || !Number.isInteger(td['max']) || td['min'] < 1 || td['max'] < td['min']) {
+    return void push(`${where}.thought_days`, 'thought_days는 { min, max } (1 이상 정수, min ≤ max)여야 한다');
+  }
+  if (!rung(v['binds_at']) || !rung(v['tense_at'])) return void push(where, 'binds_at · tense_at은 감정 축 사다리의 칸(0~5 정수)이어야 한다');
+  if (!isObj(ow) || !rung(ow['displeasure_at_least']) || !rung(ow['stability_at_most'])) return void push(`${where}.overwhelm`, 'overwhelm은 { displeasure_at_least, stability_at_most } (0~5 칸)여야 한다');
+  onlyKeys(ow, ['displeasure_at_least', 'stability_at_most'], `${where}.overwhelm`, push);
+  if (typeof v['tuned'] !== 'boolean') return void push(`${where}.tuned`, '문턱이 조정된 값인지 tuned를 적어야 한다');
+  return { thought_days: { min: td['min'], max: td['max'] }, binds_at: v['binds_at'], tense_at: v['tense_at'], overwhelm: { displeasure_at_least: ow['displeasure_at_least'], stability_at_most: ow['stability_at_most'] }, tuned: v['tuned'] };
 }
 
 function fieldSenses(v: unknown, where: string, push: Push): Record<string, SenseDef> | undefined {
@@ -405,8 +549,14 @@ function fieldSenses(v: unknown, where: string, push: Push): Record<string, Sens
       ok = false;
       continue;
     }
-    onlyKeys(s, ['notice', 'tuned'], at, push);
-    out[key] = { notice: s['notice'], tuned: s['tuned'] };
+    onlyKeys(s, ['notice', 'levels', 'tuned'], at, push);
+    const lv = s['levels'];
+    if (lv !== undefined && (typeof lv !== 'number' || !Number.isInteger(lv) || lv < 2 || lv > 5)) {
+      push(`${at}.levels`, 'levels(세기를 구분하는 단계 수)는 2~5 정수여야 한다');
+      ok = false;
+      continue;
+    }
+    out[key] = { notice: s['notice'], ...(typeof lv === 'number' ? { levels: lv } : {}), tuned: s['tuned'] };
   }
   return ok ? out : undefined;
 }
@@ -514,9 +664,11 @@ export type Fields = Partial<{
   supplies: string[];
   slots: Record<string, SlotDef>;
   meanings: MeaningDef[];
+  feels: FeelDef[];
   rules: Record<string, RuleDef>;
   offers: Record<string, OfferDef>;
   senses: Record<string, SenseDef>;
+  mind: MindDef;
   stays: string;
   environment: Record<string, string>;
   passages: PassageDef[];
@@ -581,6 +733,19 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.slots = v;
         break;
       }
+      case 'feels': {
+        if (!Array.isArray(value) || !value.every((f) => isObj(f) && typeof f['sensation'] === 'string' && isStrArr(f['when']) && (f['by'] === undefined || typeof f['by'] === 'string') && (f['reverse'] === undefined || f['reverse'] === true) && Object.keys(f).every((k) => ['sensation', 'when', 'by', 'reverse'].includes(k)))) {
+          push(at, 'feels는 { sensation: 감각질 키, when: 소유자 안의 조건 목록, by?: 세기를 정하는 부위:특징, reverse?: true } 목록이어야 한다');
+        } else {
+          out.feels = value.map((f) => ({
+            sensation: String(f['sensation']),
+            when: (f['when'] as string[]).map((w) => w.trim()),
+            ...(typeof f['by'] === 'string' ? { by: f['by'].trim() } : {}),
+            ...(f['reverse'] === true ? { reverse: true } : {}),
+          }));
+        }
+        break;
+      }
       case 'meanings': {
         const v = fieldMeanings(value, at, push);
         if (v !== undefined) out.meanings = v;
@@ -594,6 +759,11 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
       case 'offers': {
         const v = fieldOffers(value, at, push);
         if (v !== undefined) out.offers = v;
+        break;
+      }
+      case 'mind': {
+        const v = fieldMind(value, at, push);
+        if (v !== undefined) out.mind = v;
         break;
       }
       case 'senses': {
@@ -657,9 +827,11 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
     ...(f.supplies !== undefined ? { supplies: f.supplies } : {}),
     ...(f.slots !== undefined ? { slots: f.slots } : {}),
     ...(f.meanings !== undefined ? { meanings: f.meanings } : {}),
+    ...(f.feels !== undefined ? { feels: f.feels } : {}),
     ...(f.rules !== undefined ? { rules: f.rules } : {}),
     ...(f.offers !== undefined ? { offers: f.offers } : {}),
     ...(f.senses !== undefined ? { senses: f.senses } : {}),
+    ...(f.mind !== undefined ? { mind: f.mind } : {}),
     ...(f.stays !== undefined ? { stays: f.stays } : {}),
     ...(f.environment !== undefined ? { environment: f.environment } : {}),
     ...(f.passages !== undefined ? { passages: f.passages } : {}),

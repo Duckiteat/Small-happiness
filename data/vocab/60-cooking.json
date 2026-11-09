@@ -1,0 +1,451 @@
+[
+  {
+    "category": "feature",
+    "entries": [
+      {
+        "key": "amount",
+        "ko": "남은 양",
+        "en": "amount",
+        "desc": "재료가 남은 정도. 요리가 한 번에 몇 칸씩 쓴다(행동의 uses). 칸 사이의 실제 양(숟갈·g)은 정하지 않았다 (임시, 요리-설계 3장)",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "little",
+              "ko": "조금"
+            },
+            {
+              "key": "half",
+              "ko": "반"
+            },
+            {
+              "key": "plenty",
+              "ko": "넉넉"
+            },
+            {
+              "key": "full",
+              "ko": "가득"
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "soup",
+        "ko": "국물",
+        "en": "soup",
+        "desc": "냄비 속 국물의 단계: 맹물에 국물 재료를 넣어 우리면 육수가 되고, 된장·김치 같은 양념을 풀고 건더기를 넣어 끓이면 찌개가 된다 (요리-설계 3장)",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "plain",
+              "ko": "맹물"
+            },
+            {
+              "key": "steeping",
+              "ko": "우리는 중"
+            },
+            {
+              "key": "broth",
+              "ko": "육수"
+            },
+            {
+              "key": "seasoned",
+              "ko": "양념 풂"
+            },
+            {
+              "key": "stew",
+              "ko": "찌개"
+            }
+          ]
+        }
+      },
+      {
+        "key": "filling",
+        "ko": "건더기",
+        "en": "filling",
+        "desc": "냄비에 넣은 건더기가 어디까지 들어갔는지: 채소 → 두부 → 대파 순서로 넣는다",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "veg",
+              "ko": "채소"
+            },
+            {
+              "key": "tofu",
+              "ko": "두부까지"
+            },
+            {
+              "key": "scallion",
+              "ko": "대파까지"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "contents",
+        "ko": "담긴 정도",
+        "en": "contents",
+        "desc": "그릇(반찬통)에 음식이 담겨 있는지. 담긴 음식은 따로 개체로 있다 (그릇 안에 놓임)",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "빔"
+            },
+            {
+              "key": "full",
+              "ko": "담김"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "base",
+        "ko": "국물 바탕",
+        "en": "stew base",
+        "desc": "냄비에 푼 양념이 무엇인지. 옮겨 담을 때 어떤 찌개가 되는지 정한다",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "doenjang",
+              "ko": "된장"
+            },
+            {
+              "key": "kimchi",
+              "ko": "김치"
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "cooking",
+        "ko": "요리 솜씨",
+        "en": "cooking skill",
+        "desc": "재료를 냄비에 넣어 요리할 때마다(재료 하나에 한 번) 쌓인다. 오르면 새 요리를 구상할 수 있다 (요리-설계 11장)",
+        "attrs": {
+          "inner": true,
+          "levels": [
+            {
+              "key": "novice",
+              "ko": "입문"
+            },
+            {
+              "key": "basic",
+              "ko": "기초"
+            },
+            {
+              "key": "familiar",
+              "ko": "익숙"
+            },
+            {
+              "key": "skilled",
+              "ko": "능숙"
+            },
+            {
+              "key": "expert",
+              "ko": "숙달"
+            },
+            {
+              "key": "master",
+              "ko": "달인"
+            }
+          ],
+          "practice": [
+            0,
+            6,
+            20,
+            45,
+            80,
+            130
+          ],
+          "tuned": false
+        }
+      },
+      {
+        "key": "handling",
+        "ko": "손질 솜씨",
+        "en": "handling skill",
+        "desc": "재료를 썰 때마다 쌓인다. 오르면 써는 시간이 줄어든다",
+        "attrs": {
+          "inner": true,
+          "levels": [
+            {
+              "key": "novice",
+              "ko": "입문"
+            },
+            {
+              "key": "basic",
+              "ko": "기초"
+            },
+            {
+              "key": "familiar",
+              "ko": "익숙"
+            },
+            {
+              "key": "skilled",
+              "ko": "능숙"
+            },
+            {
+              "key": "expert",
+              "ko": "숙달"
+            },
+            {
+              "key": "master",
+              "ko": "달인"
+            }
+          ],
+          "practice": [
+            0,
+            4,
+            12,
+            30,
+            60,
+            100
+          ],
+          "minutes_pct": [
+            100,
+            85,
+            70,
+            60,
+            50,
+            40
+          ],
+          "tuned": false
+        }
+      },
+      {
+        "key": "judging",
+        "ko": "감별",
+        "en": "judging",
+        "desc": "재료를 손질하며 상태를 볼 때마다 쌓인다. 신선도를 더 정교하게 알아채는 쪽(심상 사다리 S5)에 쓸 자리이며 지금은 쌓이기만 한다",
+        "attrs": {
+          "inner": true,
+          "levels": [
+            {
+              "key": "novice",
+              "ko": "입문"
+            },
+            {
+              "key": "basic",
+              "ko": "기초"
+            },
+            {
+              "key": "familiar",
+              "ko": "익숙"
+            },
+            {
+              "key": "skilled",
+              "ko": "능숙"
+            },
+            {
+              "key": "expert",
+              "ko": "숙달"
+            },
+            {
+              "key": "master",
+              "ko": "달인"
+            }
+          ],
+          "practice": [
+            0,
+            4,
+            12,
+            30,
+            60,
+            100
+          ],
+          "tuned": false
+        }
+      }
+    ]
+  },
+  {
+    "category": "action",
+    "entries": [
+      {
+        "key": "slice",
+        "ko": "썰기",
+        "en": "slice",
+        "aliases": [
+          "칼질"
+        ],
+        "desc": "칼과 도마로 재료를 썬다. 재료의 가공이 오르고 칼과 도마가 더러워진다",
+        "attrs": {
+          "handles": true
+        }
+      },
+      {
+        "key": "add",
+        "ko": "넣기",
+        "en": "add",
+        "desc": "재료를 냄비에 넣는다. 재료의 남은 양이 줄고 냄비의 국물·건더기가 바뀐다",
+        "attrs": {
+          "handles": true
+        }
+      },
+      {
+        "key": "wash",
+        "ko": "설거지",
+        "en": "wash",
+        "aliases": [
+          "씻기"
+        ],
+        "desc": "싱크대에 받은 물로 더러워진 도구를 씻는다. 물은 배수로 사라진다",
+        "attrs": {
+          "handles": true,
+          "tidies": true
+        }
+      },
+      {
+        "key": "eat",
+        "ko": "먹기",
+        "en": "eat",
+        "desc": "만든 음식을 먹는다. 그릇이 비고 더러워진다",
+        "attrs": {
+          "eats": true
+        }
+      },
+      {
+        "key": "extinguish",
+        "ko": "불 끄기",
+        "en": "extinguish",
+        "desc": "다 된 요리의 불을 끈다"
+      },
+      {
+        "key": "transfer",
+        "ko": "옮겨 담기",
+        "en": "transfer",
+        "aliases": [
+          "덜기"
+        ],
+        "desc": "냄비의 음식을 다른 그릇에 옮겨 담는다. 담은 음식은 새 개체가 된다",
+        "attrs": {
+          "handles": true
+        }
+      },
+      {
+        "key": "take_out",
+        "ko": "꺼내기",
+        "en": "take out",
+        "desc": "냉장고 같은 곳에서 물건을 꺼내 다른 곳에 둔다",
+        "attrs": {
+          "handles": true
+        }
+      },
+      {
+        "key": "shop",
+        "ko": "장보기",
+        "en": "shop",
+        "aliases": [
+          "장 보기"
+        ],
+        "desc": "가게(편의점·시장·마트)에 다녀와 모자란 재료를 산다. 다녀오는 동안 집을 비운다"
+      },
+      {
+        "key": "order",
+        "ko": "주문하기",
+        "en": "order",
+        "aliases": [
+          "온라인 주문"
+        ],
+        "desc": "온라인으로 재료를 주문한다. 다음 배송 시각에 온다"
+      }
+    ]
+  },
+  {
+    "category": "menu",
+    "entries": [
+      {
+        "key": "leftover_stew",
+        "ko": "남은 찌개",
+        "en": "leftover stew",
+        "desc": "냉장고에 넣어 둔 찌개를 꺼내 데워 먹는 끼니. 남은 것을 먼저 먹는다 (rank 1)",
+        "attrs": {
+          "rank": 1
+        }
+      },
+      {
+        "key": "doenjang_jjigae",
+        "ko": "된장찌개",
+        "en": "doenjang stew",
+        "desc": "첫 끓임 요리 (요리-설계). 멸치 육수 → 된장 풀기 → 채소 → 두부 → 대파. 일반적인 순서이며 시간은 임시값. 남은 음식이 없을 때 (rank 2)",
+        "attrs": {
+          "rank": 2
+        }
+      },
+      {
+        "key": "kimchi_jjigae",
+        "ko": "김치찌개",
+        "en": "kimchi stew",
+        "desc": "요리 솜씨가 기초가 되면 도전하는 찌개. 멸치 육수 → 김치 풀기 → 양파 → 두부 → 대파. 일반적인 순서이며 시간은 임시값",
+        "attrs": {
+          "rank": 2,
+          "needs_skill": {
+            "feature": "cooking",
+            "at_least": "basic"
+          }
+        }
+      }
+    ]
+  }
+]

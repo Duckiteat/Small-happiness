@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { EventLog } from '../src/core/log.ts';
 import { Vocab, VocabError, normalizeWord, validateVocab } from '../src/core/vocab.ts';
-import type { VocabCategoryRaw } from '../src/core/vocab.ts';
+import type { VocabCategoryRaw, VocabEntryRaw } from '../src/core/vocab.ts';
+import type { JsonValue } from '../src/core/events.ts';
 import { loadVocabDir } from '../src/node/vocab-files.ts';
 
 const VOCAB_DIR = fileURLToPath(new URL('../data/vocab', import.meta.url));
@@ -108,4 +109,84 @@ test('단계 사다리는 0~5 여섯 칸이고, 내구 배율은 정수 ×100 �
     messages([{ category: 'durability', entries: [{ key: 'weak', ko: '취약', attrs: { mult100: 0.5 } }] }]),
     /내구 배율/,
   );
+});
+
+test('내면 특징(숙련): 감각이 없어야 하고, 쌓이는 표·시간 표·tuned를 검사하며, 메뉴의 필요 숙련은 내면 특징의 단계여야 한다', () => {
+  const lad = ['a', 'b', 'c', 'd', 'e', 'f'].map((k) => ({ key: k, ko: k }));
+  const feature = (attrs: Record<string, unknown>): VocabCategoryRaw => ({ category: 'feature', entries: [{ key: 'knack', ko: '솜씨', attrs: { levels: lad, ...attrs } }, { key: 'look', ko: '모양', attrs: { sense: 'sight', levels: lad } }] });
+  const sense: VocabCategoryRaw = { category: 'sense', entries: [{ key: 'sight', ko: '시각', attrs: { reach: 'distance' } }] };
+  const ok = (attrs: Record<string, unknown>): string => messages([sense, feature(attrs)]);
+  assert.equal(ok({ inner: true, practice: [0, 1, 2, 3, 4, 5], minutes_pct: [100, 90, 80, 70, 60, 50], tuned: false }), '');
+  assert.match(ok({ inner: true, sense: 'sight', tuned: false }), /감각으로 느끼지 않는다/);
+  assert.match(ok({ inner: true, practice: [0, 3, 2, 4, 5, 6], tuned: false }), /practice/);
+  assert.match(ok({ inner: true, practice: [1, 2, 3, 4, 5, 6], tuned: false }), /practice/);
+  assert.match(ok({ inner: true, minutes_pct: [100, 90, 95, 70, 60, 50], tuned: false }), /minutes_pct/);
+  assert.match(ok({ inner: true }), /tuned/);
+  assert.match(ok({}), /감각\(sense 키\)이 필요하다/, '내면이 아니면 감각이 있어야 한다');
+  const menu = (ns: { [k: string]: string }): string => messages([sense, feature({ inner: true, tuned: false }), { category: 'menu', entries: [{ key: 'm', ko: '메뉴', attrs: { rank: 1, needs_skill: ns } }] }]);
+  assert.equal(menu({ feature: 'knack', at_least: 'b' }), '');
+  assert.match(menu({ feature: 'look', at_least: 'b' }), /내면 특징\(inner\)이 아니다/);
+  assert.match(menu({ feature: 'knack', at_least: 'zz' }), /쓸 수 있는 단계 키가 아니다/);
+  assert.match(menu({ feature: 'knack' }), /needs_skill은/);
+});
+
+test('감각: 감각마다 닿는 길(reach)이 있어야 하고, 감각질은 있는 감각을 가리키며, 행동의 handles·eats는 true만', () => {
+  const sense: VocabCategoryRaw = { category: 'sense', entries: [{ key: 'smell', ko: '후각', attrs: { reach: 'distance' } }] };
+  assert.equal(messages([sense, { category: 'sensation', entries: [{ key: 'sweet_scent', ko: '단향', attrs: { sense: 'smell' } }] }]), '');
+  assert.match(messages([{ category: 'sense', entries: [{ key: 'smell', ko: '후각', attrs: { reach: 'far' } }] }]), /reach/);
+  assert.match(messages([sense, { category: 'sensation', entries: [{ key: 'x', ko: '엑스', attrs: {} }] }]), /감각\(sense 키\)이 필요하다/);
+  assert.match(messages([sense, { category: 'sensation', entries: [{ key: 'x', ko: '엑스', attrs: { sense: 'sight' } }] }]), /sense 분류에 없는 키/);
+  assert.match(messages([{ category: 'action', entries: [{ key: 'pat', ko: '두드리기', attrs: { handles: false } }] }]), /handles는 true/);
+  assert.match(messages([{ category: 'action', entries: [{ key: 'tidy', ko: '치우기', attrs: { tidies: 'yes' } }] }]), /tidies는 true/);
+  assert.match(messages([{ category: 'action', entries: [{ key: 'nap', ko: '낮잠', attrs: { pastime: 1 } }] }]), /pastime는 true/);
+  assert.match(messages([{ category: 'action', entries: [{ key: 'odd', ko: '이상한 일', attrs: { pastime: true, upkeep: true } }] }]), /쉼\(pastime\)이면서 집안일/);
+});
+
+test('반사: 문턱은 1~100%, 종류는 무조건·조건, 조건반사만 예고 감각과 횟수를 갖고, 붙는 감각질이 사전에 있어야 한다', () => {
+  const base: VocabCategoryRaw[] = [
+    { category: 'sense', entries: [{ key: 'taste', ko: '미각', attrs: { reach: 'mouth' } }] },
+    { category: 'sensation', entries: [{ key: 'sour_taste', ko: '신맛', attrs: { sense: 'taste' } }, { key: 'sweet', ko: '단맛', attrs: { sense: 'taste' } }] },
+  ];
+  const with_ = (attrs: Record<string, string | number | boolean>): string => messages([...base, { category: 'reflex', entries: [{ key: 'r', ko: '반사', attrs }] }]);
+  assert.equal(with_({ on: 'sour_taste', at_least: 1, kind: 'unconditioned', tuned: false }), '');
+  assert.equal(with_({ on: 'sweet', at_least: 1, kind: 'conditioned', pairs_with: 'sour_taste', times: 2, tuned: false }), '');
+  assert.match(with_({ on: 'sour_taste', at_least: 0, kind: 'unconditioned', tuned: false }), /at_least/);
+  assert.match(with_({ on: 'sour_taste', at_least: 10, kind: 'maybe', tuned: false }), /kind는/);
+  assert.match(with_({ on: 'sour_taste', at_least: 10, kind: 'conditioned', tuned: false }), /조건반사는 pairs_with/);
+  assert.match(with_({ on: 'sour_taste', at_least: 10, kind: 'unconditioned', times: 2, tuned: false }), /무조건반사는 배우지 않는다/);
+  assert.match(with_({ on: 'bitter', at_least: 10, kind: 'unconditioned', tuned: false }), /sensation 분류에 없는 키/);
+  assert.match(with_({ on: 'sour_taste', at_least: 10, kind: 'unconditioned' }), /tuned/);
+});
+
+test('공감각 심상: 감각질 둘 이상이 서로 다른 감각에서 와야 하고, 몸의 반응은 있는 심상에 붙어야 한다', () => {
+  const base: VocabCategoryRaw[] = [
+    { category: 'sense', entries: [{ key: 'smell', ko: '후각', attrs: { reach: 'distance' } }, { key: 'sight', ko: '시각', attrs: { reach: 'distance' } }] },
+    { category: 'sensation', entries: [{ key: 'savory_scent', ko: '구수한 냄새', attrs: { sense: 'smell' } }, { key: 'sour_scent', ko: '신향', attrs: { sense: 'smell' } }, { key: 'steaming', ko: '김이 남', attrs: { sense: 'sight' } }] },
+  ];
+  const img = (parts: string[]): VocabCategoryRaw => ({ category: 'image', entries: [{ key: 'i', ko: '심상', attrs: { parts } }] });
+  assert.equal(messages([...base, img(['steaming', 'savory_scent'])]), '');
+  assert.match(messages([...base, img(['savory_scent', 'sour_scent'])]), /서로 다른 감각 둘 이상/);
+  assert.match(messages([...base, img(['steaming'])]), /감각질 둘 이상/);
+  assert.match(messages([...base, img(['steaming', 'umami'])]), /sensation 분류에 없는 키/);
+  const resp = (on: string[]): VocabCategoryRaw => ({ category: 'response', entries: [{ key: 'r', ko: '반응', attrs: { on } }] });
+  assert.equal(messages([...base, img(['steaming', 'savory_scent']), resp(['i'])]), '');
+  assert.match(messages([...base, img(['steaming', 'savory_scent']), resp(['nope'])]), /image 분류에 없는 키/);
+  assert.match(messages([...base, resp([])]), /붙는 심상\(on\) 목록이 필요하다/);
+});
+
+test('감정: 결과 생각으로 하나가 정해지고, 쾌·불쾌만 감정이 움직이며, 안정은 생각(by_thought)이 움직인다', () => {
+  const lv = (keys: string[]): { key: string; ko: string }[] => keys.map((k) => ({ key: k, ko: k }));
+  const six = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const axis = (key: string, ax: string, extra: Record<string, JsonValue> = {}): VocabEntryRaw => ({ key, ko: key, attrs: { inner: true, axis: ax, levels: lv(six), tuned: false, ...extra } });
+  const bt = { by_thought: { new: -1, familiar: 1, recalled: 1, against: -1 } };
+  const feats = (stab: Record<string, JsonValue> = bt): VocabCategoryRaw => ({ category: 'feature', entries: [axis('p', 'pleasure'), axis('d', 'displeasure'), axis('s', 'stability', stab)] });
+  const emo = (...es: Record<string, JsonValue>[]): VocabCategoryRaw => ({ category: 'emotion', entries: es.map((attrs, i) => ({ key: `e${i}`, ko: `감정${i}`, attrs: { tuned: false, ...attrs } })) });
+  assert.equal(messages([feats(), emo({ tone: 'pleasant', thought: 'new', shifts: { p: 1 } }, { tone: 'pleasant', shifts: { p: 1, d: 1 } })]), '');
+  assert.match(messages([feats(), emo({ tone: 'pleasant', thought: 'new', shifts: { p: 1 } }, { tone: 'pleasant', thought: 'new', shifts: { p: 2 } })]), /감정이 둘이다/);
+  assert.match(messages([feats(), emo({ tone: 'pleasant', thought: 'new', shifts: { s: 1 } })]), /안정은 생각이 움직인다/);
+  assert.match(messages([feats(), emo({ tone: 'sweet', thought: 'new', shifts: { p: 1 } })]), /tone은 pleasant/);
+  assert.match(messages([feats(), emo({ tone: 'pleasant', thought: 'maybe', shifts: { p: 1 } })]), /thought는 new/);
+  assert.match(messages([feats(), emo({ tone: 'pleasant', thought: 'new', shifts: {} })]), /비어 있지 않아야/);
+  assert.match(messages([feats({})]), /by_thought/);
+  assert.match(messages([{ category: 'feature', entries: [axis('p', 'pleasure'), axis('q', 'pleasure')] }]), /이미 p에 있다/);
 });

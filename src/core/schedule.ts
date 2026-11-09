@@ -63,6 +63,8 @@ export function parsePlan(value: BoardValue | unknown, vocab: Vocab): PlanBlock[
       throw new ScheduleError(`${at}: from과 to는 0 이상의 정수(분)여야 한다`);
     }
     if (from >= to) throw new ScheduleError(`${at}: 끝(${to})이 시작(${from})보다 뒤여야 한다`);
+    // 일정에는 메뉴를 적지 않는다: 무엇을 해 먹을지는 하루씨가 아는 재료로 구상한다 (작가 2026-11-08, 요리-설계 10장)
+    if (b['menu'] !== undefined) throw new ScheduleError(`${at}: 일정에는 메뉴를 적지 않는다 (하루씨가 구상한다)`);
     return { kind, from, to };
   });
   for (let i = 1; i < blocks.length; i++) {
@@ -71,6 +73,17 @@ export function parsePlan(value: BoardValue | unknown, vocab: Vocab): PlanBlock[
     if (b.from < a.to) throw new ScheduleError(`plan.blocks[${i}]: 앞 구간과 겹치거나 시간 순이 아니다 (${a.from}–${a.to}, ${b.from}–${b.to})`);
   }
   return blocks;
+}
+
+/** 끼니: 메뉴를 구상하는 구간(사전 presence의 plans_menu)과 그 시작 시각. 요리법의 단계는 한 끼에 한 번이다. */
+export interface Meal {
+  readonly from: number;
+}
+
+/** 시각 t가 메뉴를 구상하는 구간 안이면 그 끼니. 아니면 undefined. */
+export function mealAt(blocks: readonly PlanBlock[], t: number, vocab: Vocab): Meal | undefined {
+  const b = blocks.find((x) => x.from <= t && t < x.to);
+  return b !== undefined && vocab.entry('presence', b.kind)?.attrs['plans_menu'] === true ? { from: b.from } : undefined;
 }
 
 /** 시각 t에 하루씨는 어떤 상태인가 (presence 키). */

@@ -1,0 +1,39 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 쓰는 양에 단계 조건을 붙임 (몇 칸 내릴지는 steps가 정한다)",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "시험 재료"
+   },
+   "mobility": "portable",
+   "slots": {
+    "cond": {
+     "features": [
+      "amount"
+     ]
+    }
+   },
+   "offers": {
+    "put": {
+     "label": "넣는다",
+     "verb": "add",
+     "needs": [],
+     "effect": [
+      "OBJ+1|cond:amount@=none"
+     ],
+     "minutes": 1,
+     "tuned": false,
+     "uses": [
+      {
+       "key": "OBJ+1|cond:amount@>=half",
+       "steps": 1
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

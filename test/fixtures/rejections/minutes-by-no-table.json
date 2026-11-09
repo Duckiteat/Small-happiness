@@ -1,0 +1,32 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 시간 표가 없는 숙련(요리 솜씨)으로 시간을 줄임",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "시험 재료"
+   },
+   "mobility": "portable",
+   "slots": {
+    "cond": {
+     "features": [
+      "amount"
+     ]
+    }
+   },
+   "offers": {
+    "cut": {
+     "label": "썬다",
+     "verb": "slice",
+     "needs": [],
+     "effect": [],
+     "minutes": 3,
+     "tuned": false,
+     "minutes_by": "cooking"
+    }
+   }
+  }
+ ]
+}

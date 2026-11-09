@@ -6,37 +6,55 @@
         "key": "sight",
         "ko": "시각",
         "en": "sight",
-        "desc": "눈으로 보는 감각"
+        "desc": "눈으로 보는 감각",
+        "attrs": {
+          "reach": "distance"
+        }
       },
       {
         "key": "hearing",
         "ko": "청각",
         "en": "hearing",
-        "desc": "소리를 듣는 감각"
+        "desc": "소리를 듣는 감각",
+        "attrs": {
+          "reach": "distance"
+        }
       },
       {
         "key": "smell",
         "ko": "후각",
         "en": "smell",
-        "desc": "냄새를 맡는 감각"
+        "desc": "냄새를 맡는 감각",
+        "attrs": {
+          "reach": "distance"
+        }
       },
       {
         "key": "touch",
         "ko": "촉각",
         "en": "touch",
-        "desc": "닿는 느낌"
+        "desc": "닿는 느낌",
+        "attrs": {
+          "reach": "contact"
+        }
       },
       {
         "key": "taste",
         "ko": "미각",
         "en": "taste",
-        "desc": "맛"
+        "desc": "맛",
+        "attrs": {
+          "reach": "mouth"
+        }
       },
       {
         "key": "proprioception",
         "ko": "고유감각",
         "en": "proprioception",
-        "desc": "몸의 위치·움직임·힘을 느끼는 감각. 재질을 밀거나 긁을 때의 드르륵·스르륵 같은 질감을 느낌"
+        "desc": "몸의 위치·움직임·힘을 느끼는 감각. 재질을 밀거나 긁을 때의 드르륵·스르륵 같은 질감을 느낌",
+        "attrs": {
+          "reach": "body"
+        }
       }
     ]
   },
@@ -798,13 +816,22 @@
       {
         "key": "wipe",
         "ko": "닦기",
-        "en": "wipe"
+        "en": "wipe",
+        "attrs": {
+          "handles": true,
+          "tidies": true,
+          "upkeep": true
+        }
       },
       {
         "key": "ventilate",
         "ko": "환기",
         "en": "ventilate",
-        "desc": "창문을 열어 공기를 바꾼다"
+        "desc": "창문을 열어 공기를 바꾼다",
+        "attrs": {
+          "tidies": true,
+          "upkeep": true
+        }
       },
       {
         "key": "install",
@@ -816,13 +843,21 @@
         "key": "store",
         "ko": "보관",
         "en": "store",
-        "desc": "물건은 삭제되지 않고 보관된다"
+        "desc": "물건은 삭제되지 않고 보관된다",
+        "attrs": {
+          "handles": true,
+          "tidies": true
+        }
       },
       {
         "key": "empty",
         "ko": "비우기",
         "en": "empty",
-        "desc": "내용물을 지우지 않고 보관으로 옮긴다"
+        "desc": "내용물을 지우지 않고 보관으로 옮긴다",
+        "attrs": {
+          "handles": true,
+          "tidies": true
+        }
       },
       {
         "key": "sell",
@@ -833,7 +868,10 @@
       {
         "key": "move",
         "ko": "옮기기",
-        "en": "move"
+        "en": "move",
+        "attrs": {
+          "handles": true
+        }
       },
       {
         "key": "inspect",
@@ -852,7 +890,12 @@
         "aliases": [
           "내다 버리기"
         ],
-        "desc": "물건을 쓰레기로 보낸다. 물건은 지워지지 않고 그 상태가 소멸(gone)로 바뀐다 (보관 장소는 위치 구현 뒤)"
+        "desc": "물건을 쓰레기로 보낸다. 물건은 지워지지 않고 그 상태가 소멸(gone)로 바뀐다 (보관 장소는 위치 구현 뒤)",
+        "attrs": {
+          "handles": true,
+          "tidies": true,
+          "upkeep": true
+        }
       },
       {
         "key": "cook",
@@ -862,7 +905,10 @@
           "요리",
           "조리"
         ],
-        "desc": "재료를 익히거나 볶아 먹을 것을 만든다. 재료는 쓰여서 소멸(gone)로 바뀌고, 요리 냄새(구수함)가 난다. 식사 준비 시간에만 한다"
+        "desc": "재료를 익히거나 볶아 먹을 것을 만든다. 재료는 쓰여서 소멸(gone)로 바뀌고, 요리 냄새(구수함)가 난다. 식사 준비 시간에만 한다",
+        "attrs": {
+          "handles": true
+        }
       }
     ]
   },

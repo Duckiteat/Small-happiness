@@ -214,5 +214,97 @@
   "linked-no-other.json": {
     "stage": "gate",
     "match": "걸 대상이 없는 범위"
+  },
+  "uses-with-cond.json": {
+    "stage": "gate",
+    "match": "쓰는 양에는 단계 조건을 쓰지 않는다"
+  },
+  "uses-too-many-steps.json": {
+    "stage": "gate",
+    "match": "한 번도 쓸 수 없다"
+  },
+  "uses-bad-shape.json": {
+    "stage": "gate",
+    "match": "steps는 양의 정수"
+  },
+  "menu-unknown.json": {
+    "stage": "gate",
+    "match": "사전에 없는 메뉴"
+  },
+  "places-two-relations.json": {
+    "stage": "gate",
+    "match": "관계는 하나만"
+  },
+  "places-self.json": {
+    "stage": "gate",
+    "match": "자기 자신에 놓는다"
+  },
+  "creates-unknown-def.json": {
+    "stage": "gate",
+    "match": "없는 정의를 가리킨다: OBJ999999"
+  },
+  "where-person-target.json": {
+    "stage": "gate",
+    "match": "놓는 곳은 물건이나 장소여야 한다"
+  },
+  "uses-ingredient-false.json": {
+    "stage": "gate",
+    "match": "ingredient는 true이거나 없음"
+  },
+  "trains-not-inner.json": {
+    "stage": "gate",
+    "match": "숙련은 사전의 내면 특징\\(inner\\)이어야 한다"
+  },
+  "minutes-by-no-table.json": {
+    "stage": "gate",
+    "match": "시간 표\\(minutes_pct\\)가 없는 숙련"
+  },
+  "buys-opens-reversed.json": {
+    "stage": "gate",
+    "match": "buys는 \\{ sells"
+  },
+  "buys-sells-unknown.json": {
+    "stage": "gate",
+    "match": "buys.sells\\[0\\]: 없는 정의를 가리킨다"
+  },
+  "away-not-true.json": {
+    "stage": "gate",
+    "match": "away는 true이거나 없어야 한다"
+  },
+  "feels-unknown-sensation.json": {
+    "stage": "gate",
+    "match": "사전에 없는 감각질: velvety"
+  },
+  "feels-missing-feature.json": {
+    "stage": "gate",
+    "match": "특징 \"ripen\"가 없다"
+  },
+  "feels-bad-shape.json": {
+    "stage": "gate",
+    "match": "feels는 \\{ sensation"
+  },
+  "senses-levels-out-of-range.json": {
+    "stage": "gate",
+    "match": "levels\\(세기를 구분하는 단계 수\\)는 2~5"
+  },
+  "feels-by-with-condition.json": {
+    "stage": "gate",
+    "match": "세기\\(by\\)는 조건 없는"
+  },
+  "mind-rung-out-of-range.json": {
+    "stage": "gate",
+    "match": "binds_at · tense_at은 감정 축 사다리의 칸"
+  },
+  "mind-days-reversed.json": {
+    "stage": "gate",
+    "match": "thought_days는 \\{ min, max \\}"
+  },
+  "mind-without-mood.json": {
+    "stage": "gate",
+    "match": "mood 부위에 감정의 축이 있어야 한다"
+  },
+  "mind-on-object.json": {
+    "stage": "gate",
+    "match": "정의에 쓸 수 없는 필드: mind"
   }
 }

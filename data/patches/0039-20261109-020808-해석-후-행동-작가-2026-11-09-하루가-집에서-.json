@@ -1,0 +1,128 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "ⓒ 해석 후 행동 (작가 2026-11-09: 하루가 집에서 그냥 앉아서 쉬는 것도 좋고, 드라마를 봐도 되고, 웹툰을 봐도 되고, 앉아 있어도 누워 있어도 된다. 요정은 냄새나거나 방바닥이 더럽거나 환기를 안 했으면 하자고 한다 — 기본적으로 하루가 생각한 선택지 중 고르는 역할): 쉴 거리 세 가지를 둔다. 시간은 임시값.",
+    "defs": [
+      {
+        "id": "OBJ+1",
+        "names": {
+          "ko": "소파",
+          "en": "sofa"
+        },
+        "mobility": "fixed",
+        "desc": [
+          "앉거나 누워 쉰다 (쉼)"
+        ],
+        "offers": {
+          "sit_rest": {
+            "label": "소파에 앉아 그냥 쉰다",
+            "verb": "rest",
+            "needs": [],
+            "effect": [],
+            "minutes": 30,
+            "tuned": false,
+            "during": [
+              "home"
+            ]
+          },
+          "lie_down": {
+            "label": "소파에 눕는다",
+            "verb": "lie_down",
+            "needs": [],
+            "effect": [],
+            "minutes": 30,
+            "tuned": false,
+            "during": [
+              "home"
+            ]
+          }
+        }
+      },
+      {
+        "id": "OBJ+2",
+        "names": {
+          "ko": "TV",
+          "en": "TV"
+        },
+        "mobility": "fixed",
+        "desc": [
+          "드라마를 본다 (쉼)"
+        ],
+        "offers": {
+          "watch_drama": {
+            "label": "TV로 드라마를 본다",
+            "verb": "watch",
+            "needs": [],
+            "effect": [],
+            "minutes": 60,
+            "tuned": false,
+            "during": [
+              "home"
+            ]
+          }
+        }
+      },
+      {
+        "id": "OBJ+3",
+        "names": {
+          "ko": "휴대폰",
+          "en": "phone"
+        },
+        "mobility": "portable",
+        "desc": [
+          "웹툰을 본다 (쉼)"
+        ],
+        "offers": {
+          "read_webtoon": {
+            "label": "휴대폰으로 웹툰을 본다",
+            "verb": "read_webtoon",
+            "needs": [],
+            "effect": [],
+            "minutes": 20,
+            "tuned": false,
+            "during": [
+              "home"
+            ]
+          }
+        }
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {
+    "OBJ+1": "OBJ000042",
+    "OBJ+2": "OBJ000043",
+    "OBJ+3": "OBJ000044"
+  },
+  "mapped": [],
+  "report": {
+    "why": "ⓒ 해석 후 행동 (작가 2026-11-09: 하루가 집에서 그냥 앉아서 쉬는 것도 좋고, 드라마를 봐도 되고, 웹툰을 봐도 되고, 앉아 있어도 누워 있어도 된다. 요정은 냄새나거나 방바닥이 더럽거나 환기를 안 했으면 하자고 한다 — 기본적으로 하루가 생각한 선택지 중 고르는 역할): 쉴 거리 세 가지를 둔다. 시간은 임시값.",
+    "scope": {
+      "added": {
+        "object": [
+          "OBJ000042",
+          "OBJ000043",
+          "OBJ000044"
+        ]
+      },
+      "updated": {},
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

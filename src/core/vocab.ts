@@ -73,7 +73,21 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
   switch (category) {
     case 'feature': {
       // 단계 사다리: 0~5 여섯 칸 고정. 칸 번호가 단계 숫자다. locked 칸은 아직 쓸 수 없다 (작가가 풀면 쓴다).
-      if (typeof attrs['sense'] !== 'string') push(`${path}.attrs.sense`, '이 특징을 느끼는 감각(sense 키)이 필요하다');
+      // 내면 특징(inner: 숙련처럼 인물 자신의 상태)은 감각으로 느끼지 않는다. 나머지는 느끼는 감각이 있어야 한다
+      if (attrs['inner'] === true) {
+        if (attrs['sense'] !== undefined) push(`${path}.attrs.sense`, '내면 특징(inner)은 감각으로 느끼지 않는다 (sense를 쓰지 않는다)');
+        const seq = (k: string, ok: (xs: number[]) => boolean): boolean => {
+          const v = attrs[k];
+          return Array.isArray(v) && v.length === LADDER_SIZE && v.every(isInt) && ok(v as number[]);
+        };
+        if (attrs['practice'] !== undefined && !seq('practice', (xs) => xs[0] === 0 && xs.every((x, i) => i === 0 || x > (xs[i - 1] as number)))) {
+          push(`${path}.attrs.practice`, `practice(그 칸에 오르는 데 필요한 해 본 횟수)는 0에서 시작해 늘어나는 정수 ${LADDER_SIZE}개여야 한다`);
+        }
+        if (attrs['minutes_pct'] !== undefined && !seq('minutes_pct', (xs) => xs[0] === 100 && xs.every((x, i) => x > 0 && (i === 0 || x <= (xs[i - 1] as number))))) {
+          push(`${path}.attrs.minutes_pct`, `minutes_pct(그 칸에서 걸리는 시간 %)는 100에서 시작해 줄어드는 양의 정수 ${LADDER_SIZE}개여야 한다`);
+        }
+        if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '내면 특징의 수치(practice·minutes_pct)가 조정된 값인지 tuned를 적어야 한다');
+      } else if (typeof attrs['sense'] !== 'string') push(`${path}.attrs.sense`, '이 특징을 느끼는 감각(sense 키)이 필요하다');
       const levels = attrs['levels'];
       if (!Array.isArray(levels) || levels.length !== LADDER_SIZE) {
         push(`${path}.attrs.levels`, `단계 목록은 정확히 ${LADDER_SIZE}칸(0~${LADDER_SIZE - 1})이어야 한다`);
@@ -152,6 +166,59 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
     case 'presence': {
       // observed: 이 상태를 플레이어가 함께 보는가 (집에 있음·식사 준비는 보고, 외출·잠은 보지 않는다). 지각·행동·시계가 읽는다
       if (typeof attrs['observed'] !== 'boolean') push(`${path}.attrs.observed`, 'observed(플레이어가 함께 보는가)를 true/false로 적어야 한다');
+      // plans_menu: 이 구간이 시작되면 인물이 메뉴를 구상한다 (식사 준비)
+      if (attrs['plans_menu'] !== undefined && attrs['plans_menu'] !== true) push(`${path}.attrs.plans_menu`, 'plans_menu는 true이거나 없어야 한다');
+      if (attrs['plans_menu'] === true && attrs['observed'] !== true) push(`${path}.attrs.plans_menu`, '메뉴 구상은 플레이어가 함께 보는 구간에서만 한다');
+      break;
+    }
+    case 'sense': {
+      // reach: 감각이 닿는 길 — distance(머무는 곳에서 멀리서: 냄새·보기·소리), contact(손에 닿을 때), mouth(먹을 때), body(몸 안)
+      if (!['distance', 'contact', 'mouth', 'body'].includes(String(attrs['reach']))) push(`${path}.attrs.reach`, 'reach(감각이 닿는 길)는 distance · contact · mouth · body 중 하나여야 한다');
+      break;
+    }
+    case 'sensation': {
+      // 감각 자체 (내면-설계 2장): 한 감각의 드라이한 성질. look은 보이는 것 중 '~해 보임'의 예측
+      if (typeof attrs['sense'] !== 'string') push(`${path}.attrs.sense`, '이 감각질을 느끼는 감각(sense 키)이 필요하다');
+      if (attrs['look'] !== undefined && attrs['look'] !== true) push(`${path}.attrs.look`, 'look은 true이거나 없어야 한다');
+      break;
+    }
+    case 'action': {
+      // handles: 이 행동은 그 물건을 손으로 다룬다 (촉각), eats: 먹는다 (미각)
+      // tidies: 치우는 일 — 남아 있으면 그 물건의 생각이 미완으로 더 오래 간다 (내면-설계 11장)
+      // pastime: 쉼(할 일이 없을 때 스스로 고름), upkeep: 집안일(쉴 거리가 없을 때만 스스로, 요정이 권하는 것) — 내면-설계 12장
+      for (const k of ['handles', 'eats', 'tidies', 'pastime', 'upkeep']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
+      if (attrs['pastime'] === true && attrs['upkeep'] === true) push(`${path}.attrs`, '쉼(pastime)이면서 집안일(upkeep)일 수는 없다');
+      break;
+    }
+    case 'emotion': {
+      // 감정 (내면-설계 10장): tone(좋은·싫은 심상에서), thought(생각: new 처음 · familiar 며칠 안에 겪어 봄 · against 기억과 어긋남, 없으면 기억에서만 온다), shifts(축 특징 → 움직이는 칸 수)
+      if (attrs['tone'] !== 'pleasant' && attrs['tone'] !== 'unpleasant') push(`${path}.attrs.tone`, 'tone은 pleasant(좋은 심상)나 unpleasant(싫은 심상)여야 한다');
+      if (attrs['thought'] !== undefined && !['new', 'familiar', 'against'].includes(String(attrs['thought']))) push(`${path}.attrs.thought`, 'thought는 new · familiar · against 중 하나이거나 없어야 한다 (없으면 기억에서만 온다)');
+      const sh = attrs['shifts'];
+      if (typeof sh !== 'object' || sh === null || Array.isArray(sh) || Object.keys(sh).length === 0 || !Object.values(sh).every((x) => isInt(x) && x !== 0 && Math.abs(x) <= 2)) {
+        push(`${path}.attrs.shifts`, 'shifts는 { 축 특징: 움직이는 칸 수(±1~2, 0이 아닌 정수) }이고 비어 있지 않아야 한다');
+      }
+      if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '움직이는 칸 수가 조정된 값인지 tuned를 적어야 한다');
+      break;
+    }
+    case 'reflex': {
+      // 반사: on(감각질)을 그 사람의 단계 중 at_least% 이상 세게 느끼면. 조건반사는 pairs_with와 times로 배운다
+      const al = attrs['at_least'];
+      if (!isInt(al) || al < 1 || al > 100) push(`${path}.attrs.at_least`, 'at_least(문턱, 그 사람의 단계 중 %)는 1~100 정수여야 한다');
+      if (attrs['kind'] !== 'unconditioned' && attrs['kind'] !== 'conditioned') push(`${path}.attrs.kind`, 'kind는 unconditioned(무조건반사)나 conditioned(조건반사)여야 한다');
+      if (attrs['kind'] === 'conditioned' && (typeof attrs['pairs_with'] !== 'string' || !isInt(attrs['times']) || (attrs['times'] as number) < 1)) push(`${path}.attrs`, '조건반사는 pairs_with(예고하는 감각질)와 times(짝지어 겪은 횟수, 1 이상)가 필요하다');
+      if (attrs['kind'] === 'unconditioned' && (attrs['pairs_with'] !== undefined || attrs['times'] !== undefined)) push(`${path}.attrs`, '무조건반사는 배우지 않는다 (pairs_with·times를 쓰지 않는다)');
+      if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '문턱·횟수가 조정된 값인지 tuned를 적어야 한다');
+      break;
+    }
+    case 'menu': {
+      // rank: 구상할 때 먼저 보는 순서 (작을수록 먼저, 남은 음식이 앞선다)
+      const r = attrs['rank'];
+      if (!isInt(r) || r < 1) push(`${path}.attrs.rank`, '메뉴의 순서(rank)는 1 이상의 정수여야 한다');
+      const ns = attrs['needs_skill'];
+      if (ns !== undefined && (typeof ns !== 'object' || ns === null || Array.isArray(ns) || typeof ns['feature'] !== 'string' || typeof ns['at_least'] !== 'string' || Object.keys(ns).length !== 2)) {
+        push(`${path}.attrs.needs_skill`, 'needs_skill은 { feature, at_least } (내면 특징과 그 단계 키)여야 한다');
+      }
       break;
     }
     case 'odor_kind': {
@@ -215,6 +282,9 @@ const REFS: readonly (readonly [string, string, string])[] = [
   ['spreader', 'stimulus', 'sense'],
   ['spreader', 'feature', 'feature'], // 번짐이 바꾸는 장소의 특징
   ['feature', 'sense', 'sense'], // 이 특징을 어느 감각으로 느끼는가 (5층 지각)
+  ['sensation', 'sense', 'sense'], // 감각질을 느끼는 감각
+  ['reflex', 'on', 'sensation'], // 반사가 붙는 감각질
+  ['reflex', 'pairs_with', 'sensation'], // 조건반사가 예고로 배우는 감각질
   ['feature', 'resource', 'resource'], // 이 특징이 담는 설비 자원 (물 양 → 물). 사라지는 길을 관문이 요구한다
   ['odor_kind', 'feature', 'feature'], // 냄새 종류가 들어가는 특징
   ['compound', 'odor', 'odor_kind'], // 이 화합물이 어떤 냄새인가
@@ -303,6 +373,61 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
     const levels = grouped.get('feature')?.find((x) => x.key === feature)?.attrs?.['levels'];
     return Array.isArray(levels) ? levels.flatMap((l) => (typeof l === 'object' && l !== null && !Array.isArray(l) && l['locked'] !== true && typeof l['key'] === 'string' ? [l['key']] : [])) : undefined;
   };
+  // 공감각 심상: 사전의 감각질 둘 이상, 서로 다른 감각에서. 몸의 반응: 사전의 심상에 붙는다
+  const sensationSense = (k: string): unknown => grouped.get('sensation')?.find((x) => x.key === k)?.attrs?.['sense'];
+  for (const e of grouped.get('image') ?? []) {
+    const parts = e.attrs?.['parts'];
+    if (!Array.isArray(parts) || parts.length < 2 || !parts.every((p) => typeof p === 'string')) {
+      push(`image.${e.key}.attrs.parts`, '공감각 심상은 감각질 둘 이상(parts)이어야 한다');
+      continue;
+    }
+    for (const p of parts) if (sensationSense(String(p)) === undefined) push(`image.${e.key}.attrs.parts`, `"${String(p)}"는 sensation 분류에 없는 키다`);
+    if (new Set(parts.map((p) => String(sensationSense(String(p))))).size < 2) push(`image.${e.key}.attrs.parts`, '공감각 심상은 서로 다른 감각 둘 이상에서 와야 한다 (한 감각끼리는 섞임이 아니다)');
+  }
+  // 감정의 축: 내면 특징의 axis는 pleasure · displeasure · stability 중 하나이고 겹치지 않는다
+  const axes = new Map<string, string>();
+  for (const e of grouped.get('feature') ?? []) {
+    const ax = e.attrs?.['axis'];
+    if (ax === undefined) continue;
+    if (e.attrs?.['inner'] !== true || !['pleasure', 'displeasure', 'stability'].includes(String(ax))) push(`feature.${e.key}.attrs.axis`, 'axis(감정의 축)는 내면 특징에만 있고 pleasure · displeasure · stability 중 하나여야 한다');
+    else if (axes.has(String(ax))) push(`feature.${e.key}.attrs.axis`, `감정의 축 ${String(ax)}가 이미 ${axes.get(String(ax))}에 있다`);
+    else axes.set(String(ax), e.key);
+    // 안정은 감정이 아니라 생각으로 움직인다: by_thought { new, familiar, recalled, against: 칸 수 }
+    const bt = e.attrs?.['by_thought'];
+    if (ax === 'stability' && (typeof bt !== 'object' || bt === null || Array.isArray(bt) || !['new', 'familiar', 'recalled', 'against'].every((k) => isInt(bt[k]) && Math.abs(bt[k] as number) <= 2) || Object.keys(bt).length !== 4)) {
+      push(`feature.${e.key}.attrs.by_thought`, '안정 축은 by_thought { new, familiar, recalled, against: 움직이는 칸 수(-2~2 정수) }가 필요하다 (예측할 수 있음은 생각이 정한다)');
+    }
+    if (ax !== 'stability' && bt !== undefined) push(`feature.${e.key}.attrs.by_thought`, 'by_thought는 안정 축에만 있다');
+  }
+  const axisFeatures = new Set([...axes].filter(([a]) => a !== 'stability').map(([, f]) => f));
+  const ruled = new Set<string>();
+  for (const e of grouped.get('emotion') ?? []) {
+    const sh = e.attrs?.['shifts'];
+    if (typeof sh === 'object' && sh !== null && !Array.isArray(sh)) for (const f of Object.keys(sh)) if (!axisFeatures.has(f)) push(`emotion.${e.key}.attrs.shifts`, `"${f}"는 감정이 움직이는 축(쾌·불쾌의 내면 특징)이 아니다 (안정은 생각이 움직인다)`);
+    const th = e.attrs?.['thought'];
+    if (th === undefined) continue;
+    const k = `${String(e.attrs?.['tone'])}/${String(th)}`;
+    if (ruled.has(k)) push(`emotion.${e.key}.attrs.thought`, `같은 심상(${String(e.attrs?.['tone'])})과 생각(${String(th)})에서 오는 감정이 둘이다 (하나여야 같은 상태에서 같은 감정이 난다)`);
+    ruled.add(k);
+  }
+  for (const e of grouped.get('image') ?? []) {
+    const tone = e.attrs?.['tone'];
+    if (tone !== undefined && tone !== 'pleasant' && tone !== 'unpleasant') push(`image.${e.key}.attrs.tone`, 'tone은 pleasant나 unpleasant이거나 없어야 한다 (없으면 감정이 생기지 않는다)');
+  }
+  const images = new Set((grouped.get('image') ?? []).map((x) => x.key));
+  for (const e of grouped.get('response') ?? []) {
+    const on = e.attrs?.['on'];
+    if (!Array.isArray(on) || on.length === 0) push(`response.${e.key}.attrs.on`, '몸의 반응은 붙는 심상(on) 목록이 필요하다');
+    else for (const x of on) if (!images.has(String(x))) push(`response.${e.key}.attrs.on`, `"${String(x)}"는 image 분류에 없는 키다`);
+  }
+  // 메뉴에 필요한 숙련: 내면 특징의 쓸 수 있는 단계여야 한다
+  for (const e of grouped.get('menu') ?? []) {
+    const ns = e.attrs?.['needs_skill'];
+    if (typeof ns !== 'object' || ns === null || Array.isArray(ns) || typeof ns['feature'] !== 'string' || typeof ns['at_least'] !== 'string') continue;
+    const f = grouped.get('feature')?.find((x) => x.key === ns['feature']);
+    if (f === undefined || f.attrs?.['inner'] !== true) push(`menu.${e.key}.attrs.needs_skill.feature`, `"${ns['feature']}"는 내면 특징(inner)이 아니다`);
+    else if (!(featureLevels(ns['feature'])?.includes(ns['at_least']) ?? false)) push(`menu.${e.key}.attrs.needs_skill.at_least`, `"${ns['at_least']}"는 "${ns['feature']}"에서 쓸 수 있는 단계 키가 아니다`);
+  }
   for (const e of grouped.get('feature') ?? []) {
     const r = e.attrs?.['heat_reset'];
     if (r === undefined) continue;

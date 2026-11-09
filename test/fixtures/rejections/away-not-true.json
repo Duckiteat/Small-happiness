@@ -1,0 +1,31 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 집을 비우는지(away)를 false로 적음 (비우지 않으면 쓰지 않는다)",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "시험 가게"
+   },
+   "mobility": "fixed",
+   "offers": {
+    "buy": {
+     "label": "산다",
+     "verb": "shop",
+     "needs": [],
+     "effect": [],
+     "buys": {
+      "sells": [
+       "OBJ000027"
+      ],
+      "on": "OBJ000012"
+     },
+     "minutes": 10,
+     "tuned": false,
+     "away": false
+    }
+   }
+  }
+ ]
+}

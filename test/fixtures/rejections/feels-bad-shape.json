@@ -1,0 +1,26 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 감각에 조건 목록이 없음",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "시험 물건"
+   },
+   "mobility": "portable",
+   "slots": {
+    "body": {
+     "features": [
+      "smell"
+     ]
+    }
+   },
+   "feels": [
+    {
+     "sensation": "soft"
+    }
+   ]
+  }
+ ]
+}

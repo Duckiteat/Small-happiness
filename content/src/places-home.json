@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "places",
-  "why": "주방의 설비 공급 상태(grid): 정전·단수·가스 끊김과, 끊겨도 두 시간 뒤 스스로 돌아오는 규칙. 나머지는 그대로다. 수치는 임시값.",
+  "why": "ⓒ 해석 후 행동 (작가 2026-11-09: 방바닥이 더러우면 요정이 하자고 한다): 주방 바닥의 더러움(눈으로 본다)과 바닥 닦기(집안일)를 둔다. 시간은 임시값.",
   "defs": [
     {
       "id": "PLC000001",
@@ -85,6 +85,11 @@
             "grid_electric",
             "grid_water",
             "grid_gas"
+          ]
+        },
+        "floor": {
+          "features": [
+            "dirt"
           ]
         }
       },
@@ -248,6 +253,22 @@
           "when": [
             "PLC000002|space:odor@>=sour"
           ]
+        },
+        "wipe_floor": {
+          "label": "더러워진 주방 바닥을 닦는다 (집안일)",
+          "verb": "wipe",
+          "needs": [],
+          "when": [
+            "PLC000002|floor:dirt@>=dirty"
+          ],
+          "effect": [
+            "PLC000002|floor:dirt@=clean"
+          ],
+          "minutes": 15,
+          "tuned": false,
+          "during": [
+            "home"
+          ]
         }
       },
       "desc": [
@@ -257,6 +278,43 @@
         "electric",
         "water",
         "gas"
+      ],
+      "feels": [
+        {
+          "sensation": "savory_scent",
+          "when": [
+            "space:odor@=savory"
+          ],
+          "by": "space:smell"
+        },
+        {
+          "sensation": "sour_scent",
+          "when": [
+            "space:odor@=sour"
+          ],
+          "by": "space:smell"
+        },
+        {
+          "sensation": "musty_scent",
+          "when": [
+            "space:odor@=musty"
+          ],
+          "by": "space:smell"
+        },
+        {
+          "sensation": "rotten_scent",
+          "when": [
+            "space:odor@=sulfur"
+          ],
+          "by": "space:smell"
+        },
+        {
+          "sensation": "rotten_scent",
+          "when": [
+            "space:odor@=putrid"
+          ],
+          "by": "space:smell"
+        }
       ]
     },
     {

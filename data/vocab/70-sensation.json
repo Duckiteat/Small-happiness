@@ -1,0 +1,548 @@
+[
+  {
+    "category": "sensation",
+    "entries": [
+      {
+        "key": "rough",
+        "ko": "까끌까끌함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "soft",
+        "ko": "부드러움",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "hard",
+        "ko": "딱딱함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "squishy",
+        "ko": "말랑함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "sticky",
+        "ko": "끈적함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "slippery",
+        "ko": "미끈거림",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "damp_feel",
+        "ko": "축축함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "hot_feel",
+        "ko": "뜨거움",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "warm_feel",
+        "ko": "따뜻함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "lukewarm",
+        "ko": "미지근함",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "cold_feel",
+        "ko": "차가움",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "ticklish",
+        "ko": "간지러움",
+        "attrs": {
+          "sense": "touch"
+        }
+      },
+      {
+        "key": "sweet",
+        "ko": "단맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "sour_taste",
+        "ko": "신맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "salty",
+        "ko": "짠맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "bitter",
+        "ko": "쓴맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "umami",
+        "ko": "감칠맛",
+        "attrs": {
+          "sense": "taste"
+        }
+      },
+      {
+        "key": "sweet_scent",
+        "ko": "단향",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "sour_scent",
+        "ko": "신향",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "sharp_scent",
+        "ko": "시큰한 냄새",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "savory_scent",
+        "ko": "구수한 냄새",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "fishy",
+        "ko": "비린내",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "musty_scent",
+        "ko": "퀴퀴한 냄새",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "rotten_scent",
+        "ko": "썩은 냄새",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "burnt",
+        "ko": "탄내",
+        "attrs": {
+          "sense": "smell"
+        }
+      },
+      {
+        "key": "bubbling",
+        "ko": "보글보글",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "sizzling",
+        "ko": "지글지글",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "gas_hiss",
+        "ko": "가스 불 소리",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "fridge_hum",
+        "ko": "냉장고 웅웅",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "microwave_hum",
+        "ko": "전자레인지 웅 소리",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "water_run",
+        "ko": "물 흐르는 소리",
+        "attrs": {
+          "sense": "hearing"
+        }
+      },
+      {
+        "key": "steaming",
+        "ko": "김이 남",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_moist",
+        "ko": "촉촉해 보임",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_dry",
+        "ko": "말라 보임",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_wilted",
+        "ko": "시들어 보임",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_glossy",
+        "ko": "윤기 남",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      },
+      {
+        "key": "looks_moldy",
+        "ko": "곰팡이가 핀 듯 보임",
+        "attrs": {
+          "sense": "sight",
+          "look": true
+        }
+      }
+    ]
+  },
+  {
+    "category": "reflex",
+    "entries": [
+      {
+        "key": "flinch_hot",
+        "ko": "손을 움찔 뗌",
+        "desc": "뜨거운 것에 닿으면 손이 먼저 떨어진다 (뜨거움을 느끼기만 하면)",
+        "attrs": {
+          "on": "hot_feel",
+          "at_least": 1,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "hold_breath",
+        "ko": "숨을 참음",
+        "desc": "썩은 냄새가 세면 숨을 참는다",
+        "attrs": {
+          "on": "rotten_scent",
+          "at_least": 60,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "wrinkle_nose",
+        "ko": "코를 찡그림",
+        "desc": "시큰한 냄새가 아주 세면 코를 찡그린다",
+        "attrs": {
+          "on": "sharp_scent",
+          "at_least": 100,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "pucker",
+        "ko": "입이 오므라듦",
+        "desc": "신맛에 입이 오므라든다",
+        "attrs": {
+          "on": "sour_taste",
+          "at_least": 1,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "reject_bitter",
+        "ko": "혀가 움츠러듦",
+        "desc": "쓴맛이 세면 혀가 움츠러든다",
+        "attrs": {
+          "on": "bitter",
+          "at_least": 60,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "jerk_tickle",
+        "ko": "움찔함",
+        "desc": "간지러우면 움찔한다",
+        "attrs": {
+          "on": "ticklish",
+          "at_least": 1,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "withdraw_cold",
+        "ko": "손이 움츠러듦",
+        "desc": "아주 차가운 것에 닿으면 손이 움츠러든다",
+        "attrs": {
+          "on": "cold_feel",
+          "at_least": 100,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "salivate_sour",
+        "ko": "신 냄새에 침이 고임",
+        "desc": "신향을 맡으며 신 것을 먹는 일을 겪고 나면, 신향만 맡아도 침이 고인다 (조건반사)",
+        "attrs": {
+          "on": "sour_scent",
+          "at_least": 1,
+          "kind": "conditioned",
+          "pairs_with": "sour_taste",
+          "times": 2,
+          "tuned": false
+        }
+      },
+      {
+        "key": "salivate_savory",
+        "ko": "구수한 냄새에 군침이 돎",
+        "desc": "구수한 냄새를 맡으며 감칠맛을 겪고 나면, 냄새만 맡아도 군침이 돈다 (조건반사)",
+        "attrs": {
+          "on": "savory_scent",
+          "at_least": 1,
+          "kind": "conditioned",
+          "pairs_with": "umami",
+          "times": 3,
+          "tuned": false
+        }
+      }
+    ]
+  },
+  {
+    "category": "image",
+    "entries": [
+      {
+        "key": "warm_savory",
+        "ko": "따뜻한 구수함",
+        "desc": "김이 나는 것을 보며 구수한 냄새를 맡음",
+        "attrs": {
+          "parts": [
+            "steaming",
+            "savory_scent"
+          ],
+          "tone": "pleasant"
+        }
+      },
+      {
+        "key": "warm_sweet",
+        "ko": "따뜻한 단향",
+        "desc": "김이 나는 것을 보며 단향을 맡음",
+        "attrs": {
+          "parts": [
+            "steaming",
+            "sweet_scent"
+          ],
+          "tone": "pleasant"
+        }
+      },
+      {
+        "key": "cold_sour",
+        "ko": "차가운 신향",
+        "desc": "차가운 것을 만지며 신향을 맡음",
+        "attrs": {
+          "parts": [
+            "cold_feel",
+            "sour_scent"
+          ],
+          "tone": "unpleasant"
+        }
+      },
+      {
+        "key": "damp_rot",
+        "ko": "눅눅한 썩은내",
+        "desc": "축축한 것을 만지며 썩은 냄새를 맡음",
+        "attrs": {
+          "parts": [
+            "damp_feel",
+            "rotten_scent"
+          ],
+          "tone": "unpleasant"
+        }
+      },
+      {
+        "key": "boiling_steam",
+        "ko": "끓어오르는 김",
+        "desc": "보글보글 소리와 김이 함께",
+        "attrs": {
+          "parts": [
+            "bubbling",
+            "steaming"
+          ],
+          "tone": "pleasant"
+        }
+      },
+      {
+        "key": "deep_savory",
+        "ko": "깊은 구수함",
+        "desc": "구수한 냄새 속에서 감칠맛을 느낌",
+        "attrs": {
+          "parts": [
+            "umami",
+            "savory_scent"
+          ],
+          "tone": "pleasant"
+        }
+      },
+      {
+        "key": "sharp_sour",
+        "ko": "톡 쏘는 신맛",
+        "desc": "시큰한 냄새 속에서 신맛을 느낌",
+        "attrs": {
+          "parts": [
+            "sour_taste",
+            "sharp_scent"
+          ],
+          "tone": "unpleasant"
+        }
+      }
+    ]
+  },
+  {
+    "category": "response",
+    "entries": [
+      {
+        "key": "face_relaxes",
+        "ko": "표정이 풀림",
+        "desc": "따뜻하고 구수하거나 단 것에 얼굴이 먼저 풀린다",
+        "attrs": {
+          "on": [
+            "warm_savory",
+            "warm_sweet",
+            "deep_savory"
+          ]
+        }
+      },
+      {
+        "key": "shoulders_drop",
+        "ko": "어깨가 내려감",
+        "desc": "몸에 들어갔던 힘이 빠진다",
+        "attrs": {
+          "on": [
+            "warm_savory",
+            "deep_savory"
+          ]
+        }
+      },
+      {
+        "key": "shiver",
+        "ko": "몸이 떨림",
+        "desc": "차가운 신향에 몸이 떨린다",
+        "attrs": {
+          "on": [
+            "cold_sour"
+          ]
+        }
+      },
+      {
+        "key": "goosebumps",
+        "ko": "닭살이 돋음",
+        "desc": "차갑고 시거나 톡 쏘는 것에 닭살이 돋는다",
+        "attrs": {
+          "on": [
+            "cold_sour",
+            "sharp_sour"
+          ]
+        }
+      },
+      {
+        "key": "recoil",
+        "ko": "몸이 움츠러듦",
+        "desc": "눅눅한 썩은내에 몸이 뒤로 빠진다",
+        "attrs": {
+          "on": [
+            "damp_rot"
+          ]
+        }
+      },
+      {
+        "key": "lean_in",
+        "ko": "몸이 그쪽으로 기욺",
+        "desc": "끓어오르는 김 쪽으로 몸이 기운다",
+        "attrs": {
+          "on": [
+            "boiling_steam"
+          ]
+        }
+      },
+      {
+        "key": "squint",
+        "ko": "눈이 찡그려짐",
+        "desc": "톡 쏘는 신맛에 눈이 찡그려진다",
+        "attrs": {
+          "on": [
+            "sharp_sour"
+          ]
+        }
+      }
+    ]
+  }
+]

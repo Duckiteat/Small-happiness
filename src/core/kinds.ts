@@ -5,7 +5,7 @@
 //   - 규칙을 선언한 정의(주인)를 가리키는 패턴은 그 규칙이 돌고 있는 인스턴스 자신에 걸린다.
 // 종류는 여러 단계로 이을 수 있다 (음식 > 유제품 > 우유). 가까운 조상이 먼 조상을 덮어쓴다. 순환은 관문이 막는다.
 
-import type { Db, OfferDef, RuleDef } from './db.ts';
+import type { Db, FeelDef, OfferDef, RuleDef } from './db.ts';
 import type { World } from './world.ts';
 
 /** def의 조상들 (가까운 것부터). 순환이 있어도 끝난다. */
@@ -119,4 +119,20 @@ export function effectiveProgress(db: Db, def: string): { readonly full: FullPro
 export function effectiveInitial(db: Db, def: string): { readonly [slotFeature: string]: string } {
   // 먼 조상부터 가까운 순으로 덮는다
   return Object.assign({}, ...[...ancestors(db, def)].reverse().map((id) => db.defs[id]?.initial ?? {}), db.defs[def]?.initial ?? {}) as { readonly [slotFeature: string]: string };
+}
+
+/** 물려받은 감각 (feels): 뿌리 종류부터 자기까지 차례로 모은다 (같은 감각질·조건은 한 번). */
+export function effectiveFeels(db: Db, def: string): FeelDef[] {
+  const chain = [...ancestors(db, def)].reverse().concat(def);
+  const out: FeelDef[] = [];
+  const seen = new Set<string>();
+  for (const d of chain) {
+    for (const f of db.defs[d]?.feels ?? []) {
+      const k = `${f.sensation}|${f.when.join('&')}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(f);
+    }
+  }
+  return out;
 }

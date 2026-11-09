@@ -1,0 +1,443 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "꺼내면서 본다: 냉장고 안의 물건은 보이지 않아서, 하루씨는 만들 때의 '뜨거움'을 그대로 믿고 식은 찌개를 데우지 않고 먹었다 (시나리오로 확인). 꺼내는 행동이 살피기(reveals)를 겸하게 한다.",
+    "defs": [
+      {
+        "id": "OBJ000029",
+        "names": {
+          "ko": "칼",
+          "en": "knife"
+        },
+        "mobility": "portable",
+        "role": "plain",
+        "slots": {
+          "body": {
+            "features": [
+              "dirt"
+            ]
+          }
+        },
+        "initial": {
+          "body:dirt": "clean"
+        },
+        "desc": [
+          "재료를 써는 칼. 썰면 더러워지고 설거지로 깨끗해진다"
+        ]
+      },
+      {
+        "id": "OBJ000030",
+        "names": {
+          "ko": "도마",
+          "en": "cutting board"
+        },
+        "mobility": "portable",
+        "role": "plain",
+        "slots": {
+          "body": {
+            "features": [
+              "dirt"
+            ]
+          }
+        },
+        "initial": {
+          "body:dirt": "clean"
+        },
+        "desc": [
+          "재료를 써는 도마. 썰면 더러워지고 설거지로 깨끗해진다"
+        ]
+      },
+      {
+        "id": "OBJ000031",
+        "names": {
+          "ko": "냄비",
+          "en": "pot"
+        },
+        "mobility": "portable",
+        "role": "plain",
+        "holds": [
+          "water"
+        ],
+        "slots": {
+          "pot": {
+            "features": [
+              "water",
+              "soup",
+              "filling",
+              "amount"
+            ]
+          },
+          "body": {
+            "features": [
+              "dirt"
+            ]
+          }
+        },
+        "initial": {
+          "pot:water": "none",
+          "pot:soup": "none",
+          "pot:filling": "none",
+          "body:dirt": "clean",
+          "pot:amount": "none"
+        },
+        "rules": {
+          "make_broth": {
+            "label": "멸치를 넣은 물이 불 위에서 10분 끓으면 육수가 된다",
+            "on": [
+              "OBJ000031|pot:soup@=steeping",
+              "OBJ000019|burner:flame@=lit"
+            ],
+            "emits": [
+              "OBJ000031|pot:soup@>=broth"
+            ],
+            "delay_s": 600,
+            "tuned": false,
+            "linked": true
+          },
+          "simmer": {
+            "label": "된장을 풀고 건더기를 다 넣은 국물이 불 위에서 5분 끓으면 찌개가 되고 주방에 구수한 냄새가 난다",
+            "on": [
+              "OBJ000031|pot:soup@=seasoned",
+              "OBJ000031|pot:filling@=scallion",
+              "OBJ000019|burner:flame@=lit"
+            ],
+            "emits": [
+              "OBJ000031|pot:soup@>=stew",
+              "OBJ000031|pot:amount@>=full",
+              "PLC000002|space:smell@>=distinct",
+              "PLC000002|space:odor@>=savory"
+            ],
+            "delay_s": 300,
+            "tuned": false,
+            "linked": true
+          }
+        },
+        "offers": {
+          "pour_water": {
+            "label": "싱크대에 받은 물을 깨끗한 냄비에 붓는다 (된장찌개)",
+            "verb": "fill",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:soup@=none",
+              "OBJ000031|pot:water@=none",
+              "OBJ000031|body:dirt@<=dust",
+              "OBJ000020|basin:water@>=some"
+            ],
+            "effect": [
+              "OBJ000031|pot:water@=full",
+              "OBJ000031|pot:soup@=plain",
+              "OBJ000020|basin:water@=none"
+            ],
+            "minutes": 2,
+            "tuned": false,
+            "during": [
+              "meal"
+            ],
+            "menu": "doenjang_jjigae"
+          },
+          "add_anchovy": {
+            "label": "불 위의 맹물에 국물용 멸치를 넣는다",
+            "verb": "add",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:soup@=plain",
+              "OBJ000019|burner:flame@=lit"
+            ],
+            "effect": [
+              "OBJ000031|pot:soup@=steeping"
+            ],
+            "minutes": 1,
+            "tuned": false,
+            "during": [
+              "meal"
+            ],
+            "uses": [
+              {
+                "key": "OBJ000032|cond:amount",
+                "steps": 1
+              }
+            ],
+            "menu": "doenjang_jjigae"
+          },
+          "add_doenjang": {
+            "label": "육수에 된장을 푼다",
+            "verb": "add",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:soup@=broth"
+            ],
+            "effect": [
+              "OBJ000031|pot:soup@=seasoned"
+            ],
+            "minutes": 2,
+            "tuned": false,
+            "during": [
+              "meal"
+            ],
+            "uses": [
+              {
+                "key": "OBJ000026|cond:amount",
+                "steps": 1
+              }
+            ],
+            "menu": "doenjang_jjigae"
+          },
+          "add_veg": {
+            "label": "썰어 둔 양파와 애호박을 반씩 넣는다",
+            "verb": "add",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:soup@=seasoned",
+              "OBJ000031|pot:filling@=none",
+              "OBJ000027|cond:cut@>=sliced",
+              "OBJ000028|cond:cut@>=sliced"
+            ],
+            "effect": [
+              "OBJ000031|pot:filling@=veg"
+            ],
+            "minutes": 1,
+            "tuned": false,
+            "during": [
+              "meal"
+            ],
+            "uses": [
+              {
+                "key": "OBJ000027|cond:amount",
+                "steps": 2
+              },
+              {
+                "key": "OBJ000028|cond:amount",
+                "steps": 2
+              }
+            ],
+            "menu": "doenjang_jjigae"
+          },
+          "add_tofu": {
+            "label": "깍둑 썬 두부를 반 모 넣는다",
+            "verb": "add",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:filling@=veg",
+              "OBJ000003|cond:cut@>=sliced"
+            ],
+            "effect": [
+              "OBJ000031|pot:filling@=tofu"
+            ],
+            "minutes": 1,
+            "tuned": false,
+            "during": [
+              "meal"
+            ],
+            "uses": [
+              {
+                "key": "OBJ000003|cond:amount",
+                "steps": 2
+              }
+            ],
+            "menu": "doenjang_jjigae"
+          },
+          "add_scallion": {
+            "label": "송송 썬 대파를 조금 넣는다",
+            "verb": "add",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:filling@=tofu",
+              "OBJ000011|cond:cut@>=sliced"
+            ],
+            "effect": [
+              "OBJ000031|pot:filling@=scallion"
+            ],
+            "minutes": 1,
+            "tuned": false,
+            "during": [
+              "meal"
+            ],
+            "uses": [
+              {
+                "key": "OBJ000011|cond:amount",
+                "steps": 1
+              }
+            ],
+            "menu": "doenjang_jjigae"
+          },
+          "eat": {
+            "label": "다 된 찌개를 반쯤 덜어 먹는다. 냄비가 더러워진다",
+            "verb": "eat",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:soup@=stew",
+              "OBJ000019|burner:flame@=out"
+            ],
+            "during": [
+              "meal"
+            ],
+            "menu": "doenjang_jjigae",
+            "effect": [
+              "OBJ000031|body:dirt@>=dirty"
+            ],
+            "minutes": 20,
+            "tuned": false,
+            "uses": [
+              {
+                "key": "OBJ000031|pot:amount",
+                "steps": 2
+              }
+            ]
+          }
+        },
+        "desc": [
+          "국·찌개를 끓이는 냄비. 가스레인지 위에 놓여야 불이 국물을 끓인다 (규칙의 linked)"
+        ]
+      },
+      {
+        "id": "OBJ000033",
+        "names": {
+          "ko": "반찬통",
+          "en": "food container"
+        },
+        "aliases": [
+          "밀폐용기"
+        ],
+        "mobility": "portable",
+        "role": "plain",
+        "slots": {
+          "box": {
+            "features": [
+              "contents"
+            ]
+          }
+        },
+        "initial": {
+          "box:contents": "none"
+        },
+        "offers": {
+          "transfer": {
+            "label": "먹고 남은 찌개를 빈 반찬통에 옮겨 담는다",
+            "verb": "transfer",
+            "needs": [],
+            "when": [
+              "OBJ000031|pot:soup@=stew",
+              "OBJ000031|pot:amount@>=little",
+              "OBJ000019|burner:flame@=out",
+              "OBJ000033|box:contents@=none"
+            ],
+            "during": [
+              "meal"
+            ],
+            "menu": "doenjang_jjigae",
+            "effect": [
+              "OBJ000031|pot:soup@=none",
+              "OBJ000031|pot:filling@=none",
+              "OBJ000031|pot:water@=none",
+              "OBJ000031|pot:amount@=none",
+              "OBJ000033|box:contents@=full"
+            ],
+            "minutes": 2,
+            "tuned": false,
+            "creates": [
+              {
+                "def": "OBJ000034",
+                "in": "OBJ000033"
+              }
+            ]
+          },
+          "store": {
+            "label": "찌개를 담은 반찬통을 냉장고에 넣는다",
+            "verb": "store",
+            "needs": [],
+            "when": [
+              "OBJ000033|box:contents@=full"
+            ],
+            "during": [
+              "meal"
+            ],
+            "menu": "doenjang_jjigae",
+            "effect": [],
+            "minutes": 1,
+            "tuned": false,
+            "places": [
+              {
+                "what": "OBJ000033",
+                "in": "OBJ000021"
+              }
+            ]
+          },
+          "take_out": {
+            "label": "남은 찌개를 담은 반찬통을 냉장고에서 꺼내 전자레인지에 넣는다 (꺼내면서 본다)",
+            "verb": "take_out",
+            "needs": [],
+            "when": [
+              "OBJ000033|box:contents@=full"
+            ],
+            "during": [
+              "meal"
+            ],
+            "menu": "leftover_stew",
+            "effect": [],
+            "minutes": 1,
+            "tuned": false,
+            "where": [
+              {
+                "what": "OBJ000033",
+                "in": "OBJ000021"
+              }
+            ],
+            "places": [
+              {
+                "what": "OBJ000033",
+                "in": "OBJ000016"
+              }
+            ],
+            "reveals": true
+          }
+        },
+        "desc": [
+          "남은 음식을 담아 두는 그릇. 담긴 음식은 그릇 안에 놓인 따로인 개체다"
+        ]
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {},
+  "mapped": [],
+  "report": {
+    "why": "꺼내면서 본다: 냉장고 안의 물건은 보이지 않아서, 하루씨는 만들 때의 '뜨거움'을 그대로 믿고 식은 찌개를 데우지 않고 먹었다 (시나리오로 확인). 꺼내는 행동이 살피기(reveals)를 겸하게 한다.",
+    "scope": {
+      "added": {},
+      "updated": {
+        "object": [
+          {
+            "id": "OBJ000033",
+            "fields": [
+              "names",
+              "aliases",
+              "mobility",
+              "role",
+              "slots",
+              "initial",
+              "offers",
+              "desc"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

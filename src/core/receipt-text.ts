@@ -117,6 +117,37 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
     }
     case 'action_chosen':
       return `${n.thing(s(d['who']))} · ${n.thing(s(d['at']))} ${n.word('action', s(d['verb']))} 고름 (~${when(Number(d['ends']), day)})`;
+    case 'stimulus_perceived':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('sensation', s(d['sensation']))}${typeof d['level'] === 'number' ? ` ${d['level']}/${String(d['scale'])}` : ''} (${d['moment'] === true ? '닿음' : d['on'] !== true ? '그침' : d['was'] !== undefined ? '세기 바뀜' : '느낌'})`;
+    case 'reflex':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('reflex', s(d['reflex']))} (${n.word('sensation', s(d['sensation']))})`;
+    case 'reflex_learned':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('reflex', s(d['reflex']))}`;
+    case 'image_formed':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('image', s(d['image']))} (${d['moment'] === true ? '그 순간' : d['on'] === true ? '생김' : '깨짐'})`;
+    case 'body_response':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('response', s(d['response']))} (${n.word('image', s(d['image']))})`;
+    case 'emotion_formed': {
+      const of = Array.isArray(d['of']) ? d['of'].map((x) => n.thing(s(x))).join('·') : '';
+      const th: Record<string, string> = { new: '처음', familiar: '겪어 봄', recalled: '기억대로', against: '기억과 어긋남' };
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('emotion', s(d['emotion']))} (${n.word('image', s(d['image']))} · ${of === '' ? '무엇인지 모름' : of} · ${th[s(d['thought'])] ?? s(d['thought'])})`;
+    }
+    case 'memory_formed':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.thing(s(d['of']))} → ${n.word('emotion', s(d['emotion']))}${d['replaces'] !== undefined ? ` (${n.word('emotion', s(d['replaces']))}을 덧씌움)` : d['given'] === true ? ' (지난 기억)' : ''}`;
+    case 'options_formed': {
+      const os = Array.isArray(d['options']) ? d['options'] : [];
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${os.map((o) => (typeof o === 'object' && o !== null && !Array.isArray(o) ? `${n.thing(s(o['at']))} ${n.word('action', s(o['verb']))}` : '')).join(' / ')}`;
+    }
+    case 'advice_given':
+      return `요정 → ${n.thing(s(d['who']))} · ${typeKo}: ${n.via(s(d['offer']))}`;
+    case 'advice_ignored':
+      return `${n.thing(s(d['who']))} · ${typeKo} (${d['reason'] === 'overwhelmed' ? '생각이 멈춤' : '지금의 선택지가 아님'})`;
+    case 'thought_surfaced':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.thing(s(d['of']))} (${n.word('image', s(d['image']))}을 겪은 일, 아직 치울 것이 남음)`;
+    case 'overwhelmed':
+      return `${n.thing(s(d['who']))} · ${typeKo}`;
+    case 'menu_planned':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('menu', s(d['menu']))}`;
     case 'action_done':
       return `${n.thing(s(d['who']))} · ${n.thing(s(d['at']))} ${n.word('action', s(d['verb']))} 끝`;
     default:
