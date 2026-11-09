@@ -306,5 +306,9 @@
   "mind-on-object.json": {
     "stage": "gate",
     "match": "정의에 쓸 수 없는 필드: mind"
+  },
+  "senses-unbearable-below-notice.json": {
+    "stage": "gate",
+    "match": "긴박함은 unbearable\\(알아채는 칸 이상"
   }
 }

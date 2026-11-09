@@ -1,0 +1,22 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 알아채는 칸보다 낮은 칸에서 못 참는 냄새 (긴박함은 알아채는 칸 이상)",
+ "defs": [
+  {
+   "id": "CHR+1",
+   "names": {
+    "ko": "시험 사람"
+   },
+   "senses": {
+    "smell": {
+     "notice": 3,
+     "unbearable": 2,
+     "endure_min": 60,
+     "habituate_min": 180,
+     "tuned": false
+    }
+   }
+  }
+ ]
+}

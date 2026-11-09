@@ -34,7 +34,8 @@ import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_M
 import type { LadderState, LadderView } from './ladder.ts';
 import { skillKey } from './skill.ts';
 import { cardChanges } from './outside.ts';
-import { hasCondition, MODE_CHANGED, modeCause, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
+import { enduredTotal, isHabituated, URGENCY_ENDURED, URGENCY_FELT, urgencySense } from './urgency.ts';
+import { conditionFeature, hasCondition, MODE_CHANGED, stepped, modeCause, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 
 export const PERCEPTION_SRC = 'perception';
 export const AWARENESS_UP = 'awareness_up';
@@ -58,6 +59,8 @@ export interface Knowing {
   readonly seq: string;
   /** 심상 사다리로 아는 종류면 그 사다리가 열린 사건 (같은 냄새를 다시 짐작한 것은 새 앎이 아니다) */
   readonly since?: string;
+  /** 못 참는 냄새면 그 시작 사건 (urgency.ts). 행동 층이 쉼을 끊고 냄새 처리를 먼저 한다 */
+  readonly urgent?: string;
 }
 
 /** 인물 인스턴스 → 상태 키 → 앎. */
@@ -78,7 +81,7 @@ export function parseAware(value: BoardValue | undefined): AwareMap {
     for (const [key, k] of Object.entries(m)) {
       if (typeof k !== 'object' || Array.isArray(k)) continue;
       const o = k as { readonly [f: string]: BoardValue };
-      if (typeof o['aw'] === 'string' && typeof o['level'] === 'string' && typeof o['t'] === 'number' && typeof o['seq'] === 'string') inner[key] = { aw: o['aw'], level: o['level'], t: o['t'], seq: o['seq'], ...(typeof o['since'] === 'string' ? { since: o['since'] } : {}) };
+      if (typeof o['aw'] === 'string' && typeof o['level'] === 'string' && typeof o['t'] === 'number' && typeof o['seq'] === 'string') inner[key] = { aw: o['aw'], level: o['level'], t: o['t'], seq: o['seq'], ...(typeof o['since'] === 'string' ? { since: o['since'] } : {}), ...(typeof o['urgent'] === 'string' ? { urgent: o['urgent'] } : {}) };
     }
     out[who] = inner;
   }
@@ -107,6 +110,8 @@ export class Perception {
   readonly #seenDefs = new Map<string, Map<string, string>>(); // 인물 → 본 적 있는 정의 → 처음 안 사건 (아는 개념)
   readonly #modes = new Map<string, { readonly mode: string; readonly seq: string }>(); // 인물 → 지금의 모드와 그 사건
   #lastPresence: string | null = null; // 직전 단계의 상황 (잠에서 깼는지)
+  readonly #urgent = new Map<string, { readonly since: number; readonly seq: string; bumps: number }>(); // `${인물}|${상태 키}` → 못 참는 중
+  readonly #dulled = new Set<string>(); // `${인물}|${상태 키}`: 오래 맡아 둔해진 것 (못 참는 칸 아래로 내려가면 풀린다)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -135,6 +140,7 @@ export class Perception {
       }
     }
     this.#lastPresence = presence;
+    if (!isObserved(this.#vocab, presence)) this.#leave(world, t);
     if (isObserved(this.#vocab, presence)) {
       const revealed = this.#reveals.filter((r) => r.ends <= t);
       this.#reveals.splice(0, this.#reveals.length, ...this.#reveals.filter((r) => r.ends > t));
@@ -192,6 +198,8 @@ export class Perception {
         }
         // 심상 사다리 (ladder.ts): 머무는 곳의 냄새가 무엇인지. 살펴서 안 것까지 본 뒤에 오른다
         this.#climb(world, t, who, [...places].sort(), senseVia);
+        // 긴박함 (urgency.ts): 못 참는 냄새의 시작·참음(긴장)·둔해짐·그침
+        this.#urge(world, t, who, [...places].sort());
         // 모드 (condition.ts): 이 단계의 감정·컨디션·남은 집안일로. 방출하는 모드면 몸이 먼저 방출하고 다시 판정한다
         this.#settle(world, t, who);
       }
@@ -422,6 +430,88 @@ export class Perception {
         if (b !== null && now !== undefined) this.#observe(who, at.kind, NOTICED, b, t, senseVia(at.kind), now.seq, now.since);
       }
     }
+  }
+
+  /**
+   * 못 참는 냄새 (urgency.ts): 머무는 곳 공기의 세기가 그 사람의 못 참는 칸 이상이면 시작(앎에 표시), 참는 동안 긴장을 쌓고,
+   * 오래 맡으면 둔해지고, 세기가 내려가면 그친다. 그치기 전에 그때까지의 참음을 먼저 셈한다.
+   */
+  #urge(world: World, t: number, who: string, places: readonly string[]): void {
+    const def = defOf(who) ?? '';
+    const m = this.#aware.get(who);
+    const tensionF = conditionFeature(this.#vocab, 'tension');
+    const tk = tensionF === undefined ? undefined : world.keysOf(who).find((k) => k.endsWith(`:${tensionF}`));
+    const mark = (key: string, seq: string | undefined): void => {
+      const kn = m?.get(key);
+      if (kn === undefined) return;
+      const { urgent: _drop, ...rest } = kn;
+      m?.set(key, seq === undefined ? rest : { ...rest, urgent: seq });
+    };
+    for (const key of places.flatMap((p) => world.keysOf(p)).sort()) {
+      const k = parseStateKey(key);
+      const s = k === null ? null : urgencySense(this.#db, this.#vocab, def, k.feature);
+      if (s === null) continue;
+      const id = `${who}|${key}`;
+      const idx = world.levelIndex(key) ?? 0;
+      const felt = idx >= s.unbearable;
+      const active = this.#urgent.get(id);
+      const endure = (cause: string, a: { since: number; bumps: number }): void => {
+        const n = enduredTotal(s, a.since, t) - a.bumps;
+        if (n <= 0 || tk === undefined) return;
+        const e = this.#log.append({ t, type: URGENCY_ENDURED, src: PERCEPTION_SRC, cause, data: { who, key, bumps: n } });
+        a.bumps += n;
+        world.set(tk, stepped(this.#vocab, tensionF as string, world.level(tk), n), { t, cause: e.seq });
+      };
+      if (!felt) {
+        this.#dulled.delete(id);
+        if (active === undefined) continue;
+        endure(active.seq, active);
+        this.#log.append({ t, type: URGENCY_FELT, src: PERCEPTION_SRC, cause: world.lastChange(key), data: { who, key, on: false, reason: 'gone' } });
+        this.#urgent.delete(id);
+        mark(key, undefined);
+        continue;
+      }
+      if (this.#dulled.has(id)) continue;
+      if (active === undefined) {
+        const e = this.#log.append({ t, type: URGENCY_FELT, src: PERCEPTION_SRC, cause: world.lastChange(key), data: { who, key, on: true } });
+        this.#urgent.set(id, { since: t, seq: e.seq, bumps: 0 });
+        mark(key, e.seq);
+        continue;
+      }
+      endure(active.seq, active);
+      if (isHabituated(s, active.since, t)) {
+        this.#log.append({ t, type: URGENCY_FELT, src: PERCEPTION_SRC, cause: active.seq, data: { who, key, on: false, reason: 'habituated' } });
+        this.#urgent.delete(id);
+        this.#dulled.add(id);
+        mark(key, undefined);
+      }
+    }
+  }
+
+  /** 집을 나서거나 잠들면 못 참는 냄새는 그친다 (그때까지의 참음을 먼저 셈한다). 둔해진 것도 풀린다. */
+  #leave(world: World, t: number): void {
+    for (const [id, a] of [...this.#urgent].sort(([x], [y]) => x.localeCompare(y))) {
+      const bar = id.indexOf('|');
+      const who = id.slice(0, bar), key = id.slice(bar + 1);
+      const k = parseStateKey(key);
+      const s = k === null ? null : urgencySense(this.#db, this.#vocab, defOf(who) ?? '', k.feature);
+      const tensionF = conditionFeature(this.#vocab, 'tension');
+      const tk = tensionF === undefined ? undefined : world.keysOf(who).find((x) => x.endsWith(`:${tensionF}`));
+      const n = s === null ? 0 : enduredTotal(s, a.since, t) - a.bumps;
+      if (n > 0 && tk !== undefined && tensionF !== undefined) {
+        const e = this.#log.append({ t, type: URGENCY_ENDURED, src: PERCEPTION_SRC, cause: a.seq, data: { who, key, bumps: n } });
+        a.bumps += n;
+        world.set(tk, stepped(this.#vocab, tensionF, world.level(tk), n), { t, cause: e.seq });
+      }
+      this.#log.append({ t, type: URGENCY_FELT, src: PERCEPTION_SRC, cause: a.seq, data: { who, key, on: false, reason: 'away' } });
+      this.#urgent.delete(id);
+      const kn = this.#aware.get(who)?.get(key);
+      if (kn !== undefined) {
+        const { urgent: _drop, ...rest } = kn;
+        this.#aware.get(who)?.set(key, rest);
+      }
+    }
+    this.#dulled.clear();
   }
 
   /**

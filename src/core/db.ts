@@ -201,6 +201,13 @@ export interface SenseDef {
   readonly notice: number;
   /** 이 감각으로 세기를 몇 단계로 구분해 느끼나 (2~5, 신체 능력). 없으면 3 (내면-설계 8장). */
   readonly levels?: number;
+  /**
+   * 긴박함 (urgency.ts, 작가 2026-11-09 "하루라는 사람 세팅"): 이 사다리 칸 이상으로 머무는 곳의 공기를 느끼면 못 참는다.
+   * 참는 동안 endure_min분마다 긴장 +1, habituate_min분 계속 맡으면 둔해진다. 셋이 함께 있다.
+   */
+  readonly unbearable?: number;
+  readonly endure_min?: number;
+  readonly habituate_min?: number;
   readonly tuned: boolean;
 }
 
@@ -549,14 +556,26 @@ function fieldSenses(v: unknown, where: string, push: Push): Record<string, Sens
       ok = false;
       continue;
     }
-    onlyKeys(s, ['notice', 'levels', 'tuned'], at, push);
+    onlyKeys(s, ['notice', 'levels', 'unbearable', 'endure_min', 'habituate_min', 'tuned'], at, push);
+    // 긴박함: 못 참는 칸(알아채는 칸 이상, 5 이하)과 긴장이 쌓이는 분·둔해지는 분(양의 정수, 둔해지는 것이 쌓이는 것보다 늦다)
+    const urg = ['unbearable', 'endure_min', 'habituate_min'].filter((k) => s[k] !== undefined);
+    if (urg.length > 0) {
+      const u = s['unbearable'], en = s['endure_min'], ha = s['habituate_min'];
+      const int = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x);
+      if (urg.length !== 3 || !int(u) || !int(en) || !int(ha) || u < s['notice'] || u > 5 || en < 1 || ha < en) {
+        push(`${at}.unbearable`, '긴박함은 unbearable(알아채는 칸 이상 5 이하) · endure_min(1 이상) · habituate_min(endure_min 이상)을 함께 적는다');
+        ok = false;
+        continue;
+      }
+    }
     const lv = s['levels'];
     if (lv !== undefined && (typeof lv !== 'number' || !Number.isInteger(lv) || lv < 2 || lv > 5)) {
       push(`${at}.levels`, 'levels(세기를 구분하는 단계 수)는 2~5 정수여야 한다');
       ok = false;
       continue;
     }
-    out[key] = { notice: s['notice'], ...(typeof lv === 'number' ? { levels: lv } : {}), tuned: s['tuned'] };
+    const urgent = typeof s['unbearable'] === 'number' && typeof s['endure_min'] === 'number' && typeof s['habituate_min'] === 'number' ? { unbearable: s['unbearable'], endure_min: s['endure_min'], habituate_min: s['habituate_min'] } : {};
+    out[key] = { notice: s['notice'], ...(typeof lv === 'number' ? { levels: lv } : {}), ...urgent, tuned: s['tuned'] };
   }
   return ok ? out : undefined;
 }

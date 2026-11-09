@@ -197,7 +197,9 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       // handles: 이 행동은 그 물건을 손으로 다룬다 (촉각), eats: 먹는다 (미각)
       // tidies: 치우는 일 — 남아 있으면 그 물건의 생각이 미완으로 더 오래 간다 (내면-설계 11장)
       // pastime: 쉼(할 일이 없을 때 스스로 고름), upkeep: 집안일(쉴 거리가 없을 때만 스스로, 요정이 권하는 것) — 내면-설계 12장
-      for (const k of ['handles', 'eats', 'tidies', 'pastime', 'upkeep']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
+      // against_odor: 냄새를 없애려는 행동 (살피기·버리기·환기) — 못 참는 냄새가 나면 먼저 한다 (urgency.ts)
+      for (const k of ['handles', 'eats', 'tidies', 'pastime', 'upkeep', 'against_odor']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
+      if (attrs['against_odor'] === true && attrs['pastime'] === true) push(`${path}.attrs.against_odor`, '쉼은 냄새를 없애는 행동이 아니다');
       if (attrs['pastime'] === true && attrs['upkeep'] === true) push(`${path}.attrs`, '쉼(pastime)이면서 집안일(upkeep)일 수는 없다');
       break;
     }

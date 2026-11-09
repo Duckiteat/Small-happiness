@@ -15,9 +15,10 @@ import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
 import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, isUnfinished, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED, THOUGHT_SURFACED } from './emotion.ts';
 import type { Appraisal, Episode } from './emotion.ts';
 import { actionClass, ADVICE_GIVEN, ADVICE_IGNORED, OPTIONS_FORMED } from './agency.ts';
-import { afterDone, hasCondition, MODE_CHANGED, modeCause, modeDefs, modeMinutes, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
+import { afterDone, conditionFeature, stepped, hasCondition, MODE_CHANGED, modeCause, modeDefs, modeMinutes, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 import type { ModeDef } from './condition.ts';
 import { cardChanges, OUTSIDE_DAY_DONE } from './outside.ts';
+import { ACTION_STOPPED, againstOdor, enduredTotal, isHabituated, URGENCY_ENDURED, URGENCY_FELT, urgencySense } from './urgency.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
 import type { FeltOne } from './sensation.ts';
@@ -286,6 +287,11 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     return modeOf(vocab, who, unfinishedCount(db, vocab, [...instances.keys()], (i) => instances.get(i), (k) => knows.get(`${who}|${k}`)?.level), (k) => keys.has(k), (k) => levelIn(levels, k));
   };
   const modeAt = (who: string): ModeDef | null => modeJudge(who)?.mode ?? null;
+  // 긴박함 (urgency.ts): 못 참는 냄새의 시작·참음·그침을 그때의 세기와 설정으로 다시 센다
+  const urgentA = new Map<string, { since: number; seq: string; bumps: number }>(); // `${인물}|${상태 키}`
+  const dulledA = new Set<string>();
+  const stoppedA = new Set<string>(); // 끝나기 전에 그만둔 행동 (고른 사건)
+  const urgentOf = (who: string): string | undefined => [...urgentA].filter(([id]) => id.startsWith(`${who}|`)).map(([, a]) => a.seq).sort().at(-1);
   const modeReadAt = (who: string): string[] => modeJudge(who)?.read ?? [];
   let pending: Pending | null = null;
   let batch: ReadonlyMap<string, string> | null = null; // 같은 시각 발화들은 직전 값을 읽는다: 첫 발화 직전의 상태
@@ -508,12 +514,17 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (from === to) bad(e.seq, 'state', `${key}의 from과 to가 같다`);
         levels.set(key, to);
         lastSeq.set(key, e.seq);
+        // 둔해진 냄새는 못 참는 칸 아래로 내려가면 풀린다 (urgency.ts)
+        for (const d of [...dulledA].filter((x) => x.endsWith(`|${key}`))) {
+          const us = urgencySense(db, vocab, instances.get(d.slice(0, d.indexOf('|'))) ?? '', k.feature);
+          if (us !== null && ladder(k.feature).indexOf(to) < us.unbearable) dulledA.delete(d);
+        }
         // 이 변화는 무엇이 일으켰나: 처음 상태 · 규칙 발화 · 행동 끝 · 진행. 원인이 없으면 시나리오의 처음 설정뿐이다
         if (e.cause === null) {
           if (options.externalUntil !== undefined && e.t > options.externalUntil) bad(e.seq, 'state', `원인 없는 상태 변화가 처음 설정 시각(${options.externalUntil}분) 뒤에 있다: ${key}`);
         } else {
           const cause = bySeq.get(e.cause);
-          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event', EMOTION_FORMED, WOKE, RELEASED, OUTSIDE_DAY_DONE].includes(cause.type)) {
+          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event', EMOTION_FORMED, WOKE, RELEASED, OUTSIDE_DAY_DONE, URGENCY_ENDURED].includes(cause.type)) {
             bad(e.seq, 'state', `상태 변화의 원인이 ${cause?.type ?? '없는 사건'}이다 (처음 상태 · 발화 · 행동 끝 · 진행 · 외부 사건 · 감정만 상태를 바꾼다)`);
           } else if (!consumed) bad(e.seq, 'effects', `${cause.type}의 정의가 요구하지 않는 결과다: ${key} → ${to}`);
         }
@@ -752,7 +763,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         const modeNowA = modeAt(who);
         const tracked = modesA.get(who);
         if (modeNowA !== null && tracked?.mode !== modeNowA.key) bad(e.seq, 'action', `그때의 컨디션으로는 모드가 ${modeNowA.key}인데 ${tracked?.mode ?? '없음'}로 남아 있다 (모드가 바뀜이 빠졌다)`);
-        if (modeNowA?.allows !== undefined && !modeNowA.allows.includes(cls)) bad(e.seq, 'action', `${modeNowA.key} 모드에서는 ${modeNowA.allows.join('·')}만 고를 수 있는데 ${cls}를 골랐다`);
+        if (modeNowA?.allows !== undefined && !modeNowA.allows.includes(cls) && !(urgentOf(who) !== undefined && againstOdor(vocab, verb))) bad(e.seq, 'action', `${modeNowA.key} 모드에서는 ${modeNowA.allows.join('·')}만 고를 수 있는데 ${cls}를 골랐다`);
         const minutes = modeMinutes(skilledMinutes(vocab, offer.item, (f) => levelIn(levels, skillKey(who, f))), modeNowA ?? undefined, cls);
         if (ends !== e.t + minutes) bad(e.seq, 'action', `끝나는 시각이 ${ends}분인데 행동은 ${minutes}분 걸려 ${e.t + minutes}분이다`);
         const effects: Chosen['effects'][number][] = offer.item.effect.flatMap((text) => {
@@ -851,6 +862,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           bad(e.seq, 'action', '고른 행동이 없는데 끝났다');
           break;
         }
+        if (stoppedA.has(e.cause ?? '')) bad(e.seq, 'action', '그만둔 행동이 끝났다고 적었다');
         if (c.via !== via || c.who !== str(e.data['who']) || c.verb !== str(e.data['verb']) || c.at !== str(e.data['at'])) bad(e.seq, 'action', '고른 행동과 다른 행동이 끝났다');
         if (e.t !== c.ends) bad(e.seq, 'action', `끝나는 시각 ${c.ends}분이 아닌 ${e.t}분에 기록됐다`);
         inspected.add(`${c.who}|${via}`);
@@ -872,6 +884,78 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         carryA.set(c.who, cond.carry);
         expect.push(...cond.changes);
         if (expect.length > 0) pending = { cause: e.seq, what: `${via} 끝`, expect };
+        break;
+      }
+      case URGENCY_FELT: {
+        bump('awareness');
+        const who = str(e.data['who']), key = str(e.data['key']), on = e.data['on'] === true;
+        const k = parseStateKey(key);
+        const s = k === null ? null : urgencySense(db, vocab, instances.get(who) ?? '', k.feature);
+        if (!instances.has(who) || k === null || !k.subject.startsWith('PLC') || s === null) {
+          bad(e.seq, 'awareness', `못 참을 수 있는 냄새가 아니다: ${who} · ${key}`);
+          break;
+        }
+        const id = `${who}|${key}`;
+        const idx = ladder(k.feature).indexOf(levelIn(levels, key));
+        const active = urgentA.get(id);
+        if (on) {
+          if (active !== undefined || dulledA.has(id) || idx < s.unbearable) bad(e.seq, 'awareness', `그때의 세기(${levelIn(levels, key)})로는 못 참기 시작하지 않는다 (이미 못 참거나 둔해졌거나 약하다)`);
+          expectCause(e.seq, 'cause', e.cause, lastChangeOf(key), '못 참는 냄새');
+          urgentA.set(id, { since: e.t, seq: e.seq, bumps: 0 });
+          break;
+        }
+        const reason = str(e.data['reason']);
+        if (active === undefined) {
+          bad(e.seq, 'awareness', '못 참고 있지 않았는데 그쳤다');
+          break;
+        }
+        if (active.bumps !== enduredTotal(s, active.since, e.t)) bad(e.seq, 'awareness', `그칠 때까지 참은 것이 ${enduredTotal(s, active.since, e.t)}번인데 ${active.bumps}번 셌다`);
+        if (reason === 'gone') {
+          if (idx >= s.unbearable) bad(e.seq, 'awareness', '아직 못 참는 세기인데 그쳤다');
+          expectCause(e.seq, 'cause', e.cause, lastChangeOf(key), '못 참는 냄새가 그침');
+        } else if (reason === 'habituated') {
+          if (!isHabituated(s, active.since, e.t)) bad(e.seq, 'awareness', `${s.habituate_min}분이 지나지 않았는데 둔해졌다`);
+          expectCause(e.seq, 'cause', e.cause, active.seq, '둔해짐');
+          dulledA.add(id);
+        } else if (reason === 'away') {
+          // 집을 나서거나 잠듦: 일정이 정한 일이라 가리킬 사건이 없어 시작한 사건을 원인으로 적는다 (그 시각은 다시 보지 않는다, LIM040)
+          expectCause(e.seq, 'cause', e.cause, active.seq, '집을 나서며 그침');
+          for (const d of [...dulledA]) if (d.startsWith(`${who}|`)) dulledA.delete(d);
+        } else bad(e.seq, 'awareness', `그친 이유가 gone · habituated · away가 아니다: ${reason}`);
+        urgentA.delete(id);
+        break;
+      }
+      case URGENCY_ENDURED: {
+        bump('awareness');
+        const who = str(e.data['who']), key = str(e.data['key']);
+        const id = `${who}|${key}`;
+        const active = urgentA.get(id);
+        const k = parseStateKey(key);
+        const s = k === null ? null : urgencySense(db, vocab, instances.get(who) ?? '', k.feature);
+        const n = num(e.data['bumps']);
+        if (active === undefined || s === null || e.cause !== active.seq || n < 1 || active.bumps + n !== enduredTotal(s, active.since, e.t)) {
+          bad(e.seq, 'awareness', `못 참는 냄새 속에서 그때까지 쌓였어야 할 참음과 다르다 (${n}번)`);
+          break;
+        }
+        active.bumps += n;
+        const tf = conditionFeature(vocab, 'tension');
+        const tk = tf === undefined ? undefined : viewA.keysOf(who).find((x) => x.endsWith(`:${tf}`));
+        if (tk !== undefined && tf !== undefined) {
+          const to = stepped(vocab, tf, levelIn(levels, tk), n);
+          if (to !== levelIn(levels, tk)) pending = { cause: e.seq, what: '참음', expect: [{ key: tk, to }] };
+        }
+        break;
+      }
+      case ACTION_STOPPED: {
+        bump('action');
+        const who = str(e.data['who']), stoppedSeq = str(e.data['stopped']);
+        const c = chosen.get(stoppedSeq);
+        const urgent = urgentOf(who);
+        if (c === undefined || c.who !== who || actionClass(vocab, c.verb) !== 'pastime' || e.t >= c.ends || stoppedA.has(stoppedSeq) || urgent === undefined || e.cause !== urgent) {
+          bad(e.seq, 'action', '못 참는 냄새 속에서, 끝나기 전의 쉼만 그만둘 수 있다');
+          break;
+        }
+        stoppedA.add(stoppedSeq);
         break;
       }
       case OUTSIDE_DAY_DONE: {

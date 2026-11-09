@@ -830,7 +830,8 @@
         "desc": "창문을 열어 공기를 바꾼다",
         "attrs": {
           "tidies": true,
-          "upkeep": true
+          "upkeep": true,
+          "against_odor": true
         }
       },
       {
@@ -881,7 +882,10 @@
           "둘러보기",
           "조사"
         ],
-        "desc": "가까이 보고 냄새를 맡아 정체와 위치를 알아낸다. 세계를 바꾸지 않고 앎을 바꾼다"
+        "desc": "가까이 보고 냄새를 맡아 정체와 위치를 알아낸다. 세계를 바꾸지 않고 앎을 바꾼다",
+        "attrs": {
+          "against_odor": true
+        }
       },
       {
         "key": "discard",
@@ -894,7 +898,8 @@
         "attrs": {
           "handles": true,
           "tidies": true,
-          "upkeep": true
+          "upkeep": true,
+          "against_odor": true
         }
       },
       {

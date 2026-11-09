@@ -155,8 +155,12 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       id: '2',
       run: (c) => {
         // 끝난 행동의 효과 요청을 끝난 시각에 기록하고(F1), 그 사이 규칙이 만든 변화는 각자의 시각으로 기록한다
-        pending.push(...parseRecent(c.prev('recent')));
-        for (const a of parseRecent(c.prev('recent'))) if (a.away === true) awayUntil = Math.max(awayUntil, a.ends);
+        // 끝나기 전에 그만둔 행동은 버린다 (urgency.ts: 효과도 끝도 없다)
+        const recentNow = parseRecent(c.prev('recent'));
+        const stops = new Set(recentNow.filter((a) => a.stops === true).map((a) => a.event));
+        pending.splice(0, pending.length, ...pending.filter((a) => !stops.has(a.event)));
+        pending.push(...recentNow.filter((a) => a.stops !== true));
+        for (const a of recentNow) if (a.away === true && a.stops !== true) awayUntil = Math.max(awayUntil, a.ends);
         const due = pending.filter((a) => a.ends <= c.t).sort((a, b) => a.ends - b.ends || a.event.localeCompare(b.event));
         pending.splice(0, pending.length, ...pending.filter((a) => a.ends > c.t));
         const scriptDue = script.filter((x) => x.t <= c.t);
