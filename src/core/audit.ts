@@ -29,7 +29,7 @@ import { allRules, levelMatches } from './causal.ts';
 import type { Rule } from './causal.ts';
 import { defOf } from './ids.ts';
 import { isLinked, rootOf, visibleRoot } from './placement.ts';
-import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, rememberedKinds, strengthKeyOf } from './ladder.ts';
+import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, conceptPool, strengthKeyOf } from './ladder.ts';
 import type { LadderSpec, LadderState, LadderView } from './ladder.ts';
 import { effectiveInitial, effectiveOffers, effectiveProgress, kindMembers } from './kinds.ts';
 import { formatStateKey, parsePattern, parseStateKey } from './statekey.ts';
@@ -248,7 +248,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     level: (k) => levelIn(levels, k),
     whereIs: (i) => rootOf(placeMap, i),
   };
-  const laddersA = new Map<string, { state: LadderState; seq: string }>(); // `${인물}|${장소}|${종류 특징}`
+  const laddersA = new Map<string, { state: LadderState; seq: string }>();
+  const memorySeqA = new Map<string, string>(); // 인물 → 마지막으로 감정이 붙은 기억 사건 // `${인물}|${장소}|${종류 특징}`
   const familiarA = new Map<string, Map<string, number>>(); // 인물 → 좁히거나 정체를 안 종류 → 횟수
   /** 지금 그 장소의 냄새를 느끼는가, 느끼면 사다리가 어디로 가야 하나 (지각 층과 같은 계산). */
   const ladderNow = (who: string, place: string, spec: LadderSpec, at: { kind: string; strength: string }): { felt: boolean; r: ReturnType<typeof climb>; cause: string | null } => {
@@ -263,10 +264,10 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     const discerned = discern(vocab, spec, strengths, scaleOf(db, cdef, spec.sense), Math.max(0, skillIndex));
     const mine = [...knows].filter(([k]) => k.startsWith(`${who}|`)).map(([k, v]) => [k.slice(who.length + 1), v] as const);
     const familiar = familiarA.get(who) ?? new Map<string, number>();
-    const r = climb(vocab, spec, laddersA.get(`${who}|${place}|${spec.feature}`)?.state, { discerned, known: knownKinds(vocab, spec, mine, 'understood'), familiar, remembered: rememberedKinds(db, vocab, spec, [...(memoriesA.get(who)?.keys() ?? [])].sort()) });
+    const r = climb(vocab, spec, laddersA.get(`${who}|${place}|${spec.feature}`)?.state, { discerned, known: knownKinds(vocab, spec, mine, 'understood'), familiar, remembered: new Set(memoriesA.get(who)?.keys() ?? []), concepts: conceptPool(db, vocab, spec), defOf: (i) => instances.get(i) });
     const thing = r?.state.thing;
     const thingSeq = thing === undefined ? undefined : [...knowSeq].find(([k]) => k.startsWith(`${who}|${thing}|`) && k.endsWith(`:${spec.feature}`))?.[1];
-    return { felt: true, r, cause: ladderCause(read, lastChangeOf, [hasSkill ? lastChangeOf(sk) : null, thingSeq]) };
+    return { felt: true, r, cause: ladderCause(read, lastChangeOf, [hasSkill ? lastChangeOf(sk) : null, thingSeq, memorySeqA.get(who)]) };
   };
   let pending: Pending | null = null;
   let batch: ReadonlyMap<string, string> | null = null; // 같은 시각 발화들은 직전 값을 읽는다: 첫 발화 직전의 상태
@@ -340,6 +341,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
       const key = e.type === MEMORY_FORMED ? memoryKey(e.data) : e.type === OVERWHELMED ? String(e.data['on']) : e.type === THOUGHT_SURFACED ? `${str(e.data['of'])}|${str(e.data['image'])}` : '';
       if (head !== undefined && e.type === head.type && key === head.key && e.cause === q.cause) {
         q.items.shift();
+        if (e.type === MEMORY_FORMED) memorySeqA.set(str(e.data['who']), e.seq);
         bump('awareness');
         if (q.items.length === 0) {
           innerQueue = null;
@@ -382,6 +384,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
       const mems = memoriesA.get(str(e.data['who'])) ?? new Map<string, string>();
       memoriesA.set(str(e.data['who']), mems);
       mems.set(str(e.data['of']), str(e.data['emotion']));
+      memorySeqA.set(str(e.data['who']), e.seq);
       continue;
     }
     if (e.type === EMOTION_FORMED || e.type === MEMORY_FORMED || e.type === OVERWHELMED || e.type === THOUGHT_SURFACED) {
@@ -867,9 +870,10 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         const st = ex.r.state;
         const kinds = Array.isArray(e.data['kinds']) ? e.data['kinds'].map(String) : [];
         const causes = Array.isArray(e.data['causes']) ? e.data['causes'].map(String) : [];
+        const concepts = Array.isArray(e.data['concepts']) ? e.data['concepts'].map(String) : [];
         const thing = e.data['thing'] === undefined ? undefined : str(e.data['thing']);
-        if (str(e.data['rung']) !== st.rung || kinds.join(',') !== st.kinds.join(',') || thing !== st.thing || (e.data['fresh'] === true) !== ex.r.fresh || causes.join(',') !== causesOf(vocab, st.kinds).join(',')) {
-          bad(e.seq, 'awareness', `그때의 냄새·앎·감별로는 사다리가 ${st.rung}(${st.kinds.join('·') || '종류 모름'}${st.thing !== undefined ? ` · ${st.thing}` : ''}${ex.r.fresh ? ' · 새 냄새' : ''})이다 (기록: ${str(e.data['rung'])}(${kinds.join('·') || '종류 모름'}${thing !== undefined ? ` · ${thing}` : ''}))`);
+        if (str(e.data['rung']) !== st.rung || kinds.join(',') !== st.kinds.join(',') || thing !== st.thing || (e.data['fresh'] === true) !== ex.r.fresh || causes.join(',') !== causesOf(vocab, st.kinds).join(',') || concepts.join(',') !== st.concepts.join(',')) {
+          bad(e.seq, 'awareness', `그때의 냄새·앎·감별·기억으로는 사다리가 ${st.rung}(${st.kinds.join('·') || '종류 모름'}${st.thing !== undefined ? ` · ${st.thing}` : ''}${ex.r.fresh ? ' · 새 냄새' : ''} · 떠올린 것 ${st.concepts.slice(0, 3).join('·') || '없음'})이다 (기록: ${str(e.data['rung'])}(${kinds.join('·') || '종류 모름'}${thing !== undefined ? ` · ${thing}` : ''} · 떠올린 것 ${concepts.slice(0, 3).join('·') || '없음'}))`);
         }
         expectCause(e.seq, 'cause', e.cause, ex.cause, '사다리');
         const settled = newlySettled(laddersA.get(id)?.state, ex.r.fresh, st);

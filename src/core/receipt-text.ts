@@ -131,7 +131,10 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
       if (d['on'] !== true) return `${n.thing(s(d['who']))} · ${typeKo}: ${where} (닫힘)`;
       const kinds = Array.isArray(d['kinds']) ? d['kinds'].map((x) => n.level(s(d['feature']), s(x))) : [];
       const thing = d['thing'] === undefined ? '' : ` · ${n.thing(s(d['thing']))}`;
-      return `${n.thing(s(d['who']))} · ${typeKo}: ${where} ${n.word('rung', s(d['rung']))}${kinds.length > 0 ? ` (${kinds.join(' / ')})` : ''}${thing}${d['fresh'] === true ? ' · 새 냄새' : ''}`;
+      // 먼저 떠올린 개념 (정체 칸이 아니면 "~인가?"): 물건 정의는 이름, 냄새 원인은 사전의 말
+      const c = Array.isArray(d['concepts']) ? s(d['concepts'][0]) : '';
+      const concept = c === '' || d['thing'] !== undefined ? '' : ` · ${c.startsWith('OBJ') ? n.thing(c) : n.word('odor_cause', c)}인가?`;
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${where} ${n.word('rung', s(d['rung']))}${kinds.length > 0 ? ` (${kinds.join(' / ')})` : ''}${concept}${thing}${d['fresh'] === true ? ' · 새 냄새' : ''}`;
     }
     case 'body_response':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('response', s(d['response']))} (${n.word('image', s(d['image']))})`;

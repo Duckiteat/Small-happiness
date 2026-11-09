@@ -12,10 +12,11 @@
 // 가려 냄 (감별, 숙련): 그 사람의 단계로 느낀 세기가 kind_pct 아래면 종류를 모르고(feel),
 //   clear_pct[감별 칸] 아래면 비슷한 종류(odor_kind의 like)와 헷갈린다. 감별이 오르면 더 옅은 냄새도 가려 낸다.
 // 좁히기 (교집합 + 순서 규칙, 난수 없음): 남은 후보 ∩ 이번에 가려 낸 것. 비면 다른 냄새로 보고 새 사다리를 연다(fresh).
-//   순서: 기억 > 자주 겪음 > 사전의 단계 순(순한 것 먼저). 맨 앞이 하루씨가 믿는 종류다.
-//     기억 = 감정이 붙은 기억(정의 → 감정)의 그 물건이 내던 냄새 종류. 물건의 감각질(feels) 중 이 감각의 것을,
-//     그 감각질을 주는 종류(어느 정의의 feels가 `종류 특징@=종류`일 때 그 감각질을 주는가)로 거꾸로 따라간다.
-//     감정의 결(좋음·싫음)은 따지지 않는다: 그리운 것도 싫은 것도 먼저 떠오른다.
+// 짐작은 개념에서 냄새로 (작가 2026-11-09: "실제 냄새를 떠올리기보단 그 냄새로 매핑된 개념을 먼저 생각해내고 그다음 냄새를 맞춰보는 작업"):
+//   개념 = 냄새가 이어진 것 — 물건 정의(그 물건의 이 감각 감각질을 주는 종류들)와 냄새 원인(사슬의 종류들).
+//   후보 개념 = 남은 종류 중 하나라도 맞는 개념. 순서: 기억(감정이 붙은 기억의 정의) > 자주 겪음(그 개념으로 좁히거나 정체를 안 횟수)
+//     > 맞는 종류가 순한 것 > 물건이 원인보다 먼저 > 번호. 맨 앞의 개념을 먼저 떠올리고, 그 개념의 냄새를 지금 냄새에 대 본다:
+//     맞는 종류가 맨 앞에 오고 그 첫째가 하루씨가 믿는 종류다. 감정의 결(좋음·싫음)은 따지지 않는다.
 // 오인: 맨 앞이 실제와 다르면 하루씨는 그것을 믿고 움직인다 (살피기가 늦어진다). 해는 없고 시간만 든다.
 //
 // 지각 층(perception.ts)과 감사(audit.ts)가 같은 계산을 쓴다. 코드에 물건·냄새 이름은 없다.
@@ -180,11 +181,19 @@ export function discern(vocab: Vocab, spec: LadderSpec, strengths: ReadonlyMap<s
   return [...out].sort((a, b) => order.indexOf(a) - order.indexOf(b));
 }
 
+/** 냄새가 이어진 개념: 물건 정의 번호 또는 냄새 원인 키와 그 개념의 냄새 종류들 (단계 순). */
+export interface Concept {
+  readonly id: string;
+  readonly kinds: readonly string[];
+}
+
 /** 한 사다리의 지금 자리. */
 export interface LadderState {
   readonly rung: string;
-  /** 남은 후보 종류, 믿는 순서 (맨 앞이 하루씨가 믿는 것) */
+  /** 남은 후보 종류, 믿는 순서 (맨 앞이 하루씨가 믿는 것: 먼저 떠올린 개념의 냄새가 맞는 종류) */
   readonly kinds: readonly string[];
+  /** 떠올린 개념, 떠올리는 순서 (정체 칸이면 그 물건의 정의 하나) */
+  readonly concepts: readonly string[];
   /** 정체 칸에서 그 종류라고 아는 물건 */
   readonly thing?: string;
   /** 이 사다리로 이미 좁히거나 정체를 알아 익숙함을 셌는가 */
@@ -196,18 +205,21 @@ export interface LadderInput {
   readonly discerned: readonly string[];
   /** 그 사람이 종류를 아는 물건들: 물건 → 아는 종류 (이해함) */
   readonly known: ReadonlyMap<string, string>;
-  /** 자주 겪은 종류 → 횟수 */
+  /** 자주 겪은 개념 → 횟수 */
   readonly familiar: ReadonlyMap<string, number>;
-  /** 감정이 붙은 기억이 떠올리게 하는 종류 (rememberedKinds). 없으면 기억을 쓰지 않는다 */
-  readonly remembered?: ReadonlySet<string>;
+  /** 감정이 붙은 기억의 정의들 */
+  readonly remembered: ReadonlySet<string>;
+  /** 냄새가 이어진 개념들 (conceptPool) */
+  readonly concepts: readonly Concept[];
+  /** 인스턴스 → 정의 (정체의 개념) */
+  readonly defOf: (instance: string) => string | undefined;
 }
 
 /** 새 자리. 그대로면 null. fresh면 앞의 사다리를 닫고 새로 연 것이다. */
 export function climb(vocab: Vocab, spec: LadderSpec, prev: LadderState | undefined, input: LadderInput): { state: LadderState; fresh: boolean } | null {
   const order = openLadder(vocab, spec.feature);
-  const mem = (k: string): number => (input.remembered?.has(k) === true ? 1 : 0);
-  const sortKinds = (ks: readonly string[]): string[] => [...ks].sort((a, b) => mem(b) - mem(a) || (input.familiar.get(b) ?? 0) - (input.familiar.get(a) ?? 0) || order.indexOf(a) - order.indexOf(b));
-  if (input.discerned.length === 0) return prev === undefined ? { state: { rung: FEEL, kinds: [], settled: false }, fresh: false } : null;
+  const byOrder = (ks: Iterable<string>): string[] => [...ks].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  if (input.discerned.length === 0) return prev === undefined ? { state: { rung: FEEL, kinds: [], concepts: [], settled: false }, fresh: false } : null;
   let base = prev === undefined || prev.kinds.length === 0 ? [...input.discerned] : prev.kinds.filter((k) => input.discerned.includes(k));
   let fresh = false;
   let from = prev;
@@ -216,21 +228,37 @@ export function climb(vocab: Vocab, spec: LadderSpec, prev: LadderState | undefi
     from = undefined;
     base = [...input.discerned];
   }
-  base = sortKinds(base);
-  const things = [...input.known].filter(([, k]) => base.includes(k)).sort(([a, ka], [b, kb]) => base.indexOf(ka) - base.indexOf(kb) || a.localeCompare(b));
+  // 개념을 먼저 떠올린다: 남은 종류가 하나라도 맞는 개념, 기억 > 자주 겪음 > 맞는 종류가 순한 것 > 물건 먼저 > 번호
+  const matched = (c: Concept): string[] => byOrder(c.kinds.filter((k) => base.includes(k)));
+  const mem = (id: string): number => (input.remembered.has(id) ? 1 : 0);
+  const isObject = (id: string): number => (id.startsWith('OBJ') ? 0 : 1);
+  const minOrder = (c: Concept): number => order.indexOf(matched(c)[0] ?? '');
+  const cands = input.concepts
+    .filter((c) => matched(c).length > 0)
+    .sort((a, b) => mem(b.id) - mem(a.id) || (input.familiar.get(b.id) ?? 0) - (input.familiar.get(a.id) ?? 0) || minOrder(a) - minOrder(b) || isObject(a.id) - isObject(b.id) || a.id.localeCompare(b.id));
+  // 그다음 냄새를 대 본다: 맨 앞 개념의 냄새가 맞는 종류가 먼저, 나머지는 단계 순
+  const top = cands[0];
+  const fit = top === undefined ? [] : matched(top);
+  const kinds = [...fit, ...byOrder(base).filter((k) => !fit.includes(k))];
+  const things = [...input.known].filter(([, k]) => kinds.includes(k)).sort(([a, ka], [b, kb]) => kinds.indexOf(ka) - kinds.indexOf(kb) || a.localeCompare(b));
   const first = things[0];
-  const next: Omit<LadderState, 'settled'> = first !== undefined ? { rung: THING, kinds: [first[1]], thing: first[0] } : { rung: base.length === 1 ? NARROW : GUESS, kinds: base };
+  const thingDef = first === undefined ? undefined : input.defOf(first[0]);
+  const next: Omit<LadderState, 'settled'> =
+    first !== undefined
+      ? { rung: THING, kinds: [first[1]], concepts: thingDef === undefined ? [] : [thingDef], thing: first[0] }
+      : { rung: kinds.length === 1 ? NARROW : GUESS, kinds, concepts: cands.map((c) => c.id) };
   if (from !== undefined && rungRank(vocab, next.rung) < rungRank(vocab, from.rung)) return null; // 칸은 내려가지 않는다
   const settled = (from?.settled ?? false) || next.rung === NARROW || next.rung === THING;
   const state: LadderState = { ...next, settled };
-  if (!fresh && from !== undefined && from.rung === state.rung && from.thing === state.thing && from.kinds.join(',') === state.kinds.join(',')) return null;
+  const same = (a: LadderState, b: LadderState): boolean => a.rung === b.rung && a.thing === b.thing && a.kinds.join(',') === b.kinds.join(',') && a.concepts.join(',') === b.concepts.join(',');
+  if (!fresh && from !== undefined && same(from, state)) return null;
   return { state, fresh };
 }
 
-/** 처음으로 좁히거나 정체를 알았으면 그 종류 (익숙함을 하나 더한다). */
+/** 처음으로 좁히거나 정체를 알았으면 그때 맨 앞의 개념 (익숙함을 하나 더한다). */
 export function newlySettled(prev: LadderState | undefined, fresh: boolean, next: LadderState): string | null {
   const was = fresh ? false : (prev?.settled ?? false);
-  return !was && next.settled ? (next.kinds[0] ?? null) : null;
+  return !was && next.settled ? (next.concepts[0] ?? null) : null;
 }
 
 /** 하루씨가 믿는 종류: 짐작 이상이면 맨 앞, 느낌이면 모른다(null). */
@@ -284,15 +312,32 @@ export function kindsBySensation(db: Db, spec: LadderSpec): Map<string, Set<stri
   return out;
 }
 
-/** 감정이 붙은 기억(정의들)이 떠올리게 하는 종류: 그 정의(종류로 물려받은 것 포함)의 이 감각 감각질을 주는 종류들. */
-export function rememberedKinds(db: Db, vocab: Vocab, spec: LadderSpec, memoryDefs: Iterable<string>): Set<string> {
-  const by = kindsBySensation(db, spec);
+/** 그 정의(종류로 물려받은 것 포함)의 이 감각 감각질을 주는 종류들 (단계 순). */
+export function conceptKinds(db: Db, vocab: Vocab, spec: LadderSpec, def: string, by: ReadonlyMap<string, ReadonlySet<string>> = kindsBySensation(db, spec)): string[] {
   const out = new Set<string>();
-  for (const def of memoryDefs) {
-    for (const f of effectiveFeels(db, def)) {
-      if (vocab.entry('sensation', f.sensation)?.attrs['sense'] !== spec.sense) continue;
-      for (const k of by.get(f.sensation) ?? []) out.add(k);
-    }
+  for (const f of effectiveFeels(db, def)) {
+    if (vocab.entry('sensation', f.sensation)?.attrs['sense'] !== spec.sense) continue;
+    for (const k of by.get(f.sensation) ?? []) out.add(k);
   }
-  return out;
+  const order = openLadder(vocab, spec.feature);
+  return [...out].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+}
+
+/**
+ * 냄새가 이어진 개념들: 냄새 감각질이 냄새 종류로 이어지는 물건 정의(번호 순)와, 이 종류 특징으로 냄새가 나는 냄새 원인(키 순).
+ * 개념은 사람이 아는 말이라 장소는 넣지 않는다. 코드에 물건 이름은 없다.
+ */
+export function conceptPool(db: Db, vocab: Vocab, spec: LadderSpec): Concept[] {
+  const by = kindsBySensation(db, spec);
+  const order = openLadder(vocab, spec.feature);
+  const objects = Object.keys(db.defs).sort().filter((d) => d.startsWith('OBJ')).map((id) => ({ id, kinds: conceptKinds(db, vocab, spec, id, by) }));
+  const causes = new Map<string, Set<string>>();
+  for (const st of odorChain(vocab)) {
+    if (st.kindFeature !== spec.feature) continue;
+    const set = causes.get(st.cause) ?? new Set<string>();
+    for (const k of st.kinds) set.add(k);
+    causes.set(st.cause, set);
+  }
+  const fromCauses = [...causes.keys()].sort().map((id) => ({ id, kinds: [...(causes.get(id) ?? [])].sort((a, b) => order.indexOf(a) - order.indexOf(b)) }));
+  return [...objects, ...fromCauses].filter((c) => c.kinds.length > 0);
 }

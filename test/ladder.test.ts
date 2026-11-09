@@ -9,7 +9,7 @@ import { auditLog } from '../src/core/audit.ts';
 import { checkValue } from '../src/core/board.ts';
 import type { BoardValue } from '../src/core/board.ts';
 import type { GameEvent, JsonValue } from '../src/core/events.ts';
-import { discern, ladderSpecs, rememberedKinds } from '../src/core/ladder.ts';
+import { conceptKinds, conceptPool, discern, ladderSpecs } from '../src/core/ladder.ts';
 import { EventLog } from '../src/core/log.ts';
 import { Perception } from '../src/core/perception.ts';
 import { skillKey } from '../src/core/skill.ts';
@@ -146,7 +146,7 @@ test('좁히기: 남은 후보와 새로 가려 낸 것의 교집합. 맞지 않
   assert.equal(belief(h), 'none');
 });
 
-test('자주 겪음: 시큼함으로 좁힌 적이 많으면 다음에 헷갈릴 때 시큼함을 먼저 믿는다 (순한 것보다 앞)', () => {
+test('자주 겪음: 시큼한 것(먼저 떠올린 우유)으로 좁힌 적이 많으면 다음에 헷갈릴 때 그것을 먼저 떠올려 시큼함을 믿는다 (순한 것보다 앞)', () => {
   const h = kitchen();
   let t = 10;
   for (let i = 0; i < 2; i++) {
@@ -162,7 +162,24 @@ test('자주 겪음: 시큼함으로 좁힌 적이 많으면 다음에 헷갈릴
   assert.equal(belief(h), 'sour');
 });
 
-test('기억: 감정이 붙은 기억의 물건이 내던 냄새 종류를 먼저 떠올린다 — 김치를 그리워하면 뚜렷한 시큼함을 구수함보다 먼저 믿고 살핀다', () => {
+const conceptsOf = (e: GameEvent | undefined): string[] => (Array.isArray(e?.data['concepts']) ? e.data['concepts'].map(String) : []);
+
+test('개념을 먼저 떠올리고 냄새를 대 본다: 기억이 없으면 순한 냄새의 물건(남은 치킨)을, 썩는 냄새뿐이면 맞는 물건이 없어 원인(부패)을 떠올린다', () => {
+  const h = kitchen();
+  sourKitchen(h, 'distinct', 10);
+  h.look(10);
+  assert.deepEqual(conceptsOf(ladders(h.log).at(-1)).slice(0, 2), ['OBJ000010', 'OBJ000026'], '구수한 냄새가 맞는 물건이 먼저 (번호 순)');
+  const r = kitchen();
+  r.world.set(`${r.kitchen}|space:smell`, 'foul', { t: 10 });
+  r.world.set(`${r.kitchen}|space:odor`, 'putrid', { t: 10 });
+  r.look(10);
+  const last = ladders(r.log).at(-1);
+  assert.equal(conceptsOf(last)[0], 'decay', '"상한 건가?"');
+  assert.equal(conceptsOf(last).some((c) => c.startsWith('OBJ')), false, '썩는 냄새로 이어진 물건 개념은 없다');
+  assert.deepEqual(auditLog(r.log.list(), db, vocab).findings, []);
+});
+
+test('기억: 감정이 붙은 기억의 물건을 먼저 떠올리고 그 냄새를 대 본다 — 김치를 그리워하면 뚜렷한 시큼함을 구수함보다 먼저 믿고 살핀다', () => {
   const without = kitchen();
   sourKitchen(without, 'distinct', 10);
   assert.deepEqual(without.look(10), [], '기억이 없으면 순한 구수함을 먼저 믿는다 (오인)');
@@ -171,11 +188,18 @@ test('기억: 감정이 붙은 기억의 물건이 내던 냄새 종류를 먼�
   sourKitchen(h, 'distinct', 10);
   assert.deepEqual(h.look(10), ['inspect']);
   assert.deepEqual(ladders(h.log).map(show), ['guess sour,savory'], '헷갈림은 그대로(감별 입문), 순서만 바뀐다');
+  assert.equal(conceptsOf(ladders(h.log).at(-1))[0], 'OBJ000005', '김치인가?');
   assert.equal(belief(h), 'sour');
+  // 기억한 것의 냄새가 지금 냄새와 맞지 않으면 떠올리지 않는다: 계란(냄새 없음)을 그리워해도 순서는 그대로
+  const egg = kitchen();
+  egg.perception.remember(WHO, 'OBJ000004', 'longing', 0);
+  sourKitchen(egg, 'distinct', 10);
+  assert.deepEqual(egg.look(10), []);
+  assert.equal(conceptsOf(ladders(egg.log).at(-1)).includes('OBJ000004'), false);
   assert.deepEqual(auditLog(h.log.list(), db, vocab).findings, []);
 });
 
-test('기억 > 자주 겪음: 구수함으로 여러 번 좁혔어도, 김치의 기억이 있으면 시큼함을 먼저 믿는다', () => {
+test('기억 > 자주 겪음: 구수한 것(남은 치킨)으로 여러 번 좁혔어도, 김치의 기억이 있으면 김치를 먼저 떠올려 시큼함을 믿는다', () => {
   const run = (memory: boolean): string[] => {
     const h = kitchen();
     if (memory) h.perception.remember(WHO, 'OBJ000005', 'longing', 0);
@@ -197,18 +221,22 @@ test('기억 > 자주 겪음: 구수함으로 여러 번 좁혔어도, 김치의
   assert.deepEqual(run(true), ['guess sour,savory'], '기억이 자주 겪음보다 앞선다');
 });
 
-test('기억이 떠올리게 하는 종류는 그 물건의 냄새 감각질을 주는 종류다 (데이터에서 거꾸로 따라감)', () => {
+test('개념의 냄새: 물건은 그 냄새 감각질을 주는 종류(데이터에서 거꾸로 따라감), 원인은 사슬의 종류. 장소는 개념이 아니다', () => {
   const spec = ladderSpecs(vocab).find((x) => x.feature === 'odor');
   assert.ok(spec);
-  const kinds = (defs: string[]): string[] => [...rememberedKinds(db, vocab, spec, defs)].sort();
-  assert.deepEqual(kinds(['OBJ000034']), ['savory'], '된장찌개: 구수한 냄새');
-  assert.deepEqual(kinds(['OBJ000005']), ['sour'], '김치: 신향');
-  assert.deepEqual(kinds(['OBJ000031']), ['savory', 'sour'], '냄비: 구수한 냄새와 (김치를 넣으면) 신향');
-  assert.deepEqual(kinds(['OBJ000006']), [], '사과: 단향을 주는 냄새 종류가 없다');
-  assert.deepEqual(kinds(['OBJ000004']), [], '계란: 냄새 감각질이 없다');
+  const kinds = (def: string): string[] => conceptKinds(db, vocab, spec, def);
+  assert.deepEqual(kinds('OBJ000034'), ['savory'], '된장찌개: 구수한 냄새');
+  assert.deepEqual(kinds('OBJ000005'), ['sour'], '김치: 신향');
+  assert.deepEqual(kinds('OBJ000031'), ['savory', 'sour'], '냄비: 구수한 냄새와 (김치를 넣으면) 신향');
+  assert.deepEqual(kinds('OBJ000006'), [], '사과: 단향을 주는 냄새 종류가 없다');
+  assert.deepEqual(kinds('OBJ000004'), [], '계란: 냄새 감각질이 없다');
+  const pool = conceptPool(db, vocab, spec);
+  assert.ok(pool.some((c) => c.id === 'decay' && c.kinds.includes('putrid')), '부패는 썩는 냄새까지');
+  assert.ok(pool.some((c) => c.id === 'cooking' && c.kinds.join() === 'savory'));
+  assert.equal(pool.some((c) => c.id.startsWith('PLC') || c.id === 'OBJ000006'), false);
 });
 
-test('감사: 기억을 빼고 계산한 순서로 고친 사다리를 잡는다', () => {
+test('감사: 기억을 빼고 계산한 순서·떠올린 개념으로 고친 사다리를 잡는다', () => {
   const h = kitchen();
   h.perception.remember(WHO, 'OBJ000005', 'longing', 0);
   sourKitchen(h, 'distinct', 10);
@@ -218,6 +246,9 @@ test('감사: 기억을 빼고 계산한 순서로 고친 사다리를 잡는다
   assert.ok(guess);
   const forged = events.map((e) => (e.seq === guess.seq ? { ...e, data: { ...e.data, kinds: ['savory', 'sour'] } } : e));
   assert.ok(auditLog(forged, db, vocab).findings.some((f) => f.seq === guess.seq && /sour·savory/.test(f.message)));
+  // 떠올린 개념만 바꿔도 잡는다
+  const swapped = events.map((e) => (e.seq === guess.seq ? { ...e, data: { ...e.data, concepts: ['OBJ000010', ...conceptsOf(e).filter((c) => c !== 'OBJ000010')] } } : e));
+  assert.ok(auditLog(swapped, db, vocab).findings.some((f) => f.seq === guess.seq && /떠올린 것 OBJ000005/.test(f.message)));
 });
 
 test('같은 관찰 같은 칸: 같은 순서로 보면 사다리 기록이 똑같다', () => {
