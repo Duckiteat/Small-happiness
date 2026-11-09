@@ -8,6 +8,7 @@
 // 감각질은 **무엇에서 왔는지 모른 채** 느낀다 (기록에 원천을 적지 않는다). 해석은 그 위의 일이다.
 // 지각 층과 감사가 같은 계산을 쓴다.
 
+import { openLadder } from './amount.ts';
 import { latestSeq } from './events.ts';
 import { levelMatches } from './causal.ts';
 import type { Db } from './db.ts';
@@ -31,6 +32,38 @@ export interface FeltOne {
   readonly keys: readonly string[];
   /** 준 개체 (기록에는 적지 않는다: 무엇에서 왔는지 모른 채 느낀다). 조건이 없는 감각질의 원인을 찾는 데만 쓴다. */
   readonly source: string;
+  /** 느낀 세기: 1 ~ scale (그 감각을 몇 단계로 구분해 느끼는지에 맞춘 칸). */
+  readonly level: number;
+  readonly scale: number;
+}
+
+/** 이 감각으로 세기를 몇 단계로 구분하나 (인물 정의 senses의 levels, 없으면 3 — 임시값, 내면-설계 8장). */
+export function scaleOf(db: Db, characterDef: string, sense: string): number {
+  return db.defs[characterDef]?.senses?.[sense]?.levels ?? DEFAULT_SCALE;
+}
+
+export const DEFAULT_SCALE = 3;
+
+/**
+ * 세기: 세기를 정하는 상태(by)가 그 감각질을 주는 칸들 중 몇 번째로 센지를, 그 사람의 단계 수에 맞춰 올림한다 (1 ~ scale).
+ * 그 감각질을 주는 칸 = by 특징에 걸린 조건(when)에 맞는 열린 칸, 조건이 없으면 0칸(없음)을 뺀 열린 칸.
+ * 예: 차가움(온도 냉장 이하, reverse)은 냉장 < 냉동, 뜨거움(가열 뜨거움 이상)은 뜨거움 < 끓음 < 튀김.
+ * 칸이 거칠면(2단계) 약한 것과 센 것만 가르고, 세밀하면(5단계) 더 나눈다. by가 없으면 가장 센 칸.
+ */
+export function feltLevel(vocab: Vocab, view: StateView, instance: string, by: string | undefined, reverse: boolean, scale: number, when: readonly string[] = []): number {
+  if (by === undefined) return scale;
+  const c = parseLocalCondition(by);
+  if (c === null) return scale;
+  const own = when.flatMap((w) => {
+    const x = parseLocalCondition(w);
+    return x !== null && x.slot === c.slot && x.feature === c.feature ? [x.cond] : [];
+  });
+  const open = openLadder(vocab, c.feature);
+  const rungs = own.length > 0 ? open.filter((k) => own.every((cond) => levelMatches(vocab, c.feature, k, cond))) : open.slice(1);
+  const ordered = reverse ? [...rungs].reverse() : rungs;
+  const pos = ordered.indexOf(view.level(`${instance}|${c.slot}:${c.feature}`));
+  if (ordered.length === 0) return scale;
+  return Math.min(scale, Math.max(1, Math.ceil(((Math.max(0, pos) + 1) * scale) / ordered.length)));
 }
 
 /** 감각이 닿는 길 (사전 sense의 reach). */
@@ -40,7 +73,7 @@ export function reachOf(vocab: Vocab, sense: string): string {
 }
 
 /** 이 개체가 지금 주는 감각질 중, 그 길(reach)로 닿고 느끼는 이가 가진 감각인 것. */
-export function sensationsOf(db: Db, vocab: Vocab, view: StateView, instance: string, reach: string, senses: ReadonlySet<string>): FeltOne[] {
+export function sensationsOf(db: Db, vocab: Vocab, view: StateView, instance: string, reach: string, senses: ReadonlySet<string>, scale: (sense: string) => number = () => DEFAULT_SCALE): FeltOne[] {
   const def = view.defOf(instance);
   if (def === undefined) return [];
   const out: FeltOne[] = [];
@@ -55,15 +88,20 @@ export function sensationsOf(db: Db, vocab: Vocab, view: StateView, instance: st
       keys.push(key);
       return view.has(key) && levelMatches(vocab, c.feature, view.level(key), c.cond);
     });
-    if (ok) out.push({ sensation: f.sensation, sense, keys, source: instance });
+    if (ok) out.push({ sensation: f.sensation, sense, keys, source: instance, level: feltLevel(vocab, view, instance, f.by, f.reverse === true, scale(sense), f.when), scale: scale(sense) });
   }
   return out;
 }
 
-/** 여러 원천이 주는 감각질 (감각질마다 처음 원천의 것). 원천 순서는 부르는 쪽이 정한다 (장소, 그다음 보이는 물건, 각각 번호 순). */
-export function feltFrom(db: Db, vocab: Vocab, view: StateView, sources: readonly string[], reach: string, senses: ReadonlySet<string>): Map<string, FeltOne> {
+/** 여러 원천이 주는 감각질 (감각질마다 가장 센 것, 같으면 먼저 온 원천). 원천 순서는 부르는 쪽이 정한다 (장소, 그다음 보이는 물건, 각각 번호 순). */
+export function feltFrom(db: Db, vocab: Vocab, view: StateView, sources: readonly string[], reach: string, senses: ReadonlySet<string>, scale?: (sense: string) => number): Map<string, FeltOne> {
   const out = new Map<string, FeltOne>();
-  for (const s of sources) for (const f of sensationsOf(db, vocab, view, s, reach, senses)) if (!out.has(f.sensation)) out.set(f.sensation, f);
+  for (const s of sources) {
+    for (const f of sensationsOf(db, vocab, view, s, reach, senses, scale)) {
+      const had = out.get(f.sensation);
+      if (had === undefined || f.level > had.level) out.set(f.sensation, f);
+    }
+  }
   return out;
 }
 

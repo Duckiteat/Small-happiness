@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "objects",
-  "why": "감각 고침: 컴파일러가 종류(음식)의 감각을 개별 음식에 복사해 개별 음식의 감각이 덮였다(두부의 말랑함, 멸치의 까끌까끌함이 사라짐 — 시나리오로 확인). 감각은 실행 중에 종류에서 물려받으므로 복사하지 않고, 개별 감각이 없는 종류는 빈 목록으로 둔다.",
+  "why": "감각의 세기 (작가 2026-11-08): 뜨거움·김은 가열 온도의 칸으로, 차가움은 온도가 낮을수록 세게 느낀다.",
   "defs": [
     {
       "id": "OBJ000001",
@@ -302,26 +302,31 @@
           "sensation": "hot_feel",
           "when": [
             "cond:heat@>=hot"
-          ]
+          ],
+          "by": "cond:heat"
         },
         {
           "sensation": "steaming",
           "when": [
             "cond:heat@>=hot"
-          ]
+          ],
+          "by": "cond:heat"
         },
         {
           "sensation": "warm_feel",
           "when": [
             "cond:heat@=warm"
-          ]
+          ],
+          "by": "cond:heat"
         },
         {
           "sensation": "cold_feel",
           "when": [
             "cond:heat@=none",
             "cond:temp@<=fridge"
-          ]
+          ],
+          "by": "cond:temp",
+          "reverse": true
         }
       ]
     },

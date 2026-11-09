@@ -268,5 +268,113 @@
         }
       }
     ]
+  },
+  {
+    "category": "reflex",
+    "entries": [
+      {
+        "key": "flinch_hot",
+        "ko": "손을 움찔 뗌",
+        "desc": "뜨거운 것에 닿으면 손이 먼저 떨어진다 (뜨거움을 느끼기만 하면)",
+        "attrs": {
+          "on": "hot_feel",
+          "at_least": 1,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "hold_breath",
+        "ko": "숨을 참음",
+        "desc": "썩은 냄새가 세면 숨을 참는다",
+        "attrs": {
+          "on": "rotten_scent",
+          "at_least": 60,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "wrinkle_nose",
+        "ko": "코를 찡그림",
+        "desc": "시큰한 냄새가 아주 세면 코를 찡그린다",
+        "attrs": {
+          "on": "sharp_scent",
+          "at_least": 100,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "pucker",
+        "ko": "입이 오므라듦",
+        "desc": "신맛에 입이 오므라든다",
+        "attrs": {
+          "on": "sour_taste",
+          "at_least": 1,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "reject_bitter",
+        "ko": "혀가 움츠러듦",
+        "desc": "쓴맛이 세면 혀가 움츠러든다",
+        "attrs": {
+          "on": "bitter",
+          "at_least": 60,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "jerk_tickle",
+        "ko": "움찔함",
+        "desc": "간지러우면 움찔한다",
+        "attrs": {
+          "on": "ticklish",
+          "at_least": 1,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "withdraw_cold",
+        "ko": "손이 움츠러듦",
+        "desc": "아주 차가운 것에 닿으면 손이 움츠러든다",
+        "attrs": {
+          "on": "cold_feel",
+          "at_least": 100,
+          "kind": "unconditioned",
+          "tuned": false
+        }
+      },
+      {
+        "key": "salivate_sour",
+        "ko": "신 냄새에 침이 고임",
+        "desc": "신향을 맡으며 신 것을 먹는 일을 겪고 나면, 신향만 맡아도 침이 고인다 (조건반사)",
+        "attrs": {
+          "on": "sour_scent",
+          "at_least": 1,
+          "kind": "conditioned",
+          "pairs_with": "sour_taste",
+          "times": 2,
+          "tuned": false
+        }
+      },
+      {
+        "key": "salivate_savory",
+        "ko": "구수한 냄새에 군침이 돎",
+        "desc": "구수한 냄새를 맡으며 감칠맛을 겪고 나면, 냄새만 맡아도 군침이 돈다 (조건반사)",
+        "attrs": {
+          "on": "savory_scent",
+          "at_least": 1,
+          "kind": "conditioned",
+          "pairs_with": "umami",
+          "times": 3,
+          "tuned": false
+        }
+      }
+    ]
   }
 ]

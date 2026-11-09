@@ -187,6 +187,16 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       for (const k of ['handles', 'eats']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
       break;
     }
+    case 'reflex': {
+      // 반사: on(감각질)을 그 사람의 단계 중 at_least% 이상 세게 느끼면. 조건반사는 pairs_with와 times로 배운다
+      const al = attrs['at_least'];
+      if (!isInt(al) || al < 1 || al > 100) push(`${path}.attrs.at_least`, 'at_least(문턱, 그 사람의 단계 중 %)는 1~100 정수여야 한다');
+      if (attrs['kind'] !== 'unconditioned' && attrs['kind'] !== 'conditioned') push(`${path}.attrs.kind`, 'kind는 unconditioned(무조건반사)나 conditioned(조건반사)여야 한다');
+      if (attrs['kind'] === 'conditioned' && (typeof attrs['pairs_with'] !== 'string' || !isInt(attrs['times']) || (attrs['times'] as number) < 1)) push(`${path}.attrs`, '조건반사는 pairs_with(예고하는 감각질)와 times(짝지어 겪은 횟수, 1 이상)가 필요하다');
+      if (attrs['kind'] === 'unconditioned' && (attrs['pairs_with'] !== undefined || attrs['times'] !== undefined)) push(`${path}.attrs`, '무조건반사는 배우지 않는다 (pairs_with·times를 쓰지 않는다)');
+      if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '문턱·횟수가 조정된 값인지 tuned를 적어야 한다');
+      break;
+    }
     case 'menu': {
       // rank: 구상할 때 먼저 보는 순서 (작을수록 먼저, 남은 음식이 앞선다)
       const r = attrs['rank'];
@@ -259,6 +269,8 @@ const REFS: readonly (readonly [string, string, string])[] = [
   ['spreader', 'feature', 'feature'], // 번짐이 바꾸는 장소의 특징
   ['feature', 'sense', 'sense'], // 이 특징을 어느 감각으로 느끼는가 (5층 지각)
   ['sensation', 'sense', 'sense'], // 감각질을 느끼는 감각
+  ['reflex', 'on', 'sensation'], // 반사가 붙는 감각질
+  ['reflex', 'pairs_with', 'sensation'], // 조건반사가 예고로 배우는 감각질
   ['feature', 'resource', 'resource'], // 이 특징이 담는 설비 자원 (물 양 → 물). 사라지는 길을 관문이 요구한다
   ['odor_kind', 'feature', 'feature'], // 냄새 종류가 들어가는 특징
   ['compound', 'odor', 'odor_kind'], // 이 화합물이 어떤 냄새인가

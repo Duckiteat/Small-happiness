@@ -36,22 +36,27 @@
       "senses": {
         "hearing": {
           "notice": 1,
+          "levels": 3,
           "tuned": false
         },
         "sight": {
           "notice": 1,
+          "levels": 3,
           "tuned": false
         },
         "smell": {
           "notice": 1,
+          "levels": 3,
           "tuned": false
         },
         "taste": {
           "notice": 1,
+          "levels": 3,
           "tuned": false
         },
         "touch": {
           "notice": 1,
+          "levels": 3,
           "tuned": false
         }
       },
@@ -102,26 +107,31 @@
           "sensation": "hot_feel",
           "when": [
             "cond:heat@>=hot"
-          ]
+          ],
+          "by": "cond:heat"
         },
         {
           "sensation": "steaming",
           "when": [
             "cond:heat@>=hot"
-          ]
+          ],
+          "by": "cond:heat"
         },
         {
           "sensation": "warm_feel",
           "when": [
             "cond:heat@=warm"
-          ]
+          ],
+          "by": "cond:heat"
         },
         {
           "sensation": "cold_feel",
           "when": [
             "cond:heat@=none",
             "cond:temp@<=fridge"
-          ]
+          ],
+          "by": "cond:temp",
+          "reverse": true
         }
       ],
       "rules": {
@@ -2607,10 +2617,6 @@
         {
           "sensation": "hard",
           "when": []
-        },
-        {
-          "sensation": "cold_feel",
-          "when": []
         }
       ],
       "initial": {
@@ -3143,12 +3149,6 @@
         {
           "sensation": "hard",
           "when": []
-        },
-        {
-          "sensation": "cold_feel",
-          "when": [
-            "box:contents@=full"
-          ]
         }
       ],
       "offers": {
@@ -3829,31 +3829,36 @@
           "sensation": "savory_scent",
           "when": [
             "space:odor@=savory"
-          ]
+          ],
+          "by": "space:smell"
         },
         {
           "sensation": "sour_scent",
           "when": [
             "space:odor@=sour"
-          ]
+          ],
+          "by": "space:smell"
         },
         {
           "sensation": "musty_scent",
           "when": [
             "space:odor@=musty"
-          ]
+          ],
+          "by": "space:smell"
         },
         {
           "sensation": "rotten_scent",
           "when": [
             "space:odor@=sulfur"
-          ]
+          ],
+          "by": "space:smell"
         },
         {
           "sensation": "rotten_scent",
           "when": [
             "space:odor@=putrid"
-          ]
+          ],
+          "by": "space:smell"
         }
       ],
       "rules": {

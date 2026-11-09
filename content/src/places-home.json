@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "places",
-  "why": "감각 자체 (작가 2026-11-08): 장소의 냄새 종류가 냄새의 감각질을 준다 (구수한 냄새·신향·퀴퀴한 냄새·썩은 냄새). 황 냄새는 썩은 냄새로 느낀다 (기본안).",
+  "why": "감각의 세기 (작가 2026-11-08): 방의 냄새는 냄새 세기(은은함·뚜렷함·지독함)의 칸으로 느낀다.",
   "defs": [
     {
       "id": "PLC000001",
@@ -263,31 +263,36 @@
           "sensation": "savory_scent",
           "when": [
             "space:odor@=savory"
-          ]
+          ],
+          "by": "space:smell"
         },
         {
           "sensation": "sour_scent",
           "when": [
             "space:odor@=sour"
-          ]
+          ],
+          "by": "space:smell"
         },
         {
           "sensation": "musty_scent",
           "when": [
             "space:odor@=musty"
-          ]
+          ],
+          "by": "space:smell"
         },
         {
           "sensation": "rotten_scent",
           "when": [
             "space:odor@=sulfur"
-          ]
+          ],
+          "by": "space:smell"
         },
         {
           "sensation": "rotten_scent",
           "when": [
             "space:odor@=putrid"
-          ]
+          ],
+          "by": "space:smell"
         }
       ]
     },

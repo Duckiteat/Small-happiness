@@ -60,6 +60,9 @@ export interface SlotDef {
 export interface FeelDef {
   readonly sensation: string;
   readonly when: readonly string[];
+  /** 세기를 정하는 자기 상태 (`부위:특징`, 사다리 칸이 높을수록 세다). reverse면 낮을수록 세다 (차가움 ← 온도). 없으면 늘 가장 센 칸. */
+  readonly by?: string;
+  readonly reverse?: boolean;
 }
 
 export interface MeaningDef {
@@ -196,6 +199,8 @@ export interface PassageDef {
 
 export interface SenseDef {
   readonly notice: number;
+  /** 이 감각으로 세기를 몇 단계로 구분해 느끼나 (2~5, 신체 능력). 없으면 3 (내면-설계 8장). */
+  readonly levels?: number;
   readonly tuned: boolean;
 }
 
@@ -512,8 +517,14 @@ function fieldSenses(v: unknown, where: string, push: Push): Record<string, Sens
       ok = false;
       continue;
     }
-    onlyKeys(s, ['notice', 'tuned'], at, push);
-    out[key] = { notice: s['notice'], tuned: s['tuned'] };
+    onlyKeys(s, ['notice', 'levels', 'tuned'], at, push);
+    const lv = s['levels'];
+    if (lv !== undefined && (typeof lv !== 'number' || !Number.isInteger(lv) || lv < 2 || lv > 5)) {
+      push(`${at}.levels`, 'levels(세기를 구분하는 단계 수)는 2~5 정수여야 한다');
+      ok = false;
+      continue;
+    }
+    out[key] = { notice: s['notice'], ...(typeof lv === 'number' ? { levels: lv } : {}), tuned: s['tuned'] };
   }
   return ok ? out : undefined;
 }
@@ -690,9 +701,16 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         break;
       }
       case 'feels': {
-        if (!Array.isArray(value) || !value.every((f) => isObj(f) && typeof f['sensation'] === 'string' && isStrArr(f['when']) && Object.keys(f).every((k) => k === 'sensation' || k === 'when'))) {
-          push(at, 'feels는 { sensation: 감각질 키, when: 소유자 안의 조건 목록 } 목록이어야 한다');
-        } else out.feels = value.map((f) => ({ sensation: String(f['sensation']), when: (f['when'] as string[]).map((w) => w.trim()) }));
+        if (!Array.isArray(value) || !value.every((f) => isObj(f) && typeof f['sensation'] === 'string' && isStrArr(f['when']) && (f['by'] === undefined || typeof f['by'] === 'string') && (f['reverse'] === undefined || f['reverse'] === true) && Object.keys(f).every((k) => ['sensation', 'when', 'by', 'reverse'].includes(k)))) {
+          push(at, 'feels는 { sensation: 감각질 키, when: 소유자 안의 조건 목록, by?: 세기를 정하는 부위:특징, reverse?: true } 목록이어야 한다');
+        } else {
+          out.feels = value.map((f) => ({
+            sensation: String(f['sensation']),
+            when: (f['when'] as string[]).map((w) => w.trim()),
+            ...(typeof f['by'] === 'string' ? { by: f['by'].trim() } : {}),
+            ...(f['reverse'] === true ? { reverse: true } : {}),
+          }));
+        }
         break;
       }
       case 'meanings': {

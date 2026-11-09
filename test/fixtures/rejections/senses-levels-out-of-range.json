@@ -1,0 +1,20 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 세기를 여섯 단계로 구분하는 감각 (2~5만)",
+ "defs": [
+  {
+   "id": "CHR+1",
+   "names": {
+    "ko": "시험 사람"
+   },
+   "senses": {
+    "smell": {
+     "notice": 1,
+     "levels": 6,
+     "tuned": false
+    }
+   }
+  }
+ ]
+}

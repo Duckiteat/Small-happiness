@@ -113,6 +113,11 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     (def.feels ?? []).forEach((f, i) => {
       const at = `${id}.feels[${i}]`;
       if (!vocab.has('sensation', f.sensation)) error(at, `사전에 없는 감각질: ${f.sensation}`);
+      if (f.by !== undefined) {
+        const c = parseLocalCondition(f.by);
+        if (c === null || c.cond !== null) error(at, `세기(by)는 조건 없는 부위:특징이어야 한다: ${f.by}`);
+        else slotCheck(def, c.slot, c.feature, null, vocab, at, error);
+      }
       for (const w of f.when) {
         const c = parseLocalCondition(w);
         if (c === null) error(at, `조건 형식이 아니다: ${w}`);

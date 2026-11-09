@@ -137,3 +137,19 @@ test('감각: 감각마다 닿는 길(reach)이 있어야 하고, 감각질은 �
   assert.match(messages([sense, { category: 'sensation', entries: [{ key: 'x', ko: '엑스', attrs: { sense: 'sight' } }] }]), /sense 분류에 없는 키/);
   assert.match(messages([{ category: 'action', entries: [{ key: 'pat', ko: '두드리기', attrs: { handles: false } }] }]), /handles는 true/);
 });
+
+test('반사: 문턱은 1~100%, 종류는 무조건·조건, 조건반사만 예고 감각과 횟수를 갖고, 붙는 감각질이 사전에 있어야 한다', () => {
+  const base: VocabCategoryRaw[] = [
+    { category: 'sense', entries: [{ key: 'taste', ko: '미각', attrs: { reach: 'mouth' } }] },
+    { category: 'sensation', entries: [{ key: 'sour_taste', ko: '신맛', attrs: { sense: 'taste' } }, { key: 'sweet', ko: '단맛', attrs: { sense: 'taste' } }] },
+  ];
+  const with_ = (attrs: Record<string, string | number | boolean>): string => messages([...base, { category: 'reflex', entries: [{ key: 'r', ko: '반사', attrs }] }]);
+  assert.equal(with_({ on: 'sour_taste', at_least: 1, kind: 'unconditioned', tuned: false }), '');
+  assert.equal(with_({ on: 'sweet', at_least: 1, kind: 'conditioned', pairs_with: 'sour_taste', times: 2, tuned: false }), '');
+  assert.match(with_({ on: 'sour_taste', at_least: 0, kind: 'unconditioned', tuned: false }), /at_least/);
+  assert.match(with_({ on: 'sour_taste', at_least: 10, kind: 'maybe', tuned: false }), /kind는/);
+  assert.match(with_({ on: 'sour_taste', at_least: 10, kind: 'conditioned', tuned: false }), /조건반사는 pairs_with/);
+  assert.match(with_({ on: 'sour_taste', at_least: 10, kind: 'unconditioned', times: 2, tuned: false }), /무조건반사는 배우지 않는다/);
+  assert.match(with_({ on: 'bitter', at_least: 10, kind: 'unconditioned', tuned: false }), /sensation 분류에 없는 키/);
+  assert.match(with_({ on: 'sour_taste', at_least: 10, kind: 'unconditioned' }), /tuned/);
+});

@@ -13,7 +13,8 @@
 //
 // 단순화 (기본안, 위치·번짐 11번 전까지): 물건의 위치가 없어서, 장소를 살피면 집 안의 모든 물건을 본다.
 
-import { actionReaches, feltCause, feltFrom, reachOf, sensesOf, STIMULUS_PERCEIVED, stopCause } from './sensation.ts';
+import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
+import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, STIMULUS_PERCEIVED, stopCause } from './sensation.ts';
 import type { FeltOne, StateView } from './sensation.ts';
 import type { BoardValue } from './board.ts';
 import { formatVia } from './via.ts';
@@ -80,7 +81,9 @@ export class Perception {
   readonly #aware = new Map<string, Map<string, Knowing>>();
   readonly #reveals: { readonly place: string; readonly ends: number; readonly via: string; readonly event: string }[] = [];
   readonly #done = new Map<string, string>();
-  readonly #felt = new Map<string, Map<string, FeltOne>>(); // 인물 → 지금 멀리서 느끼는 감각질 // 고른 행동 사건 → 끝난 사건 (살펴서 안 것의 원인)
+  readonly #felt = new Map<string, Map<string, FeltOne>>(); // 인물 → 지금 멀리서 느끼는 감각질
+  readonly #learned = new Map<string, Set<string>>(); // 인물 → 배운 조건반사
+  readonly #paired = new Map<string, number>(); // `${인물}|${반사}` → 짝지어 겪은 횟수 // 고른 행동 사건 → 끝난 사건 (살펴서 안 것의 원인)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -168,17 +171,49 @@ export class Perception {
     const view = worldView(world);
     const seen = new Set<string>();
     for (const reach of reaches) {
-      for (const f of feltFrom(this.#db, this.#vocab, view, subjects, reach, senses).values()) {
+      for (const f of feltFrom(this.#db, this.#vocab, view, subjects, reach, senses, this.#scale(who)).values()) {
         if (seen.has(f.sensation)) continue;
         seen.add(f.sensation);
-        this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause, data: { who, sensation: f.sensation, sense: f.sense, on: true, moment: true, via } });
+        const e = this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause, data: { who, sensation: f.sensation, sense: f.sense, on: true, moment: true, level: f.level, scale: f.scale, via } });
+        this.#afterFelt(who, t, e.seq, f.sensation, f.level, f.scale, undefined, true);
       }
     }
   }
 
+  /**
+   * 반사 (reflex.ts): 감각을 느낀 바로 뒤. 닿거나 먹은 순간이면 먼저 조건반사를 짝짓고(그 예고 감각을 멀리서 느끼고 있을 때),
+   * 그 감각질에 붙은 반사 중 문턱을 넘은 것(조건반사는 배운 것만)이 일어난다. 원인은 그 감각.
+   */
+  #afterFelt(who: string, t: number, seq: string, sensation: string, level: number, scale: number, was: number | undefined, moment: boolean): void {
+    const learned = this.#learned.get(who) ?? new Set<string>();
+    this.#learned.set(who, learned);
+    if (moment) {
+      const felt = this.#felt.get(who);
+      for (const r of reflexDefs(this.#vocab)) {
+        if (!r.conditioned || r.pairsWith !== sensation || learned.has(r.key) || felt?.has(r.on) !== true) continue;
+        const k = `${who}|${r.key}`;
+        const n = (this.#paired.get(k) ?? 0) + 1;
+        this.#paired.set(k, n);
+        if (n >= (r.times ?? 1)) {
+          learned.add(r.key);
+          this.#log.append({ t, type: REFLEX_LEARNED, src: PERCEPTION_SRC, cause: seq, data: { who, reflex: r.key } });
+        }
+      }
+    }
+    for (const r of reflexDefs(this.#vocab)) {
+      if (r.on !== sensation || (r.conditioned && !learned.has(r.key)) || !triggers(r, level, scale, was)) continue;
+      this.#log.append({ t, type: REFLEX, src: PERCEPTION_SRC, cause: seq, data: { who, reflex: r.key, sensation } });
+    }
+  }
+
+  /** 그 사람이 감각마다 세기를 구분하는 단계 수. */
+  #scale(who: string): (sense: string) => number {
+    return (sense) => scaleOf(this.#db, defOf(who) ?? '', sense);
+  }
+
   #sense(world: World, t: number, who: string, places: readonly string[], here: readonly string[]): void {
     const senses = sensesOf(this.#db, defOf(who) ?? '');
-    const now = feltFrom(this.#db, this.#vocab, worldView(world), [...places, ...here], 'distance', senses);
+    const now = feltFrom(this.#db, this.#vocab, worldView(world), [...places, ...here], 'distance', senses, this.#scale(who));
     const before = this.#felt.get(who) ?? new Map<string, FeltOne>();
     const via = (sense: string): string => formatVia(defOf(who) ?? '', 'sense', sense);
     const lastChange = (k: string): string | null => world.lastChange(k);
@@ -188,9 +223,12 @@ export class Perception {
       const cause = stopCause(this.#db, this.#vocab, [...places, ...here], s, (i) => world.defOfInstance(i), lastChange);
       this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause, data: { who, sensation: s, sense: f.sense, on: false, via: via(f.sense) } });
     }
+    // 새로 느낀 것, 그리고 느끼던 것의 세기가 바뀐 것 (was: 바뀌기 전 세기)
     for (const [s, f] of [...now].sort(([a], [b]) => a.localeCompare(b))) {
-      if (before.has(s)) continue;
-      this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause: feltCause(f, lastChange, born), data: { who, sensation: s, sense: f.sense, on: true, via: via(f.sense) } });
+      const had = before.get(s);
+      if (had !== undefined && had.level === f.level) continue;
+      const e = this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause: feltCause(f, lastChange, born), data: { who, sensation: s, sense: f.sense, on: true, level: f.level, scale: f.scale, ...(had !== undefined ? { was: had.level } : {}), via: via(f.sense) } });
+      this.#afterFelt(who, t, e.seq, s, f.level, f.scale, had?.level, false);
     }
     this.#felt.set(who, now);
   }

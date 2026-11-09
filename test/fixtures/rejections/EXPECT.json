@@ -282,5 +282,13 @@
   "feels-bad-shape.json": {
     "stage": "gate",
     "match": "feels는 \\{ sensation"
+  },
+  "senses-levels-out-of-range.json": {
+    "stage": "gate",
+    "match": "levels\\(세기를 구분하는 단계 수\\)는 2~5"
+  },
+  "feels-by-with-condition.json": {
+    "stage": "gate",
+    "match": "세기\\(by\\)는 조건 없는"
   }
 }

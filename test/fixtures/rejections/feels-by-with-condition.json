@@ -1,0 +1,28 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 세기를 정하는 상태에 조건을 붙임",
+ "defs": [
+  {
+   "id": "OBJ+1",
+   "names": {
+    "ko": "시험 물건"
+   },
+   "mobility": "portable",
+   "slots": {
+    "body": {
+     "features": [
+      "smell"
+     ]
+    }
+   },
+   "feels": [
+    {
+     "sensation": "sour_scent",
+     "when": [],
+     "by": "body:smell@>=faint"
+    }
+   ]
+  }
+ ]
+}

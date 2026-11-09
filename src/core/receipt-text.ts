@@ -118,7 +118,11 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
     case 'action_chosen':
       return `${n.thing(s(d['who']))} · ${n.thing(s(d['at']))} ${n.word('action', s(d['verb']))} 고름 (~${when(Number(d['ends']), day)})`;
     case 'stimulus_perceived':
-      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('sensation', s(d['sensation']))} (${d['moment'] === true ? '닿음' : d['on'] === true ? '느낌' : '그침'})`;
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('sensation', s(d['sensation']))}${typeof d['level'] === 'number' ? ` ${d['level']}/${String(d['scale'])}` : ''} (${d['moment'] === true ? '닿음' : d['on'] !== true ? '그침' : d['was'] !== undefined ? '세기 바뀜' : '느낌'})`;
+    case 'reflex':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('reflex', s(d['reflex']))} (${n.word('sensation', s(d['sensation']))})`;
+    case 'reflex_learned':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('reflex', s(d['reflex']))}`;
     case 'menu_planned':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('menu', s(d['menu']))}`;
     case 'action_done':

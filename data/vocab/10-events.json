@@ -36,6 +36,8 @@
       { "key": "condition_changed", "ko": "컨디션 변화" },
       { "key": "mode_entered", "ko": "모드 진입" },
       { "key": "action_chosen", "ko": "행동 선택", "desc": "인물이 스스로 다음 행동을 고름", "attrs": { "via_kinds": ["offer"] } },
+      { "key": "reflex", "ko": "반사", "desc": "감각 자체에 곧바로 붙는 몸의 반응 (무조건반사·조건반사). 원인은 그 감각" },
+      { "key": "reflex_learned", "ko": "조건반사가 생김", "desc": "어떤 감각이 다른 감각을 예고한다는 것을 몸이 배움. 원인은 마지막으로 짝지어 겪은 감각" },
       { "key": "menu_planned", "ko": "메뉴 구상", "desc": "끼니가 시작되면 인물이 아는 재료(앎)로 만들 수 있는 요리법 중 하나를 고름. 원인은 그 판단에 쓴 가장 최근의 앎" },
       { "key": "outside_day_done", "ko": "밖의 하루 끝", "desc": "직장 블록의 요약 카드가 정해짐" }
     ]
