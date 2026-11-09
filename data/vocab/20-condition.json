@@ -4,7 +4,7 @@
     "entries": [
       { "key": "home", "ko": "집에 있음", "en": "home", "desc": "하루씨가 집에 깨어 있다. 플레이어가 함께 본다. 단계는 행동·장면이 끝날 때마다 돈다", "attrs": { "observed": true } },
       { "key": "meal", "ko": "식사 준비", "en": "meal", "aliases": ["요리 시간"], "desc": "하루씨가 집에서 식사를 준비하는 시간. 집에 있는 것과 같이 본다. 요리하기는 이 시간에만 한다. 이 구간이 시작되면 하루씨가 아는 재료로 메뉴를 구상한다 (요리-설계 10장)", "attrs": { "observed": true, "plans_menu": true } },
-      { "key": "out", "ko": "외출", "en": "out", "aliases": ["출근", "부재"], "desc": "하루씨가 집에 없다. 플레이어도 보지 않는다. 일정한 간격으로 변화를 계산한다", "attrs": { "observed": false } },
+      { "key": "out", "ko": "외출", "en": "out", "aliases": ["출근", "부재"], "desc": "하루씨가 집에 없다. 플레이어도 보지 않는다. 일정한 간격으로 변화를 계산한다. 이 구간이 끝나 귀가하면 밖의 하루 카드를 cards만큼 뽑아 내면에 반영한다 (outside.ts)", "attrs": { "observed": false, "cards": { "min": 1, "max": 2, "tuned": false } } },
       { "key": "asleep", "ko": "잠", "en": "asleep", "aliases": ["수면"], "desc": "하루씨가 자고 있다. 플레이어가 보지 않는 시간으로 친다 (외출과 같은 간격). 깨면 컨디션이 돌아온다 (sleeps)", "attrs": { "observed": false, "sleeps": true } }
     ]
   },

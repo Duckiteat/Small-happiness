@@ -304,7 +304,15 @@
           "next_change": 1440
         },
         "ext": {
-          "cards": []
+          "cards": [
+            {
+              "cards": [
+                "praise"
+              ],
+              "event": "L000011",
+              "who": "CHR000001#1"
+            }
+          ]
         },
         "plan": {
           "blocks": [
@@ -339,7 +347,7 @@
         "scene": {}
       },
       "lines": [
-        "[1일 19:30] 집에 있음 · 장소 2 · 자극 1 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
+        "[1일 19:30] 집에 있음 · 장소 2 · 자극 1 · 외부 카드 1 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=시들함"
       ]
     },
     {
@@ -584,7 +592,7 @@
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
-              "seq": "L000020",
+              "seq": "L000021",
               "t": 1860
             }
           }
@@ -595,7 +603,7 @@
             "at": "PLC000001#1",
             "effects": [],
             "ends": 1865,
-            "event": "L000021",
+            "event": "L000022",
             "reveals": "PLC000001#1",
             "verb": "inspect",
             "via": "PLC000001/offer/inspect",
@@ -696,31 +704,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "spoiled",
-              "seq": "L000023",
+              "seq": "L000024",
               "t": 1865
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "distinct",
-              "seq": "L000024",
+              "seq": "L000025",
               "t": 1865
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
-              "seq": "L000020",
+              "seq": "L000021",
               "t": 1860
             }
           }
@@ -742,7 +750,7 @@
               }
             ],
             "ends": 1870,
-            "event": "L000027",
+            "event": "L000028",
             "verb": "discard",
             "via": "OBJ000001/offer/discard",
             "who": "CHR000001#1"
@@ -822,31 +830,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
-              "seq": "L000020",
+              "seq": "L000021",
               "t": 1860
             }
           }
@@ -915,31 +923,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
-              "seq": "L000020",
+              "seq": "L000021",
               "t": 1860
             }
           }
@@ -1005,31 +1013,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
-              "seq": "L000020",
+              "seq": "L000021",
               "t": 1860
             }
           }
@@ -1095,31 +1103,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
-              "seq": "L000020",
+              "seq": "L000021",
               "t": 1860
             }
           }
@@ -1185,31 +1193,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "faint",
-              "seq": "L000020",
+              "seq": "L000021",
               "t": 1860
             }
           }
@@ -1241,7 +1249,16 @@
         "kit": {},
         "world.stimulus_source": {},
         "ext": {
-          "cards": []
+          "cards": [
+            {
+              "cards": [
+                "long_meetings",
+                "praise"
+              ],
+              "event": "L000038",
+              "who": "CHR000001#1"
+            }
+          ]
         },
         "plan": {
           "blocks": [
@@ -1275,31 +1292,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
-              "seq": "L000037",
+              "seq": "L000039",
               "t": 2610
             }
           }
@@ -1309,7 +1326,7 @@
         "scene": {}
       },
       "lines": [
-        "[2일 19:30] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 0 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=소멸, 음식 냄새=소멸"
+        "[2일 19:30] 집에 있음 · 장소 2 · 자극 0 · 외부 카드 1 · 지각 0 · 최근 행동 0 · 장면 0 | 음식 상함=소멸, 음식 냄새=소멸"
       ]
     },
     {
@@ -1365,31 +1382,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
-              "seq": "L000037",
+              "seq": "L000039",
               "t": 2610
             }
           }
@@ -1455,31 +1472,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
-              "seq": "L000037",
+              "seq": "L000039",
               "t": 2610
             }
           }
@@ -1545,31 +1562,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
-              "seq": "L000037",
+              "seq": "L000039",
               "t": 2610
             }
           }
@@ -1635,31 +1652,31 @@
             "OBJ000001#1|body:rot": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000031",
+              "seq": "L000032",
               "t": 1870
             },
             "OBJ000001#1|body:smell": {
               "aw": "understood",
               "level": "gone",
-              "seq": "L000032",
+              "seq": "L000033",
               "t": 1870
             },
             "OBJ000002#1|sole:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000025",
+              "seq": "L000026",
               "t": 1865
             },
             "OBJ000003#1|surface:dirt": {
               "aw": "understood",
               "level": "clean",
-              "seq": "L000026",
+              "seq": "L000027",
               "t": 1865
             },
             "PLC000001#1|space:smell": {
               "aw": "noticed",
               "level": "none",
-              "seq": "L000037",
+              "seq": "L000039",
               "t": 2610
             }
           }
@@ -1789,6 +1806,21 @@
     },
     {
       "seq": "L000011",
+      "t": 1170,
+      "type": "outside_day_done",
+      "src": "outside",
+      "cause": null,
+      "data": {
+        "who": "CHR000001#1",
+        "from": 510,
+        "to": 1170,
+        "cards": [
+          "praise"
+        ]
+      }
+    },
+    {
+      "seq": "L000012",
       "t": 1440,
       "type": "delay_fired",
       "src": "causal",
@@ -1799,11 +1831,11 @@
       }
     },
     {
-      "seq": "L000012",
+      "seq": "L000013",
       "t": 1440,
       "type": "state_changed",
       "src": "world",
-      "cause": "L000011",
+      "cause": "L000012",
       "data": {
         "key": "OBJ000001#1|body:rot",
         "from": "wilted",
@@ -1811,11 +1843,11 @@
       }
     },
     {
-      "seq": "L000013",
+      "seq": "L000014",
       "t": 1440,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": "L000012",
+      "cause": "L000013",
       "data": {
         "via": "OBJ000001/rule/spoil",
         "at": "OBJ000001#1",
@@ -1823,22 +1855,22 @@
       }
     },
     {
-      "seq": "L000014",
+      "seq": "L000015",
       "t": 1800,
       "type": "delay_fired",
       "src": "causal",
-      "cause": "L000013",
+      "cause": "L000014",
       "data": {
         "via": "OBJ000001/rule/spoil",
         "at": "OBJ000001#1"
       }
     },
     {
-      "seq": "L000015",
+      "seq": "L000016",
       "t": 1800,
       "type": "state_changed",
       "src": "world",
-      "cause": "L000014",
+      "cause": "L000015",
       "data": {
         "key": "OBJ000001#1|body:smell",
         "from": "none",
@@ -1846,11 +1878,11 @@
       }
     },
     {
-      "seq": "L000016",
+      "seq": "L000017",
       "t": 1800,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": "L000015",
+      "cause": "L000016",
       "data": {
         "via": "PLC000001/rule/odor_reach",
         "at": "PLC000001#1",
@@ -1858,22 +1890,22 @@
       }
     },
     {
-      "seq": "L000017",
+      "seq": "L000018",
       "t": 1800,
       "type": "delay_fired",
       "src": "causal",
-      "cause": "L000016",
+      "cause": "L000017",
       "data": {
         "via": "PLC000001/rule/odor_reach",
         "at": "PLC000001#1"
       }
     },
     {
-      "seq": "L000018",
+      "seq": "L000019",
       "t": 1800,
       "type": "state_changed",
       "src": "world",
-      "cause": "L000017",
+      "cause": "L000018",
       "data": {
         "key": "PLC000001#1|space:smell",
         "from": "none",
@@ -1881,11 +1913,11 @@
       }
     },
     {
-      "seq": "L000019",
+      "seq": "L000020",
       "t": 1800,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": "L000018",
+      "cause": "L000019",
       "data": {
         "via": "PLC000001/rule/odor_thicken",
         "at": "PLC000001#1",
@@ -1893,11 +1925,11 @@
       }
     },
     {
-      "seq": "L000020",
+      "seq": "L000021",
       "t": 1860,
       "type": "awareness_up",
       "src": "perception",
-      "cause": "L000018",
+      "cause": "L000019",
       "data": {
         "who": "CHR000001#1",
         "key": "PLC000001#1|space:smell",
@@ -1907,11 +1939,11 @@
       }
     },
     {
-      "seq": "L000021",
+      "seq": "L000022",
       "t": 1860,
       "type": "action_chosen",
       "src": "agency",
-      "cause": "L000020",
+      "cause": "L000021",
       "data": {
         "who": "CHR000001#1",
         "verb": "inspect",
@@ -1921,11 +1953,11 @@
       }
     },
     {
-      "seq": "L000022",
+      "seq": "L000023",
       "t": 1865,
       "type": "action_done",
       "src": "world",
-      "cause": "L000021",
+      "cause": "L000022",
       "data": {
         "who": "CHR000001#1",
         "verb": "inspect",
@@ -1934,11 +1966,11 @@
       }
     },
     {
-      "seq": "L000023",
+      "seq": "L000024",
       "t": 1865,
       "type": "awareness_up",
       "src": "perception",
-      "cause": "L000022",
+      "cause": "L000023",
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000001#1|body:rot",
@@ -1948,11 +1980,11 @@
       }
     },
     {
-      "seq": "L000024",
+      "seq": "L000025",
       "t": 1865,
       "type": "awareness_up",
       "src": "perception",
-      "cause": "L000022",
+      "cause": "L000023",
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000001#1|body:smell",
@@ -1962,11 +1994,11 @@
       }
     },
     {
-      "seq": "L000025",
+      "seq": "L000026",
       "t": 1865,
       "type": "awareness_up",
       "src": "perception",
-      "cause": "L000022",
+      "cause": "L000023",
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000002#1|sole:dirt",
@@ -1976,11 +2008,11 @@
       }
     },
     {
-      "seq": "L000026",
+      "seq": "L000027",
       "t": 1865,
       "type": "awareness_up",
       "src": "perception",
-      "cause": "L000022",
+      "cause": "L000023",
       "data": {
         "who": "CHR000001#1",
         "key": "OBJ000003#1|surface:dirt",
@@ -1990,11 +2022,11 @@
       }
     },
     {
-      "seq": "L000027",
+      "seq": "L000028",
       "t": 1865,
       "type": "action_chosen",
       "src": "agency",
-      "cause": "L000023",
+      "cause": "L000024",
       "data": {
         "who": "CHR000001#1",
         "verb": "discard",
@@ -2004,11 +2036,11 @@
       }
     },
     {
-      "seq": "L000028",
+      "seq": "L000029",
       "t": 1870,
       "type": "action_done",
       "src": "world",
-      "cause": "L000027",
+      "cause": "L000028",
       "data": {
         "who": "CHR000001#1",
         "verb": "discard",
@@ -2017,11 +2049,11 @@
       }
     },
     {
-      "seq": "L000029",
+      "seq": "L000030",
       "t": 1870,
       "type": "state_changed",
       "src": "world",
-      "cause": "L000028",
+      "cause": "L000029",
       "data": {
         "key": "OBJ000001#1|body:rot",
         "from": "spoiled",
@@ -2029,11 +2061,11 @@
       }
     },
     {
-      "seq": "L000030",
+      "seq": "L000031",
       "t": 1870,
       "type": "state_changed",
       "src": "world",
-      "cause": "L000028",
+      "cause": "L000029",
       "data": {
         "key": "OBJ000001#1|body:smell",
         "from": "distinct",
@@ -2041,28 +2073,14 @@
       }
     },
     {
-      "seq": "L000031",
-      "t": 1870,
-      "type": "awareness_changed",
-      "src": "perception",
-      "cause": "L000028",
-      "data": {
-        "who": "CHR000001#1",
-        "key": "OBJ000001#1|body:rot",
-        "to": "understood",
-        "level": "gone",
-        "via": "OBJ000001/offer/discard"
-      }
-    },
-    {
       "seq": "L000032",
       "t": 1870,
       "type": "awareness_changed",
       "src": "perception",
-      "cause": "L000028",
+      "cause": "L000029",
       "data": {
         "who": "CHR000001#1",
-        "key": "OBJ000001#1|body:smell",
+        "key": "OBJ000001#1|body:rot",
         "to": "understood",
         "level": "gone",
         "via": "OBJ000001/offer/discard"
@@ -2071,9 +2089,23 @@
     {
       "seq": "L000033",
       "t": 1870,
+      "type": "awareness_changed",
+      "src": "perception",
+      "cause": "L000029",
+      "data": {
+        "who": "CHR000001#1",
+        "key": "OBJ000001#1|body:smell",
+        "to": "understood",
+        "level": "gone",
+        "via": "OBJ000001/offer/discard"
+      }
+    },
+    {
+      "seq": "L000034",
+      "t": 1870,
       "type": "delay_scheduled",
       "src": "causal",
-      "cause": "L000030",
+      "cause": "L000031",
       "data": {
         "via": "PLC000001/rule/air_out",
         "at": "PLC000001#1",
@@ -2081,33 +2113,33 @@
       }
     },
     {
-      "seq": "L000034",
+      "seq": "L000035",
       "t": 1980,
       "type": "delay_cancelled",
       "src": "causal",
-      "cause": "L000019",
+      "cause": "L000020",
       "data": {
         "via": "PLC000001/rule/odor_thicken",
         "at": "PLC000001#1"
       }
     },
     {
-      "seq": "L000035",
+      "seq": "L000036",
       "t": 2050,
       "type": "delay_fired",
       "src": "causal",
-      "cause": "L000033",
+      "cause": "L000034",
       "data": {
         "via": "PLC000001/rule/air_out",
         "at": "PLC000001#1"
       }
     },
     {
-      "seq": "L000036",
+      "seq": "L000037",
       "t": 2050,
       "type": "state_changed",
       "src": "world",
-      "cause": "L000035",
+      "cause": "L000036",
       "data": {
         "key": "PLC000001#1|space:smell",
         "from": "faint",
@@ -2115,11 +2147,27 @@
       }
     },
     {
-      "seq": "L000037",
+      "seq": "L000038",
+      "t": 2610,
+      "type": "outside_day_done",
+      "src": "outside",
+      "cause": null,
+      "data": {
+        "who": "CHR000001#1",
+        "from": 1950,
+        "to": 2610,
+        "cards": [
+          "long_meetings",
+          "praise"
+        ]
+      }
+    },
+    {
+      "seq": "L000039",
       "t": 2610,
       "type": "awareness_changed",
       "src": "perception",
-      "cause": "L000036",
+      "cause": "L000037",
       "data": {
         "who": "CHR000001#1",
         "key": "PLC000001#1|space:smell",

@@ -136,6 +136,10 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
       const concept = c === '' || d['thing'] !== undefined ? '' : ` · ${c.startsWith('OBJ') ? n.thing(c) : n.word('odor_cause', c)}인가?`;
       return `${n.thing(s(d['who']))} · ${typeKo}: ${where} ${n.word('rung', s(d['rung']))}${kinds.length > 0 ? ` (${kinds.join(' / ')})` : ''}${concept}${thing}${d['fresh'] === true ? ' · 새 냄새' : ''}`;
     }
+    case 'outside_day_done': {
+      const cards = Array.isArray(d['cards']) ? d['cards'].map((x) => n.word('outside_card', s(x))) : [];
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${cards.length > 0 ? cards.join(' · ') : '카드 없음'}`;
+    }
     case 'mode_changed':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${d['from'] !== undefined ? `${n.word('mode', s(d['from']))} → ` : ''}${n.word('mode', s(d['mode']))}`;
     case 'released':

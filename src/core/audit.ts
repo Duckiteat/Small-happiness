@@ -17,6 +17,7 @@ import type { Appraisal, Episode } from './emotion.ts';
 import { actionClass, ADVICE_GIVEN, ADVICE_IGNORED, OPTIONS_FORMED } from './agency.ts';
 import { afterDone, hasCondition, MODE_CHANGED, modeCause, modeDefs, modeMinutes, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 import type { ModeDef } from './condition.ts';
+import { cardChanges, OUTSIDE_DAY_DONE } from './outside.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
 import type { FeltOne } from './sensation.ts';
@@ -512,7 +513,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           if (options.externalUntil !== undefined && e.t > options.externalUntil) bad(e.seq, 'state', `원인 없는 상태 변화가 처음 설정 시각(${options.externalUntil}분) 뒤에 있다: ${key}`);
         } else {
           const cause = bySeq.get(e.cause);
-          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event', EMOTION_FORMED, WOKE, RELEASED].includes(cause.type)) {
+          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event', EMOTION_FORMED, WOKE, RELEASED, OUTSIDE_DAY_DONE].includes(cause.type)) {
             bad(e.seq, 'state', `상태 변화의 원인이 ${cause?.type ?? '없는 사건'}이다 (처음 상태 · 발화 · 행동 끝 · 진행 · 외부 사건 · 감정만 상태를 바꾼다)`);
           } else if (!consumed) bad(e.seq, 'effects', `${cause.type}의 정의가 요구하지 않는 결과다: ${key} → ${to}`);
         }
@@ -871,6 +872,20 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         carryA.set(c.who, cond.carry);
         expect.push(...cond.changes);
         if (expect.length > 0) pending = { cause: e.seq, what: `${via} 끝`, expect };
+        break;
+      }
+      case OUTSIDE_DAY_DONE: {
+        // 밖의 하루: 뽑기는 개입이라 원인이 없다. 카드는 사전에 있고 겹치지 않으며, 그 카드가 그때의 내면으로 남기는 변화가 바로 뒤에 와야 한다
+        bump('state');
+        const who = str(e.data['who']);
+        const cards = Array.isArray(e.data['cards']) ? e.data['cards'].map(String) : [];
+        if (!instances.has(who) || !who.startsWith('CHR') || e.cause !== null || !cards.every((k) => vocab.has('outside_card', k)) || new Set(cards).size !== cards.length) {
+          bad(e.seq, 'state', '밖의 하루는 있는 인물에게, 원인 없이, 사전의 카드를 겹치지 않게 정한다');
+          break;
+        }
+        const keys = viewA.keysOf(who);
+        const changes = cardChanges(vocab, db.defs[instances.get(who) ?? '']?.mind, who, cards, keys, (k) => levelIn(levels, k));
+        if (changes.length > 0) pending = { cause: e.seq, what: '밖의 하루', expect: [...changes] };
         break;
       }
       case WOKE: {

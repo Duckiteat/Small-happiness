@@ -13,6 +13,7 @@ import type { BoardValue } from './board.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
 import { actionClass, Agency, parseRecent } from './agency.ts';
 import { afterDone } from './condition.ts';
+import { cardRange, drawCards, OUTSIDE_DAY_DONE } from './outside.ts';
 import type { RecentAction } from './agency.ts';
 import { applyLevel, Causal, stateMatches } from './causal.ts';
 import { parseAware, Perception } from './perception.ts';
@@ -127,7 +128,7 @@ export interface Engine {
 }
 
 /** 층 아홉 개. world·causal은 2층, perception은 5층, agency는 6층, routine(하루씨의 일정)은 4a층만 쓴다. */
-export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlock[], vocab: Vocab, scripted: readonly ScriptedChange[] = []): Layer[] {
+export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlock[], vocab: Vocab, scripted: readonly ScriptedChange[] = [], outside: readonly OutsideGiven[] = [], start = 0): Layer[] {
   const { world, causal, perception, agency, log } = engine;
   const pending: RecentAction[] = []; // 끝나기를 기다리는 행동의 효과 요청 (2층)
   let awayUntil = -1; // 집을 비우는 행동이 끝나는 시각
@@ -135,6 +136,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
   const practice = new Map<string, number>(); // 숙련 상태 키 → 해 본 횟수 (기록의 행동 끝에서 다시 셀 수 있다)
   const activeCarry = new Map<string, number>(); // 인물 → 에너지를 아직 덜지 않은 활동 분 (condition.ts)
   const script = [...scripted].sort((a, b) => a.t - b.t); // 아직 일어나지 않은 외부 사건 (정전·문 열림 같은, 시나리오가 정한 것)
+  const drawn = new Set<number>(); // 카드를 뽑은 밖의 구간 (시작 분)
   return [
     {
       id: '0',
@@ -252,7 +254,19 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
     {
       id: '4a',
       run: (c) => {
-        c.write('ext', { cards: [] });
+        // 밖의 하루 (outside.ts): 카드를 뽑는 구간이 끝나 귀가하는 단계에 그날의 카드를 정한다 (개입: 시드 난수, 시나리오가 정했으면 그것)
+        const who = world.instances().find((i) => i.startsWith('CHR'));
+        const arrivals: BoardValue[] = [];
+        for (const b of routine) {
+          const range = cardRange(vocab, b.kind);
+          if (range === null || who === undefined || drawn.has(b.from) || b.to > c.t || b.to <= start) continue;
+          drawn.add(b.from);
+          const given = outside.find((o) => o.from === b.from);
+          const cards = given !== undefined ? [...given.cards] : c.rng === null ? [] : drawCards(vocab, range, c.rng);
+          const e = log.append({ t: c.t, type: OUTSIDE_DAY_DONE, src: 'outside', cause: null, data: { who, from: b.from, to: b.to, cards } });
+          arrivals.push({ event: e.seq, who, cards });
+        }
+        c.write('ext', { cards: arrivals });
         c.write('plan', { blocks: routine.map((b) => ({ kind: b.kind, from: b.from, to: b.to })) });
       },
     },
@@ -265,7 +279,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       run: (c) => {
         // 집을 비우는 행동(장보러 나감) 중에는 외출이다: 집을 지각하지 않는다
         const where = awayUntil > c.t ? AWAY : presenceAt(parsePlan(c.read('plan'), vocab), c.t);
-        const r = perception.step(world, c.t, where, c.prev('recent'));
+        const r = perception.step(world, c.t, where, c.prev('recent'), parseArrivals(c.read('ext')));
         const perceived = r.perceived.map((p) => ({ who: p.who, key: p.key, level: p.level }));
         c.write('perceived', perceived);
         c.write('visible_to_player', perceived); // 지금은 하루씨가 느낀 만큼만 보인다 (넓히는 규칙은 미정)
@@ -343,6 +357,25 @@ export interface Scenario {
   readonly memories: readonly { readonly who: string; readonly of: string; readonly emotion: string }[];
   /** 요정의 작은 조언 (내면-설계 12장): 시각 t에 하루씨의 선택지 중 하나(offer 근거 참조, at 개체)를 권한다. 플레이어의 입력 자리다. */
   readonly advice: readonly { readonly t: number; readonly offer: string; readonly at: string }[];
+  /** 밖의 하루 카드를 정해 둠 (outside.ts): 시작 분 from인 밖의 구간이 끝나면 뽑지 않고 이 카드들을 쓴다 (시험·연출용). */
+  readonly outside: readonly OutsideGiven[];
+}
+
+export interface OutsideGiven {
+  readonly from: number;
+  readonly cards: readonly string[];
+}
+
+/** 판의 ext에서 이 단계에 귀가하며 정해진 카드들을 읽는다. */
+export function parseArrivals(value: BoardValue | undefined): { event: string; who: string; cards: string[] }[] {
+  const cards = typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as { readonly [k: string]: BoardValue })['cards'] : undefined;
+  if (!Array.isArray(cards)) return [];
+  return cards.flatMap((x) => {
+    if (typeof x !== 'object' || x === null || Array.isArray(x)) return [];
+    const o = x as { readonly [k: string]: BoardValue };
+    const cs = o['cards'];
+    return typeof o['event'] === 'string' && typeof o['who'] === 'string' && Array.isArray(cs) ? [{ event: o['event'], who: o['who'], cards: cs.map(String) }] : [];
+  });
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
@@ -352,7 +385,7 @@ function isObj(v: unknown): v is Record<string, unknown> {
 /** 시나리오 파일을 해석한다. 모양이 틀리면 던진다. */
 export function parseScenario(raw: unknown): Scenario {
   if (!isObj(raw)) throw new TypeError('시나리오는 객체여야 한다');
-  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain, scripted, memories, advice } = raw;
+  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain, scripted, memories, advice, outside } = raw;
   if (typeof why !== 'string' || why.trim() === '') throw new TypeError('why(이 시나리오를 두는 이유)가 필요하다');
   if (use_db !== undefined && typeof use_db !== 'boolean') throw new TypeError('use_db는 true/false여야 한다');
   const fromDb = use_db === true;
@@ -392,7 +425,11 @@ export function parseScenario(raw: unknown): Scenario {
   if (advice !== undefined && (!Array.isArray(advice) || !advice.every((x) => isObj(x) && typeof x['t'] === 'number' && Number.isInteger(x['t']) && typeof x['offer'] === 'string' && typeof x['at'] === 'string'))) {
     throw new TypeError('advice는 { t(분), offer(근거 참조), at(개체) } 목록이어야 한다');
   }
+  if (outside !== undefined && (!Array.isArray(outside) || !outside.every((x) => isObj(x) && typeof x['from'] === 'number' && Array.isArray(x['cards']) && x['cards'].every((c) => typeof c === 'string')))) {
+    throw new TypeError('outside는 { from(밖의 구간 시작 분), cards(카드 키 목록) } 목록이어야 한다');
+  }
   return {
+    outside: ((outside as { from: number; cards: string[] }[] | undefined) ?? []).map((x) => ({ from: x.from, cards: [...x.cards] })),
     advice: ((advice as { t: number; offer: string; at: string }[] | undefined) ?? []).map((x) => ({ t: x.t, offer: x.offer, at: x.at })),
     memories: ((memories as { who: string; of: string; emotion: string }[] | undefined) ?? []).map((x) => ({ who: x.who, of: x.of, emotion: x.emotion })),
     scripted: scriptedChanges,
@@ -434,7 +471,7 @@ export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: 
     log,
   };
   const routine = parsePlan(scenario.routine, vocab);
-  const layers = skeletonLayers(db, engine, routine, vocab, scenario.scripted);
+  const layers = skeletonLayers(db, engine, routine, vocab, scenario.scripted, scenario.outside, scenario.start);
   const results = runDay(layers, scenario.start, scenario.end, Rng.fromSeed(scenario.seed), vocab, stepMin);
   return {
     steps: results.map((r) => ({ ...r.board.snapshot(), lines: r.lines })),

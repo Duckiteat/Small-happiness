@@ -172,6 +172,14 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       // sleeps: 자는 시간 — 끝나면 컨디션이 돌아온다 (condition.ts). 보지 않는 시간이어야 한다
       if (attrs['sleeps'] !== undefined && attrs['sleeps'] !== true) push(`${path}.attrs.sleeps`, 'sleeps는 true이거나 없어야 한다');
       if (attrs['sleeps'] === true && attrs['observed'] !== false) push(`${path}.attrs.sleeps`, '자는 시간은 플레이어가 보지 않는 시간이다 (observed: false)');
+      // cards: 이 구간이 끝나 귀가하면 밖의 하루 카드를 min~max장 뽑는다 (outside.ts). 보지 않는 시간이어야 한다
+      const cards = attrs['cards'];
+      if (cards !== undefined) {
+        if (typeof cards !== 'object' || cards === null || Array.isArray(cards) || !isInt(cards['min']) || !isInt(cards['max']) || (cards['min'] as number) < 1 || (cards['max'] as number) < (cards['min'] as number) || typeof cards['tuned'] !== 'boolean') {
+          push(`${path}.attrs.cards`, 'cards는 { min, max, tuned } (1 ≤ min ≤ max 정수)여야 한다');
+        }
+        if (attrs['observed'] !== false) push(`${path}.attrs.cards`, '밖의 하루 카드는 플레이어가 보지 않는 구간에서만 뽑는다 (observed: false)');
+      }
       break;
     }
     case 'sense': {
@@ -235,6 +243,14 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
         if (!Array.isArray(like) || !like.every((x) => typeof x === 'string') || like.includes(entry.key)) push(`${path}.attrs.like`, 'like는 자기가 아닌 냄새 종류 키의 목록이어야 한다');
         if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '헷갈리는 종류(like)가 조정된 값인지 tuned를 적어야 한다');
       }
+      break;
+    }
+    case 'outside_card': {
+      // 밖의 하루 카드 (outside.ts): tone(좋음·싫음·그저 그럼, 싫으면 여유로 버티거나 긴장으로 쌓인다), shifts(내면 특징 → 칸 수)
+      if (!['pleasant', 'unpleasant', 'neutral'].includes(String(attrs['tone']))) push(`${path}.attrs.tone`, 'tone은 pleasant · unpleasant · neutral 중 하나여야 한다');
+      const sh = attrs['shifts'];
+      if (typeof sh !== 'object' || sh === null || Array.isArray(sh) || !Object.values(sh).every((x) => isInt(x) && x !== 0 && Math.abs(x) <= 2)) push(`${path}.attrs.shifts`, 'shifts는 { 내면 특징: 움직이는 칸 수(±1~2) } 객체여야 한다 (비어 있어도 된다)');
+      if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '카드의 효과가 조정된 값인지 tuned를 적어야 한다');
       break;
     }
     case 'rung': {
@@ -379,6 +395,11 @@ function checkCondition(grouped: Map<string, VocabEntryRaw[]>, keysByCategory: M
     if (a['releases'] === true && (a['allows'] !== undefined || a['first'] !== undefined)) push(`${path}.releases`, '방출하는 모드는 행동을 고르기 전에 몸이 먼저 방출한다 (allows·first를 쓰지 않는다)');
   }
   if (defaults !== 1) push('mode', `조건 없는 기본 모드(when_any 없음)는 하나여야 한다 (지금 ${defaults}개)`);
+  for (const c of grouped.get('outside_card') ?? []) {
+    const sh = c.attrs?.['shifts'];
+    if (typeof sh !== 'object' || sh === null || Array.isArray(sh)) continue;
+    for (const f of Object.keys(sh)) if (features.find((x) => x.key === f)?.attrs?.['inner'] !== true) push(`outside_card.${c.key}.attrs.shifts`, `"${f}"는 내면 특징이 아니다 (밖의 하루는 내면으로만 들어온다)`);
+  }
 }
 
 /** 심상 사다리 (ladder.ts): 사다리를 타는 종류 특징의 ladder 설정과 비슷한 종류(like), 칸 사전. */

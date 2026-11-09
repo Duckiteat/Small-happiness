@@ -33,6 +33,7 @@ import { parseRecent } from './agency.ts';
 import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, conceptCause, conceptPool, knownConcepts, strengthKeyOf } from './ladder.ts';
 import type { LadderState, LadderView } from './ladder.ts';
 import { skillKey } from './skill.ts';
+import { cardChanges } from './outside.ts';
 import { hasCondition, MODE_CHANGED, modeCause, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 
 export const PERCEPTION_SRC = 'perception';
@@ -114,9 +115,15 @@ export class Perception {
   }
 
   /** 한 단계의 지각. prevRecent는 직전 단계의 행동(F6). */
-  step(world: World, t: number, presence: string, prevRecent: BoardValue | undefined): { perceived: Percept[]; aware: AwareMap } {
+  step(world: World, t: number, presence: string, prevRecent: BoardValue | undefined, arrivals: readonly { readonly event: string; readonly who: string; readonly cards: readonly string[] }[] = []): { perceived: Percept[]; aware: AwareMap } {
     for (const r of parseRecent(prevRecent)) if (r.reveals !== undefined) this.#reveals.push({ place: r.reveals, ends: r.ends, via: r.via, event: r.event });
     const perceived: Percept[] = [];
+    // 밖의 하루 (outside.ts): 귀가하며 그날의 카드가 내면에 들어온다 (원인: 카드가 정해진 사건). 영향은 내면으로만
+    for (const a of arrivals) {
+      if (!world.instances().includes(a.who)) continue;
+      const keys = world.keysOf(a.who);
+      for (const c of cardChanges(this.#vocab, this.#db.defs[defOf(a.who) ?? '']?.mind, a.who, a.cards, keys, (k) => world.level(k))) world.set(c.key, c.to, { t, cause: a.event });
+    }
     // 잠에서 깸 (condition.ts): 자는 상황이 끝나면 컨디션이 돌아온다. 일정에서 오는 원천이라 원인이 없다
     const sleeps = (p: string | null): boolean => p !== null && this.#vocab.entry('presence', p)?.attrs['sleeps'] === true;
     if (sleeps(this.#lastPresence) && !sleeps(presence)) {
