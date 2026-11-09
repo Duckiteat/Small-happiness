@@ -14,12 +14,16 @@
 // 불쾌가 높고 안정이 낮으면 스트레스 임계(overwhelm): 생각하고 해석하지 못한다 — 심상과 몸의 반응은 그대로 오지만 감정이 생기지 않는다.
 // 난수 없음. 지각 층과 감사가 같은 계산을 쓴다.
 
-import type { MindDef } from './db.ts';
+import type { Db, MindDef } from './db.ts';
+import { ancestors, effectiveOffers } from './kinds.ts';
+import { formatStateKey, parsePattern } from './statekey.ts';
+import { levelMatches } from './causal.ts';
 import type { Vocab } from './vocab.ts';
 
 export const EMOTION_FORMED = 'emotion_formed';
 export const MEMORY_FORMED = 'memory_formed';
 export const OVERWHELMED = 'overwhelmed';
+export const THOUGHT_SURFACED = 'thought_surfaced';
 /** 감정의 축이 담기는 인물의 부위 (인물 정의의 slots). */
 export const MOOD_SLOT = 'mood';
 const DAY_MIN = 1440;
@@ -57,6 +61,8 @@ export interface Appraisal {
   readonly changes: readonly { readonly key: string; readonly to: string }[];
   /** 이 감정으로 스트레스 임계를 넘었나 */
   readonly overwhelms: boolean;
+  /** 이 순간 갑자기 떠오른 미완의 생각 */
+  readonly surfaces?: { readonly of: string; readonly image: string };
 }
 
 export function emotionDefs(vocab: Vocab): EmotionDef[] {
@@ -84,14 +90,60 @@ export function moodKey(who: string, feature: string): string {
   return `${who}|${MOOD_SLOT}:${feature}`;
 }
 
-/** 그 사람이 생각을 기억하는 날 수 (지금은 min — 무엇이 그날을 정하는지는 미정). */
-export function thoughtDays(mind: MindDef): number {
-  return mind.thought_days.min;
+/**
+ * 그 생각을 기억하는 날 수 (작가 2026-11-09: "미완된 기억일수록 조금 더 기억이 간다. 청소 안 한 부분이 갑자기 떠오른다던가").
+ * 끝난 일은 min, 아직 남은 일(미완)이 있는 것의 생각은 max.
+ */
+export function thoughtDays(mind: MindDef, unfinished = false): number {
+  return unfinished ? mind.thought_days.max : mind.thought_days.min;
 }
 
-/** 아직 잊지 않은 생각 (thought_days 안). */
-export function remembered(mind: MindDef, episodes: readonly Episode[], t: number): Episode[] {
-  return episodes.filter((e) => e.t >= t - thoughtDays(mind) * DAY_MIN);
+/** 아직 잊지 않은 생각. 미완인 것의 생각은 더 오래 간다. */
+export function remembered(mind: MindDef, episodes: readonly Episode[], t: number, unfinished: (def: string) => boolean = () => false): Episode[] {
+  return episodes.filter((e) => e.t >= t - thoughtDays(mind, e.of.some(unfinished)) * DAY_MIN);
+}
+
+/**
+ * 미완: 그것에 치우는 일(사전 action의 tidies — 설거지·닦기·버리기·넣어 두기 …)이 남아 있는 줄 안다.
+ * 어느 정의의 치우는 행동이든 그 조건(when) 중 이것(또는 이것의 종류)을 가리키는 것이 모두, 이것의 개체 하나에서 그 사람이 아는 단계로 맞으면.
+ * 예: 냄비가 더럽고 비어 있는 줄 알면 (싱크대의 설거지: 냄비 더러움 이상 · 국물 없음) 냄비의 일은 미완이다. 다른 조건(싱크대에 물)은 보지 않는다.
+ */
+export function isUnfinished(db: Db, vocab: Vocab, def: string, instances: readonly string[], known: (key: string) => string | undefined): boolean {
+  const kinds = new Set([def, ...ancestors(db, def)]);
+  for (const d of Object.keys(db.defs).sort()) {
+    for (const { item: offer } of effectiveOffers(db, d)) {
+      if (vocab.entry('action', offer.verb)?.attrs['tidies'] !== true) continue;
+      const mine = (offer.when ?? []).flatMap((text) => {
+        const p = parsePattern(text);
+        return p !== null && kinds.has(p.def) ? [p] : [];
+      });
+      if (mine.length === 0) continue;
+      const left = instances.some((i) => mine.every((p) => {
+        const lv = known(formatStateKey({ subject: i, slot: p.slot, feature: p.feature }));
+        return lv !== undefined && levelMatches(vocab, p.feature, lv, p.cond);
+      }));
+      if (left) return true;
+    }
+  }
+  return false;
+}
+
+/** 생각할 수 있을 때 함께 쓰는 것: 미완인지, 마지막으로 떠오른 때 (정의 → 분). */
+export interface ThoughtContext {
+  readonly unfinished: (def: string) => boolean;
+  readonly surfacedAt: ReadonlyMap<string, number>;
+}
+
+/**
+ * 갑자기 떠오름: 다른 일로 생각하는 순간, 아직 잊지 않은 생각 중 미완인 것이 하나 떠오른다 (지금 그것에서 온 심상이 아닐 때).
+ * 가장 오래된 것부터, 같은 것은 하루에 한 번. 생각이 멈추는 순간에는 떠오르지 않는다.
+ */
+export function surfacing(mind: MindDef, episodes: readonly Episode[], t: number, now: readonly string[], ctx: ThoughtContext): { readonly of: string; readonly image: string } | undefined {
+  for (const e of remembered(mind, episodes, t, ctx.unfinished)) {
+    const d = e.of.find((x) => ctx.unfinished(x) && !now.includes(x) && t - (ctx.surfacedAt.get(x) ?? -Infinity) >= DAY_MIN);
+    if (d !== undefined) return { of: d, image: e.image };
+  }
+  return undefined;
 }
 
 function rungOf(vocab: Vocab, feature: string, level: string): number {
@@ -109,7 +161,7 @@ export function isOverwhelmed(vocab: Vocab, mind: MindDef, who: string, level: (
  * 심상 + 생각 → 감정. 무엇에서 왔는지(of), 아직 잊지 않은 생각(episodes), 감정이 붙은 기억(memories: 정의 → 감정)과 지금의 축으로 정한다.
  * 결이 없는 심상이거나 맞는 감정이 사전에 없으면 null.
  */
-export function appraise(vocab: Vocab, mind: MindDef, who: string, image: string, of: readonly string[], t: number, episodes: readonly Episode[], memories: ReadonlyMap<string, string>, level: (key: string) => string): Appraisal | null {
+export function appraise(vocab: Vocab, mind: MindDef, who: string, image: string, of: readonly string[], t: number, episodes: readonly Episode[], memories: ReadonlyMap<string, string>, level: (key: string) => string, ctx: ThoughtContext = { unfinished: () => false, surfacedAt: new Map() }): Appraisal | null {
   const tone = toneOf(vocab, image);
   if (tone === undefined) return null;
   const defs = emotionDefs(vocab);
@@ -130,7 +182,7 @@ export function appraise(vocab: Vocab, mind: MindDef, who: string, image: string
       if (emotion !== undefined) memoryChanges.push({ of: known, emotion: emotion.key, replaces: before });
     }
   } else {
-    const familiar = of.length > 0 && remembered(mind, episodes, t).some((e) => e.image === image && e.of.some((d) => of.includes(d)));
+    const familiar = of.length > 0 && remembered(mind, episodes, t, ctx.unfinished).some((e) => e.image === image && e.of.some((d) => of.includes(d)));
     thought = familiar ? 'familiar' : 'new';
     emotion = rule(thought);
   }
@@ -160,7 +212,9 @@ export function appraise(vocab: Vocab, mind: MindDef, who: string, image: string
     if (strong) for (const d of of) memoryChanges.push({ of: d, emotion: emotion.key });
   }
   const lvl = (key: string): string => changes.find((c) => c.key === key)?.to ?? level(key);
-  return { emotion: emotion.key, thought, of: [...of], memories: memoryChanges, changes, overwhelms: isOverwhelmed(vocab, mind, who, lvl) };
+  const overwhelms = isOverwhelmed(vocab, mind, who, lvl);
+  const surfaces = overwhelms ? undefined : surfacing(mind, episodes, t, of, ctx);
+  return { emotion: emotion.key, thought, of: [...of], memories: memoryChanges, changes, overwhelms, ...(surfaces !== undefined ? { surfaces } : {}) };
 }
 
 /**

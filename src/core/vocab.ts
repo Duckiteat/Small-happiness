@@ -184,7 +184,8 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
     }
     case 'action': {
       // handles: 이 행동은 그 물건을 손으로 다룬다 (촉각), eats: 먹는다 (미각)
-      for (const k of ['handles', 'eats']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
+      // tidies: 치우는 일 — 남아 있으면 그 물건의 생각이 미완으로 더 오래 간다 (내면-설계 11장)
+      for (const k of ['handles', 'eats', 'tidies']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
       break;
     }
     case 'emotion': {

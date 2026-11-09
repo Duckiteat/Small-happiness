@@ -137,6 +137,7 @@ test('감각: 감각마다 닿는 길(reach)이 있어야 하고, 감각질은 �
   assert.match(messages([sense, { category: 'sensation', entries: [{ key: 'x', ko: '엑스', attrs: {} }] }]), /감각\(sense 키\)이 필요하다/);
   assert.match(messages([sense, { category: 'sensation', entries: [{ key: 'x', ko: '엑스', attrs: { sense: 'sight' } }] }]), /sense 분류에 없는 키/);
   assert.match(messages([{ category: 'action', entries: [{ key: 'pat', ko: '두드리기', attrs: { handles: false } }] }]), /handles는 true/);
+  assert.match(messages([{ category: 'action', entries: [{ key: 'tidy', ko: '치우기', attrs: { tidies: 'yes' } }] }]), /tidies는 true/);
 });
 
 test('반사: 문턱은 1~100%, 종류는 무조건·조건, 조건반사만 예고 감각과 횟수를 갖고, 붙는 감각질이 사전에 있어야 한다', () => {

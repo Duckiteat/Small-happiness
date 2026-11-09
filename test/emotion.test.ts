@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { auditLog } from '../src/core/audit.ts';
 import type { MindDef } from '../src/core/db.ts';
-import { appraise, cueOf, emotionDefs, isOverwhelmed, moodKey, remembered } from '../src/core/emotion.ts';
+import { appraise, cueOf, emotionDefs, isOverwhelmed, isUnfinished, moodKey, remembered } from '../src/core/emotion.ts';
 import { parseEvent } from '../src/core/events.ts';
 import type { GameEvent } from '../src/core/events.ts';
 import { parseScenario, runScenario } from '../src/core/skeleton.ts';
@@ -124,4 +124,34 @@ test('감사: 감정·기억·생각이 멈춤·축의 변화를 그때의 생�
     const r = auditLog(c.mutate(structuredClone(events)), db, vocab, opts);
     assert.ok(r.findings.some((f) => f.check === c.check), `${c.name}: ${c.check}를 잡아야 한다 (잡은 것: ${r.findings.map((f) => f.check).join(', ') || '없음'})`);
   }
+});
+
+test('미완: 치울 일이 남은 줄 아는 것의 생각은 더 오래 가고(5일), 다른 일로 생각하는 순간 하루 한 번 갑자기 떠오른다', () => {
+  const POT = byName('냄비');
+  const pot = `${POT}#1`;
+  const knows = (dirt: string, soup: string) => (k: string): string | undefined => (k === `${pot}|body:dirt` ? dirt : k === `${pot}|pot:soup` ? soup : undefined);
+  assert.equal(isUnfinished(db, vocab, POT, [pot], knows('dirty', 'none')), true, '먹고 비운 냄비가 더러운 줄 알면 설거지가 남았다');
+  assert.equal(isUnfinished(db, vocab, POT, [pot], knows('clean', 'none')), false, '씻었으면 끝난 일');
+  assert.equal(isUnfinished(db, vocab, POT, [pot], knows('dirty', 'stew')), false, '아직 국물이 있으면 설거지할 때가 아니다');
+  assert.equal(isUnfinished(db, vocab, POT, [pot], () => undefined), false, '모르면 남은 일도 없다');
+  const ep = [{ image: 'boiling_steam', of: [POT], t: 0 }];
+  const left = (d: string): boolean => d === POT;
+  assert.equal(remembered(mind, ep, 4 * 1440, left).length, 1, '미완이면 4일째에도 기억한다');
+  assert.equal(remembered(mind, ep, 4 * 1440).length, 0, '끝난 일은 3일');
+  assert.equal(remembered(mind, ep, 6 * 1440, left).length, 0, '미완도 5일이 지나면 잊는다');
+  const at = mood('none', 'none', 'steady');
+  const ctx = (surfacedAt: Map<string, number>) => ({ unfinished: left, surfacedAt });
+  const now = 2 * 1440;
+  assert.deepEqual(appraise(vocab, mind, WHO, 'deep_savory', [byName('된장찌개')], now, ep, new Map(), at, ctx(new Map()))?.surfaces, { of: POT, image: 'boiling_steam' }, '찌개를 먹다가 설거지 안 한 냄비가 떠오른다');
+  assert.equal(appraise(vocab, mind, WHO, 'deep_savory', [byName('된장찌개')], now, ep, new Map(), at, ctx(new Map([[POT, now - 60]])))?.surfaces, undefined, '같은 것은 하루에 한 번');
+  assert.equal(appraise(vocab, mind, WHO, 'boiling_steam', [POT], now, ep, new Map(), at, ctx(new Map()))?.surfaces, undefined, '지금 그것을 겪는 중이면 떠오르는 것이 아니다');
+  assert.equal(appraise(vocab, mind, WHO, 'cold_sour', [], now, ep, new Map(), mood('none', 'clear', 'uneasy'), ctx(new Map()))?.surfaces, undefined, '생각이 멈추는 순간에는 떠오르지 않는다');
+  // 시나리오의 하루씨는 먹고 바로 설거지해서 남은 일이 없다 → 떠오르는 것도 없다
+  assert.equal(events.filter((e) => e.type === 'thought_surfaced').length, 0);
+  // 감사: 남은 일이 없는데 떠오른 것을 지어내면 잡는다
+  const em = emotions[0] as GameEvent;
+  const i = events.indexOf(em);
+  const fake: GameEvent = { ...em, seq: 'E999998', type: 'thought_surfaced', cause: em.seq, data: { who: WHO, of: POT, image: 'boiling_steam' } };
+  const r = auditLog([...events.slice(0, i + 1), fake, ...events.slice(i + 1)], db, vocab, { externalUntil: sc.start });
+  assert.ok(r.findings.some((f) => f.check === 'awareness'), r.findings.map((f) => f.message).join(' / '));
 });

@@ -352,7 +352,8 @@
         ],
         "desc": "싱크대에 받은 물로 더러워진 도구를 씻는다. 물은 배수로 사라진다",
         "attrs": {
-          "handles": true
+          "handles": true,
+          "tidies": true
         }
       },
       {

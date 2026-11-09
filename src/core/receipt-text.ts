@@ -134,6 +134,8 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
     }
     case 'memory_formed':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.thing(s(d['of']))} → ${n.word('emotion', s(d['emotion']))}${d['replaces'] !== undefined ? ` (${n.word('emotion', s(d['replaces']))}을 덧씌움)` : d['given'] === true ? ' (지난 기억)' : ''}`;
+    case 'thought_surfaced':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.thing(s(d['of']))} (${n.word('image', s(d['image']))}을 겪은 일, 아직 치울 것이 남음)`;
     case 'overwhelmed':
       return `${n.thing(s(d['who']))} · ${typeKo}`;
     case 'menu_planned':

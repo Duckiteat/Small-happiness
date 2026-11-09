@@ -12,7 +12,7 @@ import { menusOf } from './db.ts';
 import { pickUse } from './amount.ts';
 import { conceive } from './conceive.ts';
 import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
-import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED } from './emotion.ts';
+import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, isUnfinished, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED, THOUGHT_SURFACED } from './emotion.ts';
 import type { Appraisal, Episode } from './emotion.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
@@ -169,6 +169,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const episodesA = new Map<string, Episode[]>(); // 인물 → 겪은 일
   const memoriesA = new Map<string, Map<string, string>>(); // 인물 → 정의 → 감정이 붙은 기억
   const emotionSeqs = new Set<string>(); // 감정 사건 (축의 변화의 원인)
+  const surfacedA = new Map<string, Map<string, number>>(); // 인물 → 정의 → 마지막으로 갑자기 떠오른 때
   let innerExpect: { cause: string; who: string; image: string; t: number; a: Appraisal } | null = null; // 심상(과 몸의 반응) 바로 뒤에 와야 할 감정
   let innerQueue: { cause: string; items: { type: string; key: string }[]; then: { key: string; to: string }[] } | null = null; // 감정 바로 뒤의 기억·생각이 멈춤
   const memoryKey = (d: { readonly of?: unknown; readonly emotion?: unknown; readonly replaces?: unknown }): string => [d.of, d.emotion, d.replaces].map((x) => (typeof x === 'string' ? x : '')).join('|');
@@ -179,7 +180,10 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     if (mind === undefined || def?.slots?.[MOOD_SLOT] === undefined) return;
     const level = (k: string): string => levelIn(levels, k);
     if (isOverwhelmed(vocab, mind, who, level)) return;
-    const a = appraise(vocab, mind, who, image, cueOf(parts, (i) => instances.get(i)), t, episodesA.get(who) ?? [], memoriesA.get(who) ?? new Map<string, string>(), level);
+    const surfacedAt = surfacedA.get(who) ?? new Map<string, number>();
+    surfacedA.set(who, surfacedAt);
+    const unfinished = (d: string): boolean => isUnfinished(db, vocab, d, [...instances.keys()].filter((i) => instances.get(i) === d).sort(), (k) => knows.get(`${who}|${k}`)?.level);
+    const a = appraise(vocab, mind, who, image, cueOf(parts, (i) => instances.get(i)), t, episodesA.get(who) ?? [], memoriesA.get(who) ?? new Map<string, string>(), level, { unfinished, surfacedAt });
     if (a !== null) innerExpect = { cause, who, image, t, a };
   };
   const PERCEPT_TYPES = new Set(['stimulus_perceived', REFLEX, REFLEX_LEARNED, IMAGE_FORMED, BODY_RESPONSE]);
@@ -256,7 +260,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     if (innerQueue !== null) {
       const q: { cause: string; items: { type: string; key: string }[]; then: { key: string; to: string }[] } = innerQueue;
       const head = q.items[0];
-      const key = e.type === MEMORY_FORMED ? memoryKey(e.data) : e.type === OVERWHELMED ? String(e.data['on']) : '';
+      const key = e.type === MEMORY_FORMED ? memoryKey(e.data) : e.type === OVERWHELMED ? String(e.data['on']) : e.type === THOUGHT_SURFACED ? `${str(e.data['of'])}|${str(e.data['image'])}` : '';
       if (head !== undefined && e.type === head.type && key === head.key && e.cause === q.cause) {
         q.items.shift();
         bump('awareness');
@@ -266,7 +270,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         }
         continue;
       }
-      for (const m of q.items) bad(q.cause, 'awareness', `이 감정 뒤에 ${m.type === MEMORY_FORMED ? `기억(${m.key})` : '생각이 멈춤'}이 빠졌다`);
+      for (const m of q.items) bad(q.cause, 'awareness', `이 감정 뒤에 ${m.type === MEMORY_FORMED ? `기억(${m.key})` : m.type === THOUGHT_SURFACED ? `갑자기 떠오름(${m.key})` : '생각이 멈춤'}이 빠졌다`);
       innerQueue = null;
       if (q.then.length > 0) pending = { cause: q.cause, what: '감정', expect: [...q.then] };
     }
@@ -280,7 +284,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
       const mems = memoriesA.get(x.who) ?? new Map<string, string>();
       memoriesA.set(x.who, mems);
       for (const m of x.a.memories) mems.set(m.of, m.emotion);
-      const items = [...x.a.memories.map((m) => ({ type: MEMORY_FORMED, key: memoryKey({ ...m }) })), ...(x.a.overwhelms ? [{ type: OVERWHELMED, key: 'true' }] : [])];
+      const items = [...x.a.memories.map((m) => ({ type: MEMORY_FORMED, key: memoryKey({ ...m }) })), ...(x.a.overwhelms ? [{ type: OVERWHELMED, key: 'true' }] : []), ...(x.a.surfaces !== undefined ? [{ type: THOUGHT_SURFACED, key: `${x.a.surfaces.of}|${x.a.surfaces.image}` }] : [])];
+      if (x.a.surfaces !== undefined) surfacedA.get(x.who)?.set(x.a.surfaces.of, x.t);
       if (e.type === EMOTION_FORMED && e.cause === x.cause) {
         bump('awareness');
         emotionSeqs.add(e.seq);
@@ -302,8 +307,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
       mems.set(str(e.data['of']), str(e.data['emotion']));
       continue;
     }
-    if (e.type === EMOTION_FORMED || e.type === MEMORY_FORMED || e.type === OVERWHELMED) {
-      bad(e.seq, 'awareness', `그때의 심상과 생각이 만들지 않는 ${e.type === EMOTION_FORMED ? '감정' : e.type === MEMORY_FORMED ? '기억' : '생각이 멈춤'}이다`);
+    if (e.type === EMOTION_FORMED || e.type === MEMORY_FORMED || e.type === OVERWHELMED || e.type === THOUGHT_SURFACED) {
+      bad(e.seq, 'awareness', `그때의 심상과 생각이 만들지 않는 ${e.type === EMOTION_FORMED ? '감정' : e.type === MEMORY_FORMED ? '기억' : e.type === THOUGHT_SURFACED ? '갑자기 떠오름' : '생각이 멈춤'}이다`);
       continue;
     }
     if (e.type === REFLEX || e.type === REFLEX_LEARNED || e.type === BODY_RESPONSE) {

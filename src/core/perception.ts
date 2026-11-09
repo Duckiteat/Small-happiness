@@ -13,7 +13,7 @@
 //
 // 단순화 (기본안, 위치·번짐 11번 전까지): 물건의 위치가 없어서, 장소를 살피면 집 안의 모든 물건을 본다.
 
-import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED } from './emotion.ts';
+import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, isUnfinished, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED, THOUGHT_SURFACED } from './emotion.ts';
 import type { Episode } from './emotion.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { latestSeq } from './events.ts';
@@ -92,6 +92,7 @@ export class Perception {
   readonly #imaged = new Map<string, Set<string>>(); // 인물 → 이어지고 있는 심상
   readonly #episodes = new Map<string, Episode[]>(); // 인물 → 겪은 일 (생각)
   readonly #memories = new Map<string, Map<string, string>>(); // 인물 → 정의 → 감정이 붙은 기억
+  readonly #surfaced = new Map<string, Map<string, number>>(); // 인물 → 정의 → 마지막으로 갑자기 떠오른 때
   readonly #paired = new Map<string, number>(); // `${인물}|${반사}` → 짝지어 겪은 횟수 // 고른 행동 사건 → 끝난 사건 (살펴서 안 것의 원인)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
@@ -218,7 +219,11 @@ export class Perception {
     this.#episodes.set(who, episodes);
     const memories = this.#memories.get(who) ?? new Map<string, string>();
     this.#memories.set(who, memories);
-    const a = appraise(this.#vocab, mind, who, image, of, t, episodes, memories, level);
+    const surfacedAt = this.#surfaced.get(who) ?? new Map<string, number>();
+    this.#surfaced.set(who, surfacedAt);
+    const knows = this.#aware.get(who);
+    const unfinished = (d: string): boolean => isUnfinished(this.#db, this.#vocab, d, world.instances().filter((i) => world.defOfInstance(i) === d), (k) => knows?.get(k)?.level);
+    const a = appraise(this.#vocab, mind, who, image, of, t, episodes, memories, level, { unfinished, surfacedAt });
     if (a === null) return;
     const em = this.#log.append({ t, type: EMOTION_FORMED, src: PERCEPTION_SRC, cause: e.seq, data: { who, emotion: a.emotion, image, thought: a.thought, of: [...a.of] } });
     for (const m of a.memories) {
@@ -226,6 +231,10 @@ export class Perception {
       memories.set(m.of, m.emotion);
     }
     if (a.overwhelms) this.#log.append({ t, type: OVERWHELMED, src: PERCEPTION_SRC, cause: em.seq, data: { who, on: true } });
+    if (a.surfaces !== undefined) {
+      this.#log.append({ t, type: THOUGHT_SURFACED, src: PERCEPTION_SRC, cause: em.seq, data: { who, of: a.surfaces.of, image: a.surfaces.image } });
+      surfacedAt.set(a.surfaces.of, t);
+    }
     for (const c of a.changes) world.set(c.key, c.to, { t, cause: em.seq });
     episodes.push({ image, of: a.of, t });
   }
