@@ -30,7 +30,7 @@ import { parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
 import type { World } from './world.ts';
 import { parseRecent } from './agency.ts';
-import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, conceptPool, strengthKeyOf } from './ladder.ts';
+import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, conceptCause, conceptPool, knownConcepts, strengthKeyOf } from './ladder.ts';
 import type { LadderState, LadderView } from './ladder.ts';
 import { skillKey } from './skill.ts';
 
@@ -102,6 +102,7 @@ export class Perception {
   readonly #ladders = new Map<string, { readonly state: LadderState; readonly seq: string; readonly since: string }>(); // `${인물}|${장소}|${종류 특징}` → 심상 사다리의 자리, 그 사건, 열린 사건
   readonly #familiar = new Map<string, Map<string, number>>(); // 인물 → 좁히거나 정체를 안 개념 → 횟수 (자주 겪음)
   readonly #memorySeq = new Map<string, string>(); // 인물 → 마지막으로 감정이 붙은 기억 사건 (떠올리는 개념이 바뀐 원인)
+  readonly #seenDefs = new Map<string, Map<string, string>>(); // 인물 → 본 적 있는 정의 → 처음 안 사건 (아는 개념)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -375,11 +376,13 @@ export class Perception {
         const familiar = this.#familiar.get(who) ?? new Map<string, number>();
         this.#familiar.set(who, familiar);
         const remembered = new Set(this.#memories.get(who)?.keys() ?? []);
-        const r = climb(this.#vocab, spec, prev?.state, { discerned, known, familiar, remembered, concepts: conceptPool(this.#db, this.#vocab, spec), defOf: (i) => world.defOfInstance(i) });
+        const seen = this.#seenDefs.get(who) ?? new Map<string, string>();
+        const concepts = knownConcepts(conceptPool(this.#db, this.#vocab, spec), new Set(seen.keys()), remembered);
+        const r = climb(this.#vocab, spec, prev?.state, { discerned, known, familiar, remembered, concepts, defOf: (i) => world.defOfInstance(i) });
         if (r !== null) {
           const thing = r.state.thing;
           const thingSeq = thing === undefined ? undefined : [...knows].find(([k]) => k.startsWith(`${thing}|`) && k.endsWith(`:${spec.feature}`))?.[1].seq;
-          const cause = ladderCause(read, (k) => world.lastChange(k), [hasSkill ? world.lastChange(sk) : null, thingSeq, this.#memorySeq.get(who)]);
+          const cause = ladderCause(read, (k) => world.lastChange(k), [hasSkill ? world.lastChange(sk) : null, thingSeq, this.#memorySeq.get(who), conceptCause(r.state.concepts, seen)]);
           const e = this.#log.append({
             t,
             type: LADDER_MOVED,
@@ -423,6 +426,10 @@ export class Perception {
     if (!rose && prev !== undefined && prev.level === level) return;
     const e = this.#log.append({ t, type: rose ? AWARENESS_UP : AWARENESS_CHANGED, src: PERCEPTION_SRC, cause, data: { who, key, to, level, via } });
     m.set(key, { aw: to, level, t, seq: e.seq, ...(since !== undefined ? { since } : {}) });
+    const seen = this.#seenDefs.get(who) ?? new Map<string, string>();
+    this.#seenDefs.set(who, seen);
+    const d = defOf(parseStateKey(key)?.subject ?? '');
+    if (d !== null && !seen.has(d)) seen.set(d, e.seq);
   }
 }
 

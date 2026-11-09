@@ -324,6 +324,19 @@ export function conceptKinds(db: Db, vocab: Vocab, spec: LadderSpec, def: string
 }
 
 /**
+ * 그 사람이 아는 개념만 (작가 "고고고", 2026-11-09 기본안): 물건은 본 적 있는 것(그 정의의 개체에 대한 앎이 있음)과 기억 속의 것,
+ * 냄새 원인은 상식이라 늘 안다. 순서는 conceptPool 그대로.
+ */
+export function knownConcepts(pool: readonly Concept[], seen: ReadonlySet<string>, remembered: ReadonlySet<string>): Concept[] {
+  return pool.filter((c) => !c.id.startsWith('OBJ') || seen.has(c.id) || remembered.has(c.id));
+}
+
+/** 떠올린 물건 개념이 처음 알려진 사건 중 가장 최근 (그 개념이 후보가 된 원인). */
+export function conceptCause(concepts: readonly string[], firstSeen: ReadonlyMap<string, string>): string | null {
+  return latestSeq(concepts.map((c) => firstSeen.get(c)));
+}
+
+/**
  * 냄새가 이어진 개념들: 냄새 감각질이 냄새 종류로 이어지는 물건 정의(번호 순)와, 이 종류 특징으로 냄새가 나는 냄새 원인(키 순).
  * 개념은 사람이 아는 말이라 장소는 넣지 않는다. 코드에 물건 이름은 없다.
  */

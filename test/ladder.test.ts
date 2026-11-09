@@ -8,6 +8,7 @@ import { Agency } from '../src/core/agency.ts';
 import { auditLog } from '../src/core/audit.ts';
 import { checkValue } from '../src/core/board.ts';
 import type { BoardValue } from '../src/core/board.ts';
+import { parseEvent } from '../src/core/events.ts';
 import type { GameEvent, JsonValue } from '../src/core/events.ts';
 import { conceptKinds, conceptPool, discern, ladderSpecs } from '../src/core/ladder.ts';
 import { EventLog } from '../src/core/log.ts';
@@ -16,7 +17,8 @@ import { skillKey } from '../src/core/skill.ts';
 import { Vocab, validateVocab } from '../src/core/vocab.ts';
 import type { VocabCategoryRaw } from '../src/core/vocab.ts';
 import { World } from '../src/core/world.ts';
-import { loadDb } from '../src/node/clerk.ts';
+import { parseScenario } from '../src/core/skeleton.ts';
+import { loadDb, scenarioDb, scenarioRun } from '../src/node/clerk.ts';
 import { loadVocabDir } from '../src/node/vocab-files.ts';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -146,7 +148,7 @@ test('좁히기: 남은 후보와 새로 가려 낸 것의 교집합. 맞지 않
   assert.equal(belief(h), 'none');
 });
 
-test('자주 겪음: 시큼한 것(먼저 떠올린 우유)으로 좁힌 적이 많으면 다음에 헷갈릴 때 그것을 먼저 떠올려 시큼함을 믿는다 (순한 것보다 앞)', () => {
+test('자주 겪음: 시큼한 것(먼저 떠올린 부패)으로 좁힌 적이 많으면 다음에 헷갈릴 때 그것을 먼저 떠올려 시큼함을 믿는다 (순한 것보다 앞)', () => {
   const h = kitchen();
   let t = 10;
   for (let i = 0; i < 2; i++) {
@@ -164,19 +166,44 @@ test('자주 겪음: 시큼한 것(먼저 떠올린 우유)으로 좁힌 적이 
 
 const conceptsOf = (e: GameEvent | undefined): string[] => (Array.isArray(e?.data['concepts']) ? e.data['concepts'].map(String) : []);
 
-test('개념을 먼저 떠올리고 냄새를 대 본다: 기억이 없으면 순한 냄새의 물건(남은 치킨)을, 썩는 냄새뿐이면 맞는 물건이 없어 원인(부패)을 떠올린다', () => {
+test('개념을 먼저 떠올리고 냄새를 대 본다: 아는 것만 떠올린다 — 본 물건이 없으면 원인(요리)을, 살펴서 남은 치킨을 보면 그것을, 썩는 냄새뿐이면 부패를', () => {
   const h = kitchen();
+  const chicken = h.world.spawn('OBJ000010', { t: 0 }).id;
   sourKitchen(h, 'distinct', 10);
   h.look(10);
-  assert.deepEqual(conceptsOf(ladders(h.log).at(-1)).slice(0, 2), ['OBJ000010', 'OBJ000026'], '구수한 냄새가 맞는 물건이 먼저 (번호 순)');
+  const first = conceptsOf(ladders(h.log).at(-1));
+  assert.equal(first[0], 'cooking', '냉장고 속 물건은 본 적이 없다: "요리인가?"');
+  assert.equal(first.some((c) => c.startsWith('OBJ')), false, '본 적 없는 물건은 떠올리지 않는다');
+  h.look(15, inspected(h.kitchen, 15)); // 살펴서 남은 치킨과 우유를 본다
+  h.world.set(`${h.kitchen}|space:smell`, 'none', { t: 20 });
+  h.look(20);
+  sourKitchen(h, 'distinct', 30);
+  h.look(30);
+  const after = conceptsOf(ladders(h.log).at(-1));
+  assert.equal(after[0], 'OBJ000010', `본 뒤에는 "남은 치킨인가?" (${chicken})`);
+  assert.ok(after.includes('OBJ000002'), '우유도 (시큼함이 맞는다)');
+  // (이 시험의 살피기는 행동 기록 없이 판에 넣은 것이라 감사가 따라갈 수 없다. 감사는 아래와 실제 시나리오에서 본다)
   const r = kitchen();
   r.world.set(`${r.kitchen}|space:smell`, 'foul', { t: 10 });
   r.world.set(`${r.kitchen}|space:odor`, 'putrid', { t: 10 });
   r.look(10);
-  const last = ladders(r.log).at(-1);
-  assert.equal(conceptsOf(last)[0], 'decay', '"상한 건가?"');
-  assert.equal(conceptsOf(last).some((c) => c.startsWith('OBJ')), false, '썩는 냄새로 이어진 물건 개념은 없다');
+  assert.equal(conceptsOf(ladders(r.log).at(-1))[0], 'decay', '"상한 건가?"');
   assert.deepEqual(auditLog(r.log.list(), db, vocab).findings, []);
+});
+
+test('첫 주: 냉장고 속 물건을 보기 전의 요리 냄새는 "요리인가?"이고, 본 적 없는 물건을 떠올렸다고 고치면 감사가 잡는다', () => {
+  const file = 'content/scenarios/first-week.json';
+  const sc = parseScenario(JSON.parse(readFileSync(join(ROOT, file), 'utf8')));
+  const events = scenarioRun(ROOT, vocab, file).log.map(parseEvent);
+  const sdb = scenarioDb(ROOT, vocab, sc);
+  const opts = { externalUntil: sc.start };
+  assert.deepEqual(auditLog(events, sdb, vocab, opts).findings, []);
+  const first = events.find((e) => e.type === 'ladder_moved' && e.data['on'] === true);
+  assert.ok(first);
+  assert.equal(conceptsOf(first)[0], 'cooking');
+  assert.equal(conceptsOf(first).includes('OBJ000010'), false, '남은 치킨은 아직 본 적이 없다');
+  const forged = events.map((e) => (e.seq === first.seq ? { ...e, data: { ...e.data, concepts: ['OBJ000010', ...conceptsOf(e)] } } : e));
+  assert.ok(auditLog(forged, sdb, vocab, opts).findings.some((f) => f.seq === first.seq && /떠올린 것 cooking/.test(f.message)));
 });
 
 test('기억: 감정이 붙은 기억의 물건을 먼저 떠올리고 그 냄새를 대 본다 — 김치를 그리워하면 뚜렷한 시큼함을 구수함보다 먼저 믿고 살핀다', () => {
@@ -199,7 +226,7 @@ test('기억: 감정이 붙은 기억의 물건을 먼저 떠올리고 그 냄�
   assert.deepEqual(auditLog(h.log.list(), db, vocab).findings, []);
 });
 
-test('기억 > 자주 겪음: 구수한 것(남은 치킨)으로 여러 번 좁혔어도, 김치의 기억이 있으면 김치를 먼저 떠올려 시큼함을 믿는다', () => {
+test('기억 > 자주 겪음: 구수한 것(요리)으로 여러 번 좁혔어도, 김치의 기억이 있으면 김치를 먼저 떠올려 시큼함을 믿는다', () => {
   const run = (memory: boolean): string[] => {
     const h = kitchen();
     if (memory) h.perception.remember(WHO, 'OBJ000005', 'longing', 0);

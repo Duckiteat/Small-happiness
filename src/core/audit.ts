@@ -29,7 +29,7 @@ import { allRules, levelMatches } from './causal.ts';
 import type { Rule } from './causal.ts';
 import { defOf } from './ids.ts';
 import { isLinked, rootOf, visibleRoot } from './placement.ts';
-import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, conceptPool, strengthKeyOf } from './ladder.ts';
+import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, conceptCause, conceptPool, knownConcepts, strengthKeyOf } from './ladder.ts';
 import type { LadderSpec, LadderState, LadderView } from './ladder.ts';
 import { effectiveInitial, effectiveOffers, effectiveProgress, kindMembers } from './kinds.ts';
 import { formatStateKey, parsePattern, parseStateKey } from './statekey.ts';
@@ -249,7 +249,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     whereIs: (i) => rootOf(placeMap, i),
   };
   const laddersA = new Map<string, { state: LadderState; seq: string }>();
-  const memorySeqA = new Map<string, string>(); // 인물 → 마지막으로 감정이 붙은 기억 사건 // `${인물}|${장소}|${종류 특징}`
+  const memorySeqA = new Map<string, string>(); // 인물 → 마지막으로 감정이 붙은 기억 사건
+  const seenDefsA = new Map<string, Map<string, string>>(); // 인물 → 본 적 있는 정의 → 처음 안 사건 (아는 개념) // `${인물}|${장소}|${종류 특징}`
   const familiarA = new Map<string, Map<string, number>>(); // 인물 → 좁히거나 정체를 안 종류 → 횟수
   /** 지금 그 장소의 냄새를 느끼는가, 느끼면 사다리가 어디로 가야 하나 (지각 층과 같은 계산). */
   const ladderNow = (who: string, place: string, spec: LadderSpec, at: { kind: string; strength: string }): { felt: boolean; r: ReturnType<typeof climb>; cause: string | null } => {
@@ -264,10 +265,12 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     const discerned = discern(vocab, spec, strengths, scaleOf(db, cdef, spec.sense), Math.max(0, skillIndex));
     const mine = [...knows].filter(([k]) => k.startsWith(`${who}|`)).map(([k, v]) => [k.slice(who.length + 1), v] as const);
     const familiar = familiarA.get(who) ?? new Map<string, number>();
-    const r = climb(vocab, spec, laddersA.get(`${who}|${place}|${spec.feature}`)?.state, { discerned, known: knownKinds(vocab, spec, mine, 'understood'), familiar, remembered: new Set(memoriesA.get(who)?.keys() ?? []), concepts: conceptPool(db, vocab, spec), defOf: (i) => instances.get(i) });
+    const remembered = new Set(memoriesA.get(who)?.keys() ?? []);
+    const seen = seenDefsA.get(who) ?? new Map<string, string>();
+    const r = climb(vocab, spec, laddersA.get(`${who}|${place}|${spec.feature}`)?.state, { discerned, known: knownKinds(vocab, spec, mine, 'understood'), familiar, remembered, concepts: knownConcepts(conceptPool(db, vocab, spec), new Set(seen.keys()), remembered), defOf: (i) => instances.get(i) });
     const thing = r?.state.thing;
     const thingSeq = thing === undefined ? undefined : [...knowSeq].find(([k]) => k.startsWith(`${who}|${thing}|`) && k.endsWith(`:${spec.feature}`))?.[1];
-    return { felt: true, r, cause: ladderCause(read, lastChangeOf, [hasSkill ? lastChangeOf(sk) : null, thingSeq, memorySeqA.get(who)]) };
+    return { felt: true, r, cause: ladderCause(read, lastChangeOf, [hasSkill ? lastChangeOf(sk) : null, thingSeq, memorySeqA.get(who), r === null ? null : conceptCause(r.state.concepts, seen)]) };
   };
   let pending: Pending | null = null;
   let batch: ReadonlyMap<string, string> | null = null; // 같은 시각 발화들은 직전 값을 읽는다: 첫 발화 직전의 상태
@@ -944,6 +947,10 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           if (!inspected.has(`${who}|${via}`)) bad(e.seq, 'awareness', `${via} 행동이 끝난 기록이 없는데 살펴서 알았다고 적었다`);
         }
         knows.set(`${who}|${key}`, { aw: rose ? aw : (prev?.aw ?? aw), level });
+        const seenA = seenDefsA.get(who) ?? new Map<string, string>();
+        seenDefsA.set(who, seenA);
+        const seenDef = defOf(k.subject);
+        if (seenDef !== null && !seenA.has(seenDef)) seenA.set(seenDef, e.seq);
         knowSeq.set(`${who}|${key}`, e.seq);
         break;
       }
