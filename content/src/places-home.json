@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "places",
-  "why": "ⓒ 해석 후 행동 (작가 2026-11-09: 방바닥이 더러우면 요정이 하자고 한다): 주방 바닥의 더러움(눈으로 본다)과 바닥 닦기(집안일)를 둔다. 시간은 임시값.",
+  "why": "바깥·현관문·환기 (작가 2026-11-09: 현관문만 드나들 때 잠깐 열림, 바깥과 환기부터): 현관에 현관문, 주방에 창문을 두고, 열려 있는 동안 주방 냄새가 바깥으로 빨리 빠진다. 현관문은 드나들 때 열리고 10분 뒤, 창은 환기하면 열리고 30분 뒤 닫힌다. 환기는 상한 냄새(시큼함 이상)가 뚜렷할 때 하는 집안일이다. 시간은 임시값.",
   "defs": [
     {
       "id": "PLC000001",
@@ -31,11 +31,30 @@
           "features": [
             "smell"
           ]
+        },
+        "door": {
+          "features": [
+            "door_state"
+          ]
         }
       },
       "desc": [
-        "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)"
-      ]
+        "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)",
+        "현관문은 드나들 때 열리고 잠시 뒤 닫힌다. 열려 있는 동안 주방 공기가 바깥으로 빠진다"
+      ],
+      "rules": {
+        "door_close": {
+          "label": "열린 현관문은 10분 뒤 저절로 닫힌다",
+          "on": [
+            "PLC000001|door:door_state@=open"
+          ],
+          "emits": [
+            "PLC000001|door:door_state@=closed"
+          ],
+          "delay_s": 600,
+          "tuned": false
+        }
+      }
     },
     {
       "id": "PLC000002",
@@ -90,6 +109,11 @@
         "floor": {
           "features": [
             "dirt"
+          ]
+        },
+        "window": {
+          "features": [
+            "window"
           ]
         }
       },
@@ -234,6 +258,53 @@
           ],
           "delay_s": 7200,
           "tuned": false
+        },
+        "window_close": {
+          "label": "환기로 연 창은 30분 뒤 닫는다",
+          "on": [
+            "PLC000002|window:window@=open"
+          ],
+          "emits": [
+            "PLC000002|window:window@=closed"
+          ],
+          "delay_s": 1800,
+          "tuned": false
+        },
+        "air_out_window": {
+          "label": "창이 열려 있으면 뚜렷한 냄새가 10분 만에 은은해진다 (바깥으로 빠짐)",
+          "on": [
+            "PLC000002|window:window@=open",
+            "PLC000002|space:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC000002|space:smell@<=faint"
+          ],
+          "delay_s": 600,
+          "tuned": false
+        },
+        "air_out_window_clear": {
+          "label": "창이 열려 있으면 은은한 냄새가 15분 만에 가신다",
+          "on": [
+            "PLC000002|window:window@=open",
+            "PLC000002|space:smell@=faint"
+          ],
+          "emits": [
+            "PLC000002|space:smell@<=none"
+          ],
+          "delay_s": 900,
+          "tuned": false
+        },
+        "air_out_door": {
+          "label": "현관문이 열려 있으면 뚜렷한 냄새가 5분 만에 은은해진다 (바깥으로 빠짐)",
+          "on": [
+            "PLC000001|door:door_state@=open",
+            "PLC000002|space:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC000002|space:smell@<=faint"
+          ],
+          "delay_s": 300,
+          "tuned": false
         }
       },
       "offers": {
@@ -269,6 +340,26 @@
           "during": [
             "home"
           ]
+        },
+        "ventilate": {
+          "label": "상한 냄새가 뚜렷하면 주방 창을 열어 환기한다 (집안일)",
+          "verb": "ventilate",
+          "needs": [
+            {
+              "aware": "PLC000002|space:smell",
+              "at_least": "noticed"
+            }
+          ],
+          "when": [
+            "PLC000002|window:window@=closed",
+            "PLC000002|space:smell@>=distinct",
+            "PLC000002|space:odor@>=sour"
+          ],
+          "effect": [
+            "PLC000002|window:window@=open"
+          ],
+          "minutes": 2,
+          "tuned": false
         }
       },
       "desc": [

@@ -172,6 +172,8 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       // sleeps: 자는 시간 — 끝나면 컨디션이 돌아온다 (condition.ts). 보지 않는 시간이어야 한다
       if (attrs['sleeps'] !== undefined && attrs['sleeps'] !== true) push(`${path}.attrs.sleeps`, 'sleeps는 true이거나 없어야 한다');
       if (attrs['sleeps'] === true && attrs['observed'] !== false) push(`${path}.attrs.sleeps`, '자는 시간은 플레이어가 보지 않는 시간이다 (observed: false)');
+      // leaves_home: 이 상황이 되면 집을 나선 것이다 (현관문을 지난다, perception.ts)
+      if (attrs['leaves_home'] !== undefined && (attrs['leaves_home'] !== true || attrs['observed'] !== false)) push(`${path}.attrs.leaves_home`, 'leaves_home은 true이고 보지 않는 상황이어야 한다');
       // cards: 이 구간이 끝나 귀가하면 밖의 하루 카드를 min~max장 뽑는다 (outside.ts). 보지 않는 시간이어야 한다
       const cards = attrs['cards'];
       if (cards !== undefined) {
@@ -357,6 +359,8 @@ function checkCondition(grouped: Map<string, VocabEntryRaw[]>, keysByCategory: M
       if (a['inner'] !== true || !isInt(n) || n === 0 || Math.abs(n) > 5) push(`${path}.${k}`, `${k}는 내면 특징에만 있고 0이 아닌 -5~5 정수(움직이는 칸 수)여야 한다`);
       if (k === 'settles' && isInt(n) && n < 0) push(`${path}.settles`, 'settles(잠이 기준 쪽으로 옮기는 칸 수)는 양수여야 한다');
     }
+    // door: 드나들 때 지나는 문 (open: 지날 때 되는 단계)
+    if (a['door'] !== undefined && (a['door'] !== true || !open(e).includes(String(a['open'])))) push(`${path}.door`, 'door 특징은 door: true와 지날 때 되는 단계 open(쓸 수 있는 단계 키)이 함께 있어야 한다');
     const dm = a['drain_min'];
     if (dm !== undefined && (a['condition'] === undefined || !isInt(dm) || dm < 1)) push(`${path}.drain_min`, 'drain_min(한 칸을 쓰는 활동 분)은 컨디션 특징의 1 이상 정수여야 한다');
   }

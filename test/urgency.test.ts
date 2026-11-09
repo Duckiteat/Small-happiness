@@ -30,11 +30,11 @@ const run = (r: Record<string, unknown>): { events: GameEvent[]; start: number }
   return { events: runScenario(db, vocab, sc).log.map(parseEvent), start: sc.start };
 };
 /** 쉬는 저녁, 19:40에 주방 냄새가 지독해진다 (시험용 외부 사건: 썩는 냄새). */
-const foulAt = (t: number, extra: Record<string, unknown> = {}): Record<string, unknown> => {
+const foulAt = (t: number, extra: Record<string, unknown> = {}, odor = 'putrid'): Record<string, unknown> => {
   const r: Record<string, unknown> = { ...evening(), ...extra, advice: [] };
   r['scripted'] = [
     { t, key: `${KITCHEN}|space:smell`, level: 'foul', label: '시험: 주방에 지독한 냄새' },
-    { t, key: `${KITCHEN}|space:odor`, level: 'putrid', label: '시험: 썩는 냄새' },
+    { t, key: `${KITCHEN}|space:odor`, level: odor, label: '시험: 냄새 종류' },
   ];
   return r;
 };
@@ -62,13 +62,16 @@ test('쉬는 중에 냄새가 지독해지면: 못 참기 시작하고, 하던 �
   assert.equal(actionClass(vocab, str(stoppedAction?.data['verb'])), 'pastime');
   assert.ok(Number(stoppedAction?.data['ends']) > 1180, '끝나기 전이었다');
   assert.equal(out.events.some((e) => e.type === 'action_done' && e.cause === stop.data['stopped']), false, '그만둔 쉼은 끝나지 않는다 (쉼의 효과도 없다)');
-  const next = of(out.events, 'action_chosen').find((e) => e.t >= 1180);
-  assert.equal(next?.data['verb'], 'inspect', '냄새부터');
+  const next = of(out.events, 'action_chosen').filter((e) => e.t >= 1180).map((e) => str(e.data['verb']));
+  assert.deepEqual(next.slice(0, 2), ['inspect', 'ventilate'], '냄새부터: 살피고 창을 연다');
+  const cleared = out.events.find((e) => e.type === 'state_changed' && e.data['key'] === `${KITCHEN}|space:smell` && e.data['to'] === 'faint' && e.t > 1180);
+  assert.ok(cleared !== undefined && cleared.t <= 1200, '창이 열려 있으면 바깥으로 빠져 10분 만에 은은해진다');
+  assert.equal(of(out.events, 'urgency_felt').find((e) => e.data['on'] === false)?.data['reason'], 'gone');
   assert.deepEqual(auditLog(out.events, db, vocab, { externalUntil: out.start }).findings, []);
 });
 
-test('참는 동안 60분마다 긴장이 쌓이고, 냄새가 빠지면 그친다 (그때까지의 참음을 먼저 센다)', () => {
-  const out = run(foulAt(1180));
+test('참는 동안 60분마다 긴장이 쌓이고, 냄새가 빠지면 그친다 (그때까지의 참음을 먼저 센다) — 처리할 행동이 없는 지독한 냄새(구수함)는 참는다', () => {
+  const out = run(foulAt(1180, {}, 'savory'));
   const on = of(out.events, 'urgency_felt').find((e) => e.data['on'] === true);
   const off = of(out.events, 'urgency_felt').find((e) => e.data['on'] === false);
   assert.ok(on !== undefined && off !== undefined);
@@ -127,7 +130,7 @@ test('집을 나서면 못 참는 냄새는 그친다 (나감)', () => {
 });
 
 test('감사: 못 참음·참음·쉼 끊기를 다시 맞춰, 고치거나 지어내면 잡는다', () => {
-  const out = run(foulAt(1180));
+  const out = run(foulAt(1180, {}, 'savory'));
   const es = out.events;
   const opts = { externalUntil: out.start };
   const stop = of(es, 'action_stopped')[0];

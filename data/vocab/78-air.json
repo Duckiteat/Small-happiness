@@ -1,0 +1,79 @@
+[
+  {
+    "category": "feature",
+    "entries": [
+      {
+        "key": "door_state",
+        "ko": "현관문",
+        "en": "front door",
+        "desc": "집과 바깥 사이의 문이 열려 있는가 (작가 2026-11-09: 현관문만, 드나들 때 잠깐 열림). 사람이 드나들면 열리고(passed_door) 규칙이 잠시 뒤 닫는다. 열려 있는 동안 바깥으로 공기가 빠진다",
+        "attrs": {
+          "sense": "sight",
+          "door": true,
+          "open": "open",
+          "levels": [
+            {
+              "key": "closed",
+              "ko": "닫힘"
+            },
+            {
+              "key": "open",
+              "ko": "열림"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      },
+      {
+        "key": "window",
+        "ko": "창문",
+        "en": "window",
+        "desc": "창이 열려 있는가. 환기하면 열리고 규칙이 잠시 뒤 닫는다. 열려 있는 동안 바깥으로 공기가 빠진다",
+        "attrs": {
+          "sense": "sight",
+          "levels": [
+            {
+              "key": "closed",
+              "ko": "닫힘"
+            },
+            {
+              "key": "open",
+              "ko": "열림"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "s3",
+              "locked": true
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "s5",
+              "locked": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

@@ -17,7 +17,7 @@ import type { Appraisal, Episode } from './emotion.ts';
 import { actionClass, ADVICE_GIVEN, ADVICE_IGNORED, OPTIONS_FORMED } from './agency.ts';
 import { afterDone, conditionFeature, stepped, hasCondition, MODE_CHANGED, modeCause, modeDefs, modeMinutes, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 import type { ModeDef } from './condition.ts';
-import { cardChanges, OUTSIDE_DAY_DONE } from './outside.ts';
+import { cardChanges, doorKey, OUTSIDE_DAY_DONE, PASSED_DOOR } from './outside.ts';
 import { ACTION_STOPPED, againstOdor, enduredTotal, isHabituated, URGENCY_ENDURED, URGENCY_FELT, urgencySense } from './urgency.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
@@ -524,7 +524,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           if (options.externalUntil !== undefined && e.t > options.externalUntil) bad(e.seq, 'state', `원인 없는 상태 변화가 처음 설정 시각(${options.externalUntil}분) 뒤에 있다: ${key}`);
         } else {
           const cause = bySeq.get(e.cause);
-          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event', EMOTION_FORMED, WOKE, RELEASED, OUTSIDE_DAY_DONE, URGENCY_ENDURED].includes(cause.type)) {
+          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event', EMOTION_FORMED, WOKE, RELEASED, OUTSIDE_DAY_DONE, URGENCY_ENDURED, PASSED_DOOR].includes(cause.type)) {
             bad(e.seq, 'state', `상태 변화의 원인이 ${cause?.type ?? '없는 사건'}이다 (처음 상태 · 발화 · 행동 끝 · 진행 · 외부 사건 · 감정만 상태를 바꾼다)`);
           } else if (!consumed) bad(e.seq, 'effects', `${cause.type}의 정의가 요구하지 않는 결과다: ${key} → ${to}`);
         }
@@ -884,6 +884,18 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         carryA.set(c.who, cond.carry);
         expect.push(...cond.changes);
         if (expect.length > 0) pending = { cause: e.seq, what: `${via} 끝`, expect };
+        break;
+      }
+      case PASSED_DOOR: {
+        // 현관문을 지남: 일정·집을 비우는 행동이 정한 원천. 집의 문이 맞고, 닫혀 있었으면 바로 뒤에 열린다 (드나든 시각은 다시 보지 않는다, LIM041)
+        bump('state');
+        const who = str(e.data['who']), dir = str(e.data['dir']);
+        const door = doorKey(vocab, [...instances.keys()].filter((i) => i.startsWith('PLC')), (i) => viewA.keysOf(i));
+        if (!instances.has(who) || !who.startsWith('CHR') || e.cause !== null || door === null || str(e.data['door']) !== door.key || (dir !== 'out' && dir !== 'in')) {
+          bad(e.seq, 'state', '현관문을 지난 것은 있는 인물이, 원인 없이, 집의 문을, 나가거나(out) 들어오며(in)');
+          break;
+        }
+        if (levelIn(levels, door.key) !== door.open) pending = { cause: e.seq, what: '현관문을 지남', expect: [{ key: door.key, to: door.open }] };
         break;
       }
       case URGENCY_FELT: {

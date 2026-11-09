@@ -33,7 +33,7 @@ import { parseRecent } from './agency.ts';
 import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, conceptCause, conceptPool, knownConcepts, strengthKeyOf } from './ladder.ts';
 import type { LadderState, LadderView } from './ladder.ts';
 import { skillKey } from './skill.ts';
-import { cardChanges } from './outside.ts';
+import { cardChanges, doorKey, PASSED_DOOR } from './outside.ts';
 import { enduredTotal, isHabituated, URGENCY_ENDURED, URGENCY_FELT, urgencySense } from './urgency.ts';
 import { conditionFeature, hasCondition, MODE_CHANGED, stepped, modeCause, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 
@@ -139,6 +139,9 @@ export class Perception {
         for (const c of changes) world.set(c.key, c.to, { t, cause: e.seq });
       }
     }
+    // 현관문 (사전 feature의 door): 집을 나서거나 들어오면 지난다 — 문이 열린다. 일정·집을 비우는 행동이 정한 일이라 원인이 없다
+    const leaves = (p: string | null): boolean => p !== null && this.#vocab.entry('presence', p)?.attrs['leaves_home'] === true;
+    if (this.#lastPresence !== null && leaves(this.#lastPresence) !== leaves(presence)) this.#passDoor(world, t, leaves(presence) ? 'out' : 'in');
     this.#lastPresence = presence;
     if (!isObserved(this.#vocab, presence)) this.#leave(world, t);
     if (isObserved(this.#vocab, presence)) {
@@ -485,6 +488,16 @@ export class Perception {
         this.#dulled.add(id);
         mark(key, undefined);
       }
+    }
+  }
+
+  /** 인물마다 현관문을 지난다: 집의 장소 중 door 특징을 가진 첫 장소의 문이 열린다 (이미 열려 있으면 사건만). */
+  #passDoor(world: World, t: number, dir: 'out' | 'in'): void {
+    const door = doorKey(this.#vocab, world.instances().filter((i) => i.startsWith('PLC')), (i) => world.keysOf(i));
+    if (door === null) return;
+    for (const who of world.instances().filter((i) => i.startsWith('CHR'))) {
+      const e = this.#log.append({ t, type: PASSED_DOOR, src: PERCEPTION_SRC, cause: null, data: { who, dir, door: door.key } });
+      if (world.level(door.key) !== door.open) world.set(door.key, door.open, { t, cause: e.seq });
     }
   }
 

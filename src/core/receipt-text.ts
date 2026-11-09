@@ -140,6 +140,14 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
       const cards = Array.isArray(d['cards']) ? d['cards'].map((x) => n.word('outside_card', s(x))) : [];
       return `${n.thing(s(d['who']))} · ${typeKo}: ${cards.length > 0 ? cards.join(' · ') : '카드 없음'}`;
     }
+    case 'passed_door':
+      return `${n.thing(s(d['who']))} · ${typeKo} (${d['dir'] === 'out' ? '나섬' : '들어옴'})`;
+    case 'urgency_felt':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.key(s(d['key'])).what} (${d['on'] === true ? '시작' : d['reason'] === 'habituated' ? '둔해짐' : d['reason'] === 'away' ? '나감' : '그침'})`;
+    case 'urgency_endured':
+      return `${n.thing(s(d['who']))} · ${typeKo} ${String(d['bumps'])}번`;
+    case 'action_stopped':
+      return `${n.thing(s(d['who']))} · ${typeKo}`;
     case 'mode_changed':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${d['from'] !== undefined ? `${n.word('mode', s(d['from']))} → ` : ''}${n.word('mode', s(d['mode']))}`;
     case 'released':

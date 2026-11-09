@@ -82,3 +82,17 @@ export function cardChanges(vocab: Vocab, mind: MindDef | undefined, who: string
   }
   return out;
 }
+
+export const PASSED_DOOR = 'passed_door';
+
+/** 드나들 때 지나는 문: 장소들(번호 순) 중 door 특징(사전 feature의 door)을 가진 첫 상태 키와 지날 때 되는 단계. 없으면 null. */
+export function doorKey(vocab: Vocab, places: readonly string[], keysOf: (id: string) => readonly string[]): { key: string; open: string } | null {
+  for (const p of [...places].sort()) {
+    for (const key of keysOf(p)) {
+      const f = key.slice(key.lastIndexOf(':') + 1);
+      const a = vocab.entry('feature', f)?.attrs ?? {};
+      if (a['door'] === true && typeof a['open'] === 'string') return { key, open: a['open'] };
+    }
+  }
+  return null;
+}
