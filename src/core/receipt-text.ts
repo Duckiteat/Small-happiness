@@ -125,6 +125,14 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('reflex', s(d['reflex']))}`;
     case 'image_formed':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('image', s(d['image']))} (${d['moment'] === true ? '그 순간' : d['on'] === true ? '생김' : '깨짐'})`;
+    case 'ladder_moved': {
+      // 심상 사다리: 어느 곳의 냄새를 어디까지 아는가 (맨 앞이 믿는 종류)
+      const where = n.thing(s(d['of']));
+      if (d['on'] !== true) return `${n.thing(s(d['who']))} · ${typeKo}: ${where} (닫힘)`;
+      const kinds = Array.isArray(d['kinds']) ? d['kinds'].map((x) => n.level(s(d['feature']), s(x))) : [];
+      const thing = d['thing'] === undefined ? '' : ` · ${n.thing(s(d['thing']))}`;
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${where} ${n.word('rung', s(d['rung']))}${kinds.length > 0 ? ` (${kinds.join(' / ')})` : ''}${thing}${d['fresh'] === true ? ' · 새 냄새' : ''}`;
+    }
     case 'body_response':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('response', s(d['response']))} (${n.word('image', s(d['image']))})`;
     case 'emotion_formed': {

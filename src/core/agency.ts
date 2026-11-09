@@ -272,7 +272,8 @@ export class Agency {
           // 이미 이루어졌으면 하지 않는다: 결과가 다 맞고, 옮길 것이 이미 그곳에 있고, 만들 것이 없을 때
           if (creates.length === 0 && moveSpecs.length > 0 && moves.length === 0 && (effects.length === 0 || effects.every((e) => stateMatches(world, this.#vocab, e.key, e.feature, e.cond)))) continue;
           // 같은 앎에서는 되풀이하지 않는다: 필요한 앎과 그 물건에 대한 앎(본 단계)이 바뀌면 다시 할 수 있다
-          const knowing = (k: string): string => `${knows[k]?.aw ?? 'unknown'}:${knows[k]?.level ?? ''}`;
+          // 심상 사다리로 아는 종류는 단계 대신 그 사다리가 열린 사건으로 본다: 살펴서 정체를 알아 믿음이 바뀐 것은 새 냄새가 아니다
+          const knowing = (k: string): string => `${knows[k]?.aw ?? 'unknown'}:${knows[k]?.since ?? knows[k]?.level ?? ''}`;
           // 요리법의 단계는 한 끼(일정 구간)에 한 번: 끝나고 시간이 남아도 같은 메뉴를 다시 만들지 않는다
           const cls = actionClass(this.#vocab, offer.verb);
           const signature = offer.buys !== undefined || cls === 'pastime' // 장보기와 쉼은 되풀이할 수 있다

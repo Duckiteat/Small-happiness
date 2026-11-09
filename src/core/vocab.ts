@@ -226,6 +226,18 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       const r = attrs['rank'];
       if (!isInt(r) || r < 1 || r > LADDER_SIZE - 1) push(`${path}.attrs.rank`, `냄새 종류의 순서(rank)는 1~${LADDER_SIZE - 1} 정수여야 한다 (사다리 칸 번호, 0은 없음)`);
       if (typeof attrs['feature'] !== 'string') push(`${path}.attrs.feature`, '이 종류가 들어가는 특징(feature 키)이 필요하다');
+      // like: 옅게 맡으면 헷갈리는 비슷한 종류 (심상 사다리의 짐작). 임시값 표시가 필요하다
+      const like = attrs['like'];
+      if (like !== undefined) {
+        if (!Array.isArray(like) || !like.every((x) => typeof x === 'string') || like.includes(entry.key)) push(`${path}.attrs.like`, 'like는 자기가 아닌 냄새 종류 키의 목록이어야 한다');
+        if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '헷갈리는 종류(like)가 조정된 값인지 tuned를 적어야 한다');
+      }
+      break;
+    }
+    case 'rung': {
+      // 심상 사다리의 칸 (ladder.ts): 순서(rank)로 올라가기만 한다
+      const r = attrs['rank'];
+      if (!isInt(r) || r < 0) push(`${path}.attrs.rank`, '사다리 칸의 순서(rank)는 0 이상의 정수여야 한다');
       break;
     }
     case 'compound':
@@ -291,6 +303,43 @@ const REFS: readonly (readonly [string, string, string])[] = [
   ['odor_cause', 'feature', 'feature'], // 냄새 원인의 단계를 가진 특징
   ['odor_cause', 'strength_feature', 'feature'], // 냄새의 세기를 가진 특징
 ];
+
+/** 심상 사다리 (ladder.ts): 사다리를 타는 종류 특징의 ladder 설정과 비슷한 종류(like), 칸 사전. */
+function checkLadders(grouped: Map<string, VocabEntryRaw[]>, keysByCategory: Map<string, Set<string>>, push: Push): void {
+  const features = grouped.get('feature') ?? [];
+  const featureOf = (k: unknown): VocabEntryRaw | undefined => features.find((x) => x.key === k);
+  let any = false;
+  for (const e of features) {
+    const l = e.attrs?.['ladder'];
+    if (l === undefined) continue;
+    any = true;
+    const path = `feature.${e.key}.attrs.ladder`;
+    if (typeof l !== 'object' || l === null || Array.isArray(l)) {
+      push(path, 'ladder는 { by, skill, kind_pct, clear_pct, tuned }여야 한다');
+      continue;
+    }
+    if (typeof e.attrs?.['sense'] !== 'string') push(path, '사다리를 타는 특징은 느끼는 감각(sense)이 있어야 한다');
+    if (featureOf(l['by']) === undefined || l['by'] === e.key) push(`${path}.by`, '세기를 가진 다른 특징(by, feature 키)이 필요하다');
+    const skill = featureOf(l['skill']);
+    if (skill === undefined || skill.attrs?.['inner'] !== true) push(`${path}.skill`, '가려 내는 숙련(skill)은 내면 특징이어야 한다');
+    const kp = l['kind_pct'];
+    if (!isInt(kp) || kp < 1 || kp > 100) push(`${path}.kind_pct`, 'kind_pct(종류를 아는 세기, 그 사람의 단계 중 %)는 1~100 정수여야 한다');
+    const cp = l['clear_pct'];
+    const skillLevels = skill?.attrs?.['levels'];
+    if (!Array.isArray(cp) || !cp.every((x) => isInt(x) && x >= 1 && x <= 100) || (Array.isArray(skillLevels) && cp.length !== skillLevels.length)) {
+      push(`${path}.clear_pct`, 'clear_pct는 숙련의 칸마다 하나씩, 1~100 정수(%)여야 한다');
+    } else if (cp.some((x, i) => i > 0 && (x as number) > (cp[i - 1] as number))) push(`${path}.clear_pct`, 'clear_pct는 숙련이 오를수록 같거나 낮아야 한다 (감별이 오르면 더 옅은 냄새도 가려 낸다)');
+    if (typeof l['tuned'] !== 'boolean') push(`${path}.tuned`, '문턱이 조정된 값인지 tuned를 적어야 한다');
+  }
+  const kinds = keysByCategory.get('odor_kind') ?? new Set<string>();
+  for (const e of grouped.get('odor_kind') ?? []) {
+    const like = e.attrs?.['like'];
+    if (Array.isArray(like)) for (const x of like) if (!kinds.has(String(x))) push(`odor_kind.${e.key}.attrs.like`, `"${String(x)}"는 odor_kind 분류에 없는 키다`);
+  }
+  if (!any) return;
+  const rungs = keysByCategory.get('rung') ?? new Set<string>();
+  for (const k of ['feel', 'guess', 'narrow', 'thing']) if (!rungs.has(k)) push('rung', `사다리가 있으면 칸 ${k}가 사전에 있어야 한다`);
+}
 
 function groupByCategory(raw: readonly VocabCategoryRaw[]): Map<string, VocabEntryRaw[]> {
   const grouped = new Map<string, VocabEntryRaw[]>();
@@ -368,6 +417,7 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
   }
 
   checkOdorKnowledge(grouped, keysByCategory, push);
+  checkLadders(grouped, keysByCategory, push);
   // 가열로 되돌리는 시계: 가열 특징과 두 단계가 실제 사다리의 쓸 수 있는 칸이어야 한다
   const featureLevels = (feature: unknown): string[] | undefined => {
     const levels = grouped.get('feature')?.find((x) => x.key === feature)?.attrs?.['levels'];

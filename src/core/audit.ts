@@ -28,7 +28,9 @@ import type { GameEvent, JsonValue } from './events.ts';
 import { allRules, levelMatches } from './causal.ts';
 import type { Rule } from './causal.ts';
 import { defOf } from './ids.ts';
-import { isLinked, visibleRoot } from './placement.ts';
+import { isLinked, rootOf, visibleRoot } from './placement.ts';
+import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, strengthKeyOf } from './ladder.ts';
+import type { LadderSpec, LadderState, LadderView } from './ladder.ts';
 import { effectiveInitial, effectiveOffers, effectiveProgress, kindMembers } from './kinds.ts';
 import { formatStateKey, parsePattern, parseStateKey } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
@@ -235,6 +237,37 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   };
   const inspected = new Set<string>(); // `${who}|${via}`: 끝난 행동
   const knows = new Map<string, { aw: string; level: string }>(); // `${who}|${key}`
+  // 심상 사다리 (ladder.ts): 그때의 상태·앎·숙련·자주 겪음으로 다시 계산한다
+  const specsA = ladderSpecs(vocab);
+  const viewA: LadderView = {
+    instances: () => [...instances.keys()].sort(),
+    keysOf: (i) => {
+      const slots = db.defs[instances.get(i) ?? '']?.slots ?? {};
+      return Object.keys(slots).sort().flatMap((slot) => [...(slots[slot]?.features ?? [])].sort().map((f) => formatStateKey({ subject: i, slot, feature: f })));
+    },
+    level: (k) => levelIn(levels, k),
+    whereIs: (i) => rootOf(placeMap, i),
+  };
+  const laddersA = new Map<string, { state: LadderState; seq: string }>(); // `${인물}|${장소}|${종류 특징}`
+  const familiarA = new Map<string, Map<string, number>>(); // 인물 → 좁히거나 정체를 안 종류 → 횟수
+  /** 지금 그 장소의 냄새를 느끼는가, 느끼면 사다리가 어디로 가야 하나 (지각 층과 같은 계산). */
+  const ladderNow = (who: string, place: string, spec: LadderSpec, at: { kind: string; strength: string }): { felt: boolean; r: ReturnType<typeof climb>; cause: string | null } => {
+    const cdef = instances.get(who) ?? '';
+    const notice = reachOf(vocab, spec.sense) === 'distance' ? db.defs[cdef]?.senses?.[spec.sense]?.notice : undefined;
+    const idx = ladder(spec.by).indexOf(levelIn(levels, at.strength));
+    if (notice === undefined || idx < notice) return { felt: false, r: null, cause: null };
+    const { strengths, read } = kindStrengths(vocab, viewA, spec, place);
+    const sk = skillKey(who, spec.skill);
+    const hasSkill = viewA.keysOf(who).includes(sk);
+    const skillIndex = hasSkill ? ladder(spec.skill).indexOf(levelIn(levels, sk)) : 0;
+    const discerned = discern(vocab, spec, strengths, scaleOf(db, cdef, spec.sense), Math.max(0, skillIndex));
+    const mine = [...knows].filter(([k]) => k.startsWith(`${who}|`)).map(([k, v]) => [k.slice(who.length + 1), v] as const);
+    const familiar = familiarA.get(who) ?? new Map<string, number>();
+    const r = climb(vocab, spec, laddersA.get(`${who}|${place}|${spec.feature}`)?.state, { discerned, known: knownKinds(vocab, spec, mine, 'understood'), familiar });
+    const thing = r?.state.thing;
+    const thingSeq = thing === undefined ? undefined : [...knowSeq].find(([k]) => k.startsWith(`${who}|${thing}|`) && k.endsWith(`:${spec.feature}`))?.[1];
+    return { felt: true, r, cause: ladderCause(read, lastChangeOf, [hasSkill ? lastChangeOf(sk) : null, thingSeq]) };
+  };
   let pending: Pending | null = null;
   let batch: ReadonlyMap<string, string> | null = null; // 같은 시각 발화들은 직전 값을 읽는다: 첫 발화 직전의 상태
   const batchFired = new Set<string>();
@@ -808,6 +841,46 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (expect.length > 0) pending = { cause: e.seq, what: `${via} 끝`, expect };
         break;
       }
+      case LADDER_MOVED: {
+        bump('awareness');
+        const who = str(e.data['who']), place = str(e.data['of']), on = e.data['on'] === true;
+        const spec = specsA.find((x) => x.feature === str(e.data['feature']));
+        const at = spec === undefined || !instances.has(place) ? null : strengthKeyOf(viewA, spec, place);
+        if (!instances.has(who) || !who.startsWith('CHR') || spec === undefined || at === null) {
+          bad(e.seq, 'awareness', `사다리를 탈 수 없는 냄새다: ${who} · ${place} · ${str(e.data['feature'])}`);
+          break;
+        }
+        const id = `${who}|${place}|${spec.feature}`;
+        const away = awayUntil.get(who);
+        if (away !== undefined && e.t > away.from && e.t < away.to) bad(e.seq, 'awareness', `${who}는 집을 비웠는데 사다리가 움직였다`);
+        const ex = ladderNow(who, place, spec, at);
+        if (!on) {
+          if (!laddersA.has(id) || ex.felt) bad(e.seq, 'awareness', ex.felt ? '아직 냄새를 느끼는데 사다리를 닫았다' : '열린 사다리가 없는데 닫았다');
+          else expectCause(e.seq, 'cause', e.cause, lastChangeOf(at.strength), '사다리 닫힘');
+          laddersA.delete(id);
+          break;
+        }
+        if (ex.r === null) {
+          bad(e.seq, 'awareness', ex.felt ? '그때의 상태로는 사다리가 그대로다' : '냄새를 느끼지 못하는데 사다리가 움직였다');
+          break;
+        }
+        const st = ex.r.state;
+        const kinds = Array.isArray(e.data['kinds']) ? e.data['kinds'].map(String) : [];
+        const causes = Array.isArray(e.data['causes']) ? e.data['causes'].map(String) : [];
+        const thing = e.data['thing'] === undefined ? undefined : str(e.data['thing']);
+        if (str(e.data['rung']) !== st.rung || kinds.join(',') !== st.kinds.join(',') || thing !== st.thing || (e.data['fresh'] === true) !== ex.r.fresh || causes.join(',') !== causesOf(vocab, st.kinds).join(',')) {
+          bad(e.seq, 'awareness', `그때의 냄새·앎·감별로는 사다리가 ${st.rung}(${st.kinds.join('·') || '종류 모름'}${st.thing !== undefined ? ` · ${st.thing}` : ''}${ex.r.fresh ? ' · 새 냄새' : ''})이다 (기록: ${str(e.data['rung'])}(${kinds.join('·') || '종류 모름'}${thing !== undefined ? ` · ${thing}` : ''}))`);
+        }
+        expectCause(e.seq, 'cause', e.cause, ex.cause, '사다리');
+        const settled = newlySettled(laddersA.get(id)?.state, ex.r.fresh, st);
+        if (settled !== null) {
+          const fam = familiarA.get(who) ?? new Map<string, number>();
+          familiarA.set(who, fam);
+          fam.set(settled, (fam.get(settled) ?? 0) + 1);
+        }
+        laddersA.set(id, { state: st, seq: e.seq });
+        break;
+      }
       case 'awareness_up':
       case 'awareness_changed': {
         bump('awareness');
@@ -827,7 +900,9 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (e.type === 'awareness_changed' && (rose || prev === undefined || prev.aw !== aw || prev.level === level)) bad(e.seq, 'awareness', '이미 아는 단계에서 본 단계가 달라진 것이 아니다');
         if (pv === null) break;
         // 원인: 저절로 느낀 것은 그 상태를 마지막으로 정한 사건, 살펴서 안 것은 그 살피기가 끝난 사건
-        if (pv.kind === 'sense') expectCause(e.seq, 'cause', e.cause, lastChangeOf(key), `${key} 느낌`);
+        const lspec = pv.kind === 'sense' ? ladderOfKey(specsA, viewA, key) : null;
+        const lopen = lspec === null ? undefined : laddersA.get(`${who}|${k.subject}|${lspec.feature}`);
+        if (pv.kind === 'sense') expectCause(e.seq, 'cause', e.cause, lopen !== undefined ? lopen.seq : lastChangeOf(key), lspec !== null && lopen !== undefined ? `${key} 짐작` : `${key} 느낌`);
         else {
           bump('cause');
           const d = e.cause === null ? undefined : doneBy.get(e.cause);
@@ -843,9 +918,20 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
             if (stays !== undefined && k.subject.startsWith('OBJ') && defOf(visibleRoot(placeMap, k.subject)) !== stays) {
               bad(e.seq, 'awareness', `${who}는 ${stays}에 머무는데 ${k.subject}는 그곳에 놓여 있지 않은데 ${k.feature}를 저절로 느꼈다`);
             }
-            const felt = ladder(k.feature).indexOf(now) >= notice;
-            if (felt && level !== now) bad(e.seq, 'awareness', `느낀 단계(${level})가 세계의 단계(${now})와 다르다`);
-            if (!felt && level !== ladder(k.feature)[0]) bad(e.seq, 'awareness', `알아채는 칸(${notice}) 아래인데 ${level}를 느꼈다고 적었다 (없어진 것은 0칸이어야 한다)`);
+            if (lspec !== null) {
+              // 장소 공기의 종류는 심상 사다리로 안다: 열려 있으면 믿는 종류(후보의 맨 앞), 닫혔으면 없어졌다
+              const at = strengthKeyOf(viewA, lspec, k.subject);
+              const ex = at === null ? null : ladderNow(who, k.subject, lspec, at);
+              if (ex !== null && ex.felt && ex.r !== null) bad(e.seq, 'awareness', `그때의 냄새로는 사다리가 먼저 옮겨져야 한다 (${ex.r.state.rung})`);
+              if (ex !== null && !ex.felt && lopen !== undefined) bad(e.seq, 'awareness', '냄새를 못 느끼게 됐는데 사다리가 닫히지 않았다');
+              const want = lopen !== undefined ? believed(lopen.state) : ladder(k.feature)[0];
+              if (want === null) bad(e.seq, 'awareness', '사다리가 느낌 칸이라 종류를 모르는데 종류를 안다고 적었다');
+              else if (level !== want) bad(e.seq, 'awareness', `사다리로 믿는 종류는 ${want}인데 ${level}를 안다고 적었다`);
+            } else {
+              const felt = ladder(k.feature).indexOf(now) >= notice;
+              if (felt && level !== now) bad(e.seq, 'awareness', `느낀 단계(${level})가 세계의 단계(${now})와 다르다`);
+              if (!felt && level !== ladder(k.feature)[0]) bad(e.seq, 'awareness', `알아채는 칸(${notice}) 아래인데 ${level}를 느꼈다고 적었다 (없어진 것은 0칸이어야 한다)`);
+            }
             if (e.type === 'awareness_up' && aw !== 'noticed') bad(e.seq, 'awareness', `저절로 느낀 것은 알아챔(noticed)이다 (${aw})`);
           }
         } else if (pv.kind === 'offer') {

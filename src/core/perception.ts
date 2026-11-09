@@ -30,6 +30,9 @@ import { parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
 import type { World } from './world.ts';
 import { parseRecent } from './agency.ts';
+import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, strengthKeyOf } from './ladder.ts';
+import type { LadderState, LadderView } from './ladder.ts';
+import { skillKey } from './skill.ts';
 
 export const PERCEPTION_SRC = 'perception';
 export const AWARENESS_UP = 'awareness_up';
@@ -51,6 +54,8 @@ export interface Knowing {
   readonly t: number;
   /** 이 앎을 만든 awareness 사건 번호. 행동을 고른 이유(cause)를 적을 때 쓴다 */
   readonly seq: string;
+  /** 심상 사다리로 아는 종류면 그 사다리가 열린 사건 (같은 냄새를 다시 짐작한 것은 새 앎이 아니다) */
+  readonly since?: string;
 }
 
 /** 인물 인스턴스 → 상태 키 → 앎. */
@@ -71,7 +76,7 @@ export function parseAware(value: BoardValue | undefined): AwareMap {
     for (const [key, k] of Object.entries(m)) {
       if (typeof k !== 'object' || Array.isArray(k)) continue;
       const o = k as { readonly [f: string]: BoardValue };
-      if (typeof o['aw'] === 'string' && typeof o['level'] === 'string' && typeof o['t'] === 'number' && typeof o['seq'] === 'string') inner[key] = { aw: o['aw'], level: o['level'], t: o['t'], seq: o['seq'] };
+      if (typeof o['aw'] === 'string' && typeof o['level'] === 'string' && typeof o['t'] === 'number' && typeof o['seq'] === 'string') inner[key] = { aw: o['aw'], level: o['level'], t: o['t'], seq: o['seq'], ...(typeof o['since'] === 'string' ? { since: o['since'] } : {}) };
     }
     out[who] = inner;
   }
@@ -94,6 +99,8 @@ export class Perception {
   readonly #memories = new Map<string, Map<string, string>>(); // 인물 → 정의 → 감정이 붙은 기억
   readonly #surfaced = new Map<string, Map<string, number>>(); // 인물 → 정의 → 마지막으로 갑자기 떠오른 때
   readonly #paired = new Map<string, number>(); // `${인물}|${반사}` → 짝지어 겪은 횟수 // 고른 행동 사건 → 끝난 사건 (살펴서 안 것의 원인)
+  readonly #ladders = new Map<string, { readonly state: LadderState; readonly seq: string; readonly since: string }>(); // `${인물}|${장소}|${종류 특징}` → 심상 사다리의 자리, 그 사건, 열린 사건
+  readonly #familiar = new Map<string, Map<string, number>>(); // 인물 → 좁히거나 정체를 안 종류 → 횟수 (자주 겪음)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -136,7 +143,10 @@ export class Perception {
         // 그 장소에 놓여 눈에 보이는 물건(받치는 것을 따라 닿는 곳. 냉장고 안에 든 것처럼 어딘가의 안에 있으면 보이지 않는다)의 눈에 보이는 상태도 저절로 안다: 켜진 불, 담긴 물.
         // 놓임이 없는 물건(냉장고 속 음식처럼 어디에 있는지 모르는 것)은 살펴야만 안다.
         const here = instances.filter((i) => i.startsWith('OBJ') && places.includes(world.visiblePlace(i)));
+        const specs = ladderSpecs(this.#vocab);
+        const view = ladderView(world);
         for (const key of [...places, ...here].flatMap((p) => world.keysOf(p))) {
+          if (ladderOfKey(specs, view, key) !== null) continue; // 장소 공기의 종류는 심상 사다리로 안다 (아래)
           if (felt(key)) {
             perceived.push({ who, key, level: world.level(key) });
             this.#observe(who, key, NOTICED, world.level(key), t, senseVia(key), world.lastChange(key));
@@ -157,6 +167,8 @@ export class Perception {
           if (felt(key)) perceived.push({ who, key, level: world.level(key) });
           this.#observe(who, key, UNDERSTOOD, world.level(key), t, inspectVia, inspectDone);
         }
+        // 심상 사다리 (ladder.ts): 머무는 곳의 냄새가 무엇인지. 살펴서 안 것까지 본 뒤에 오른다
+        this.#climb(world, t, who, [...places].sort(), senseVia);
       }
     }
     return { perceived, aware: this.snapshot() };
@@ -324,6 +336,64 @@ export class Perception {
     }
   }
 
+  /**
+   * 장소마다 사다리를 연다·옮긴다·닫는다. 하루씨가 믿는 종류(짐작 이상이면 후보의 맨 앞)가 그 장소의 종류에 대한 앎이 된다.
+   * 세기를 못 느끼게 되면 사다리를 닫고, 알던 종류는 없어졌다고 안다.
+   */
+  #climb(world: World, t: number, who: string, places: readonly string[], senseVia: (key: string) => string): void {
+    const def = defOf(who) ?? '';
+    const senses = this.#db.defs[def]?.senses ?? {};
+    const view = ladderView(world);
+    const knows = this.#aware.get(who) ?? new Map<string, Knowing>();
+    for (const spec of ladderSpecs(this.#vocab)) {
+      const notice = reachOf(this.#vocab, spec.sense) === 'distance' ? senses[spec.sense]?.notice : undefined;
+      for (const place of places) {
+        const at = strengthKeyOf(view, spec, place);
+        if (at === null) continue;
+        const id = `${who}|${place}|${spec.feature}`;
+        const prev = this.#ladders.get(id);
+        const idx = world.levelIndex(at.strength);
+        if (notice === undefined || idx === null || idx < notice) {
+          if (prev !== undefined) {
+            this.#log.append({ t, type: LADDER_MOVED, src: PERCEPTION_SRC, cause: world.lastChange(at.strength), data: { who, of: place, feature: spec.feature, on: false } });
+            this.#ladders.delete(id);
+          }
+          const known = knows.get(at.kind);
+          const zero = this.#vocab.levelOrder(spec.feature)?.at(0);
+          if (notice !== undefined && known !== undefined && zero !== undefined && known.level !== zero) this.#observe(who, at.kind, known.aw, zero, t, senseVia(at.kind), world.lastChange(at.kind));
+          continue;
+        }
+        const { strengths, read } = kindStrengths(this.#vocab, view, spec, place);
+        const sk = skillKey(who, spec.skill);
+        const hasSkill = world.keysOf(who).includes(sk);
+        const skillIndex = hasSkill ? (this.#vocab.levelOrder(spec.skill) ?? []).indexOf(world.level(sk)) : 0;
+        const discerned = discern(this.#vocab, spec, strengths, scaleOf(this.#db, def, spec.sense), Math.max(0, skillIndex));
+        const known = knownKinds(this.#vocab, spec, knows, UNDERSTOOD);
+        const familiar = this.#familiar.get(who) ?? new Map<string, number>();
+        this.#familiar.set(who, familiar);
+        const r = climb(this.#vocab, spec, prev?.state, { discerned, known, familiar });
+        if (r !== null) {
+          const thing = r.state.thing;
+          const thingSeq = thing === undefined ? undefined : [...knows].find(([k]) => k.startsWith(`${thing}|`) && k.endsWith(`:${spec.feature}`))?.[1].seq;
+          const cause = ladderCause(read, (k) => world.lastChange(k), [hasSkill ? world.lastChange(sk) : null, thingSeq]);
+          const e = this.#log.append({
+            t,
+            type: LADDER_MOVED,
+            src: PERCEPTION_SRC,
+            cause,
+            data: { who, of: place, feature: spec.feature, on: true, rung: r.state.rung, kinds: [...r.state.kinds], causes: causesOf(this.#vocab, r.state.kinds), ...(thing !== undefined ? { thing } : {}), ...(r.fresh ? { fresh: true } : {}) },
+          });
+          const settled = newlySettled(prev?.state, r.fresh, r.state);
+          if (settled !== null) familiar.set(settled, (familiar.get(settled) ?? 0) + 1);
+          this.#ladders.set(id, { state: r.state, seq: e.seq, since: prev === undefined || r.fresh ? e.seq : prev.since });
+        }
+        const now = this.#ladders.get(id);
+        const b = believed(now?.state);
+        if (b !== null && now !== undefined) this.#observe(who, at.kind, NOTICED, b, t, senseVia(at.kind), now.seq, now.since);
+      }
+    }
+  }
+
   /** 고른 행동이 끝났음을 알려 준다 (2층이 끝난 사건을 기록한 직후). 살펴서 안 것의 원인이 된다. */
   recordDone(chosen: string, done: string): void {
     this.#done.set(chosen, done);
@@ -339,7 +409,7 @@ export class Perception {
   }
 
   /** 본 것을 앎에 남긴다. 인지 단계는 오르기만 하고, 본 단계가 바뀌면 앎이 바뀐다. 바뀐 것이 있을 때만 사건을 남긴다. */
-  #observe(who: string, key: string, aw: string, level: string, t: number, via: string, cause: string | null): void {
+  #observe(who: string, key: string, aw: string, level: string, t: number, via: string, cause: string | null, since?: string): void {
     const m = this.#aware.get(who) ?? new Map<string, Knowing>();
     this.#aware.set(who, m);
     const prev = m.get(key);
@@ -348,8 +418,13 @@ export class Perception {
     const to = rose ? aw : prevAw;
     if (!rose && prev !== undefined && prev.level === level) return;
     const e = this.#log.append({ t, type: rose ? AWARENESS_UP : AWARENESS_CHANGED, src: PERCEPTION_SRC, cause, data: { who, key, to, level, via } });
-    m.set(key, { aw: to, level, t, seq: e.seq });
+    m.set(key, { aw: to, level, t, seq: e.seq, ...(since !== undefined ? { since } : {}) });
   }
+}
+
+/** 사다리가 세계를 읽는 창 (ladder.ts). */
+function ladderView(world: World): LadderView {
+  return { instances: () => world.instances(), keysOf: (i) => world.keysOf(i), level: (k) => world.level(k), whereIs: (i) => world.whereIs(i) };
 }
 
 /** 지각 층이 세계를 읽는 창 (sensation.ts). */
