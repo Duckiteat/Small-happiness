@@ -12,15 +12,20 @@
 // 가려 냄 (감별, 숙련): 그 사람의 단계로 느낀 세기가 kind_pct 아래면 종류를 모르고(feel),
 //   clear_pct[감별 칸] 아래면 비슷한 종류(odor_kind의 like)와 헷갈린다. 감별이 오르면 더 옅은 냄새도 가려 낸다.
 // 좁히기 (교집합 + 순서 규칙, 난수 없음): 남은 후보 ∩ 이번에 가려 낸 것. 비면 다른 냄새로 보고 새 사다리를 연다(fresh).
-//   순서: 자주 겪은 종류(이 사다리로 좁히거나 정체를 안 횟수) > 사전의 단계 순(순한 것 먼저). 맨 앞이 하루씨가 믿는 종류다.
+//   순서: 기억 > 자주 겪음 > 사전의 단계 순(순한 것 먼저). 맨 앞이 하루씨가 믿는 종류다.
+//     기억 = 감정이 붙은 기억(정의 → 감정)의 그 물건이 내던 냄새 종류. 물건의 감각질(feels) 중 이 감각의 것을,
+//     그 감각질을 주는 종류(어느 정의의 feels가 `종류 특징@=종류`일 때 그 감각질을 주는가)로 거꾸로 따라간다.
+//     감정의 결(좋음·싫음)은 따지지 않는다: 그리운 것도 싫은 것도 먼저 떠오른다.
 // 오인: 맨 앞이 실제와 다르면 하루씨는 그것을 믿고 움직인다 (살피기가 늦어진다). 해는 없고 시간만 든다.
 //
 // 지각 층(perception.ts)과 감사(audit.ts)가 같은 계산을 쓴다. 코드에 물건·냄새 이름은 없다.
 
 import { openLadder } from './amount.ts';
+import type { Db } from './db.ts';
+import { effectiveFeels } from './kinds.ts';
 import { latestSeq } from './events.ts';
 import { odorChain } from './odor.ts';
-import { parseStateKey } from './statekey.ts';
+import { parseLocalCondition, parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
 
 export const LADDER_MOVED = 'ladder_moved';
@@ -193,12 +198,15 @@ export interface LadderInput {
   readonly known: ReadonlyMap<string, string>;
   /** 자주 겪은 종류 → 횟수 */
   readonly familiar: ReadonlyMap<string, number>;
+  /** 감정이 붙은 기억이 떠올리게 하는 종류 (rememberedKinds). 없으면 기억을 쓰지 않는다 */
+  readonly remembered?: ReadonlySet<string>;
 }
 
 /** 새 자리. 그대로면 null. fresh면 앞의 사다리를 닫고 새로 연 것이다. */
 export function climb(vocab: Vocab, spec: LadderSpec, prev: LadderState | undefined, input: LadderInput): { state: LadderState; fresh: boolean } | null {
   const order = openLadder(vocab, spec.feature);
-  const sortKinds = (ks: readonly string[]): string[] => [...ks].sort((a, b) => (input.familiar.get(b) ?? 0) - (input.familiar.get(a) ?? 0) || order.indexOf(a) - order.indexOf(b));
+  const mem = (k: string): number => (input.remembered?.has(k) === true ? 1 : 0);
+  const sortKinds = (ks: readonly string[]): string[] => [...ks].sort((a, b) => mem(b) - mem(a) || (input.familiar.get(b) ?? 0) - (input.familiar.get(a) ?? 0) || order.indexOf(a) - order.indexOf(b));
   if (input.discerned.length === 0) return prev === undefined ? { state: { rung: FEEL, kinds: [], settled: false }, fresh: false } : null;
   let base = prev === undefined || prev.kinds.length === 0 ? [...input.discerned] : prev.kinds.filter((k) => input.discerned.includes(k));
   let fresh = false;
@@ -255,6 +263,36 @@ export function knownKinds(vocab: Vocab, spec: LadderSpec, knows: Iterable<reado
     const k = parseStateKey(key);
     if (k === null || !k.subject.startsWith('OBJ') || k.feature !== spec.feature || kn.aw !== understood || openIndex(vocab, spec.feature, kn.level) <= 0) continue;
     out.set(k.subject, kn.level);
+  }
+  return out;
+}
+
+/** 감각질 → 그것을 주는 종류들: 어느 정의의 feels가 `부위:종류 특징@=종류`일 때 그 감각질을 준다 (정의 번호 순으로 모은다). */
+export function kindsBySensation(db: Db, spec: LadderSpec): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  for (const def of Object.keys(db.defs).sort()) {
+    for (const f of db.defs[def]?.feels ?? []) {
+      for (const w of f.when) {
+        const c = parseLocalCondition(w);
+        if (c === null || c.feature !== spec.feature || c.cond?.op !== '=') continue;
+        const set = out.get(f.sensation) ?? new Set<string>();
+        set.add(c.cond.level);
+        out.set(f.sensation, set);
+      }
+    }
+  }
+  return out;
+}
+
+/** 감정이 붙은 기억(정의들)이 떠올리게 하는 종류: 그 정의(종류로 물려받은 것 포함)의 이 감각 감각질을 주는 종류들. */
+export function rememberedKinds(db: Db, vocab: Vocab, spec: LadderSpec, memoryDefs: Iterable<string>): Set<string> {
+  const by = kindsBySensation(db, spec);
+  const out = new Set<string>();
+  for (const def of memoryDefs) {
+    for (const f of effectiveFeels(db, def)) {
+      if (vocab.entry('sensation', f.sensation)?.attrs['sense'] !== spec.sense) continue;
+      for (const k of by.get(f.sensation) ?? []) out.add(k);
+    }
   }
   return out;
 }

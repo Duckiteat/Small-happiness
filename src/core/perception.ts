@@ -30,7 +30,7 @@ import { parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
 import type { World } from './world.ts';
 import { parseRecent } from './agency.ts';
-import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, strengthKeyOf } from './ladder.ts';
+import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, rememberedKinds, strengthKeyOf } from './ladder.ts';
 import type { LadderState, LadderView } from './ladder.ts';
 import { skillKey } from './skill.ts';
 
@@ -371,7 +371,8 @@ export class Perception {
         const known = knownKinds(this.#vocab, spec, knows, UNDERSTOOD);
         const familiar = this.#familiar.get(who) ?? new Map<string, number>();
         this.#familiar.set(who, familiar);
-        const r = climb(this.#vocab, spec, prev?.state, { discerned, known, familiar });
+        const remembered = rememberedKinds(this.#db, this.#vocab, spec, [...(this.#memories.get(who)?.keys() ?? [])].sort());
+        const r = climb(this.#vocab, spec, prev?.state, { discerned, known, familiar, remembered });
         if (r !== null) {
           const thing = r.state.thing;
           const thingSeq = thing === undefined ? undefined : [...knows].find(([k]) => k.startsWith(`${thing}|`) && k.endsWith(`:${spec.feature}`))?.[1].seq;

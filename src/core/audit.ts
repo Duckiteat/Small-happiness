@@ -29,7 +29,7 @@ import { allRules, levelMatches } from './causal.ts';
 import type { Rule } from './causal.ts';
 import { defOf } from './ids.ts';
 import { isLinked, rootOf, visibleRoot } from './placement.ts';
-import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, strengthKeyOf } from './ladder.ts';
+import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, rememberedKinds, strengthKeyOf } from './ladder.ts';
 import type { LadderSpec, LadderState, LadderView } from './ladder.ts';
 import { effectiveInitial, effectiveOffers, effectiveProgress, kindMembers } from './kinds.ts';
 import { formatStateKey, parsePattern, parseStateKey } from './statekey.ts';
@@ -263,7 +263,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     const discerned = discern(vocab, spec, strengths, scaleOf(db, cdef, spec.sense), Math.max(0, skillIndex));
     const mine = [...knows].filter(([k]) => k.startsWith(`${who}|`)).map(([k, v]) => [k.slice(who.length + 1), v] as const);
     const familiar = familiarA.get(who) ?? new Map<string, number>();
-    const r = climb(vocab, spec, laddersA.get(`${who}|${place}|${spec.feature}`)?.state, { discerned, known: knownKinds(vocab, spec, mine, 'understood'), familiar });
+    const r = climb(vocab, spec, laddersA.get(`${who}|${place}|${spec.feature}`)?.state, { discerned, known: knownKinds(vocab, spec, mine, 'understood'), familiar, remembered: rememberedKinds(db, vocab, spec, [...(memoriesA.get(who)?.keys() ?? [])].sort()) });
     const thing = r?.state.thing;
     const thingSeq = thing === undefined ? undefined : [...knowSeq].find(([k]) => k.startsWith(`${who}|${thing}|`) && k.endsWith(`:${spec.feature}`))?.[1];
     return { felt: true, r, cause: ladderCause(read, lastChangeOf, [hasSkill ? lastChangeOf(sk) : null, thingSeq]) };
