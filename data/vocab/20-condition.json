@@ -28,7 +28,7 @@
   {
     "category": "action",
     "entries": [
-      { "key": "rest", "ko": "쉬기", "en": "rest", "desc": "아무것도 안 하기도 포함. 여유를 올릴 수 있다" },
+      { "key": "rest", "ko": "쉬기", "en": "rest", "desc": "아무것도 안 하기도 포함. 앉아 쉬기. 여유를 올릴 수 있다 (쉼: 할 일이 없을 때 하루씨가 스스로 고른다, 내면-설계 12장)", "attrs": { "pastime": true } },
       { "key": "cry", "ko": "울기", "en": "cry", "desc": "긴장의 방출. 라벨 없이 상태로만 그린다" }
     ]
   }

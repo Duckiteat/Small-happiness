@@ -1,7 +1,7 @@
 {
   "format_version": 1,
   "file_kind": "places",
-  "why": "감각의 세기 (작가 2026-11-08): 방의 냄새는 냄새 세기(은은함·뚜렷함·지독함)의 칸으로 느낀다.",
+  "why": "ⓒ 해석 후 행동 (작가 2026-11-09: 방바닥이 더러우면 요정이 하자고 한다): 주방 바닥의 더러움(눈으로 본다)과 바닥 닦기(집안일)를 둔다. 시간은 임시값.",
   "defs": [
     {
       "id": "PLC000001",
@@ -85,6 +85,11 @@
             "grid_electric",
             "grid_water",
             "grid_gas"
+          ]
+        },
+        "floor": {
+          "features": [
+            "dirt"
           ]
         }
       },
@@ -247,6 +252,22 @@
           "tuned": false,
           "when": [
             "PLC000002|space:odor@>=sour"
+          ]
+        },
+        "wipe_floor": {
+          "label": "더러워진 주방 바닥을 닦는다 (집안일)",
+          "verb": "wipe",
+          "needs": [],
+          "when": [
+            "PLC000002|floor:dirt@>=dirty"
+          ],
+          "effect": [
+            "PLC000002|floor:dirt@=clean"
+          ],
+          "minutes": 15,
+          "tuned": false,
+          "during": [
+            "home"
           ]
         }
       },

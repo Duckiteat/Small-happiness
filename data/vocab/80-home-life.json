@@ -1,0 +1,31 @@
+[
+  {
+    "category": "action",
+    "entries": [
+      {
+        "key": "lie_down",
+        "ko": "눕기",
+        "desc": "소파에 눕는다 (쉼: 할 일이 없을 때 하루씨가 스스로 고른다, 내면-설계 12장)",
+        "attrs": {
+          "pastime": true
+        }
+      },
+      {
+        "key": "watch",
+        "ko": "드라마 보기",
+        "desc": "TV로 드라마를 본다 (쉼: 할 일이 없을 때 하루씨가 스스로 고른다, 내면-설계 12장)",
+        "attrs": {
+          "pastime": true
+        }
+      },
+      {
+        "key": "read_webtoon",
+        "ko": "웹툰 보기",
+        "desc": "휴대폰으로 웹툰을 본다 (쉼: 할 일이 없을 때 하루씨가 스스로 고른다, 내면-설계 12장)",
+        "attrs": {
+          "pastime": true
+        }
+      }
+    ]
+  }
+]

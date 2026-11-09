@@ -11,7 +11,7 @@
       "FRG": 1,
       "HAB": 1,
       "ITM": 1,
-      "OBJ": 42,
+      "OBJ": 45,
       "PLC": 7,
       "RUL": 1
     }
@@ -3783,6 +3783,92 @@
         "온라인 새벽배송. 23:00까지 주문하면 다음 07:00에 온다 (주문 5분, 집을 비우지 않는다)"
       ]
     },
+    "OBJ000042": {
+      "id": "OBJ000042",
+      "names": {
+        "ko": "소파",
+        "en": "sofa"
+      },
+      "aliases": [],
+      "mobility": "fixed",
+      "offers": {
+        "lie_down": {
+          "label": "소파에 눕는다",
+          "verb": "lie_down",
+          "needs": [],
+          "effect": [],
+          "during": [
+            "home"
+          ],
+          "minutes": 30,
+          "tuned": false
+        },
+        "sit_rest": {
+          "label": "소파에 앉아 그냥 쉰다",
+          "verb": "rest",
+          "needs": [],
+          "effect": [],
+          "during": [
+            "home"
+          ],
+          "minutes": 30,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "앉거나 누워 쉰다 (쉼)"
+      ]
+    },
+    "OBJ000043": {
+      "id": "OBJ000043",
+      "names": {
+        "ko": "TV",
+        "en": "TV"
+      },
+      "aliases": [],
+      "mobility": "fixed",
+      "offers": {
+        "watch_drama": {
+          "label": "TV로 드라마를 본다",
+          "verb": "watch",
+          "needs": [],
+          "effect": [],
+          "during": [
+            "home"
+          ],
+          "minutes": 60,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "드라마를 본다 (쉼)"
+      ]
+    },
+    "OBJ000044": {
+      "id": "OBJ000044",
+      "names": {
+        "ko": "휴대폰",
+        "en": "phone"
+      },
+      "aliases": [],
+      "mobility": "portable",
+      "offers": {
+        "read_webtoon": {
+          "label": "휴대폰으로 웹툰을 본다",
+          "verb": "read_webtoon",
+          "needs": [],
+          "effect": [],
+          "during": [
+            "home"
+          ],
+          "minutes": 20,
+          "tuned": false
+        }
+      },
+      "desc": [
+        "웹툰을 본다 (쉼)"
+      ]
+    },
     "PLC000001": {
       "id": "PLC000001",
       "names": {
@@ -3833,6 +3919,11 @@
         "gas"
       ],
       "slots": {
+        "floor": {
+          "features": [
+            "dirt"
+          ]
+        },
         "grid": {
           "features": [
             "grid_electric",
@@ -4044,6 +4135,22 @@
           "effect": [],
           "reveals": true,
           "minutes": 5,
+          "tuned": false
+        },
+        "wipe_floor": {
+          "label": "더러워진 주방 바닥을 닦는다 (집안일)",
+          "verb": "wipe",
+          "needs": [],
+          "when": [
+            "PLC000002|floor:dirt@>=dirty"
+          ],
+          "effect": [
+            "PLC000002|floor:dirt@=clean"
+          ],
+          "during": [
+            "home"
+          ],
+          "minutes": 15,
           "tuned": false
         }
       },

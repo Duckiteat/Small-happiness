@@ -37,11 +37,29 @@ import { practiceGain, skilledMinutes, skillKey } from './skill.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
+import { isOverwhelmed, MOOD_SLOT } from './emotion.ts';
 import type { World } from './world.ts';
 
 export const AGENCY_SRC = 'agency';
 export const ACTION_CHOSEN = 'action_chosen';
 export const MENU_PLANNED = 'menu_planned';
+export const OPTIONS_FORMED = 'options_formed';
+export const ADVICE_GIVEN = 'advice_given';
+export const ADVICE_IGNORED = 'advice_ignored';
+export const FAIRY_SRC = 'fairy';
+
+/** 요정의 작은 조언 (내면-설계 12장): 그 시각에 하루씨의 선택지 중 하나(제공 행동 offer, 그것을 내놓는 개체 at)를 권한다. */
+export interface Advice {
+  readonly t: number;
+  readonly offer: string;
+  readonly at: string;
+}
+
+/** 행동의 갈래 (사전 action): pastime 쉼 · upkeep 집안일 · 나머지는 할 일. */
+export function actionClass(vocab: Vocab, verb: string): 'task' | 'pastime' | 'upkeep' {
+  const a = vocab.entry('action', verb)?.attrs ?? {};
+  return a['pastime'] === true ? 'pastime' : a['upkeep'] === true ? 'upkeep' : 'task';
+}
 
 export interface Effect {
   readonly key: string;
@@ -113,11 +131,23 @@ export class Agency {
   readonly #menus = new Map<number, string>();
   /** 주문해 오는 중인 재료 → 오는 시각 (그때까지 다시 사지 않는다). */
   readonly #ordered = new Map<string, number>();
+  /** 요정의 조언 (아직 닿지 않은 것, 시각 순). */
+  readonly #advice: Advice[] = [];
+  /** 쉼 → 마지막으로 한 시각 (덜 한 것부터 고른다). */
+  readonly #lastPastime = new Map<string, number>();
+  /** 마지막으로 기록한 선택지 (같으면 다시 적지 않는다). */
+  #lastOptions = '';
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
     this.#vocab = vocab;
     this.#log = log;
+  }
+
+  /** 요정의 조언을 받아 둔다 (시나리오의 advice). 하루씨가 다음에 고를 때 닿는다. */
+  advise(list: readonly Advice[]): void {
+    this.#advice.push(...list);
+    this.#advice.sort((a, b) => a.t - b.t);
   }
 
   /** 한 단계의 행동 선택. 고르지 않으면 빈 목록. */
@@ -186,6 +216,7 @@ export class Agency {
         }
       }
     }
+    const cands: { readonly id: string; readonly offer: string; readonly at: string; readonly verb: string; readonly cls: 'task' | 'pastime' | 'upkeep'; readonly cause: string | null; readonly commit: (advised: string | null) => RecentAction[] }[] = [];
     for (const def of Object.keys(this.#db.defs).sort()) {
       for (const { owner, key, item: offer } of effectiveOffers(this.#db, def)) {
         for (const at of instances.filter((i) => world.defOfInstance(i) === def)) {
@@ -243,24 +274,26 @@ export class Agency {
           // 같은 앎에서는 되풀이하지 않는다: 필요한 앎과 그 물건에 대한 앎(본 단계)이 바뀌면 다시 할 수 있다
           const knowing = (k: string): string => `${knows[k]?.aw ?? 'unknown'}:${knows[k]?.level ?? ''}`;
           // 요리법의 단계는 한 끼(일정 구간)에 한 번: 끝나고 시간이 남아도 같은 메뉴를 다시 만들지 않는다
-          const signature = offer.buys !== undefined
-            ? `${owner}/${key}@${at}|buy@${t}`
+          const cls = actionClass(this.#vocab, offer.verb);
+          const signature = offer.buys !== undefined || cls === 'pastime' // 장보기와 쉼은 되풀이할 수 있다
+            ? `${owner}/${key}@${at}|again@${t}`
             : offer.menu !== undefined
             ? `${owner}/${key}@${at}|meal@${meal?.from ?? ''}`
             : `${owner}/${key}@${at}|${JSON.stringify([needs.map((n) => n.keys.map(knowing)), world.keysOf(at).map(knowing)])}`;
           if (this.#tried.has(signature)) continue;
-
-          this.#tried.add(signature);
-          const ends = t + skilledMinutes(this.#vocab, offer, skillOf);
-          for (const b of bought) if (b.at > ends) this.#ordered.set(b.def, b.at);
-          this.#busyUntil = ends;
           // 원인: 이 행동의 조건을 채운 앎들 중 가장 최근에 생긴 것 (needs · when · 상태 의미를 만든 앎)
           const why = latestSeq([
             ...needs.flatMap((n) => n.keys.filter((k) => rank(effective(k)) >= n.min).map((k) => knows[k]?.seq)),
             ...when.flatMap((p) => targets(p).filter((k) => levelMatches(this.#vocab, p.feature, believed(k), p.cond)).map((k) => knows[k]?.seq)),
             ...(offer.when_meaning !== undefined ? world.keysOf(at).map((k) => knows[k]?.seq) : []),
           ]);
-          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends, ...(offer.menu !== undefined && menu !== undefined ? { menu, meal: meal?.from ?? null } : {}), ...(shop !== null && bought.length > 0 ? { buys: [...shop.items], for: shop.menu, ready: bestBuy?.ready ?? ends } : {}) } });
+          const commit = (advised: string | null): RecentAction[] => {
+          this.#tried.add(signature);
+          const ends = t + skilledMinutes(this.#vocab, offer, skillOf);
+          for (const b of bought) if (b.at > ends) this.#ordered.set(b.def, b.at);
+          this.#busyUntil = ends;
+          if (cls === 'pastime') this.#lastPastime.set(`${formatVia(owner, 'offer', key)}@${at}`, t);
+          const e = this.#log.append({ t, type: ACTION_CHOSEN, src: AGENCY_SRC, cause: why, data: { who, verb: offer.verb, via: formatVia(owner, 'offer', key), at, ends, ...(offer.menu !== undefined && menu !== undefined ? { menu, meal: meal?.from ?? null } : {}), ...(shop !== null && bought.length > 0 ? { buys: [...shop.items], for: shop.menu, ready: bestBuy?.ready ?? ends } : {}), ...(advised !== null ? { advised } : {}) } });
           return [
             {
               event: e.seq,
@@ -285,9 +318,47 @@ export class Agency {
                 : {}),
             },
           ];
+          };
+          cands.push({ id: `${formatVia(owner, 'offer', key)}@${at}`, offer: formatVia(owner, 'offer', key), at, verb: offer.verb, cls, cause: why, commit });
         }
       }
     }
-    return [];
+    return this.#choose(world, t, who, cands);
+  }
+
+  /**
+   * ⓒ 해석 후 행동 (내면-설계 12장): 하루씨가 떠올린 선택지 중 하나를 고른다.
+   *   - 할 일(요리·설거지·장보기 …)이 있으면 하루씨가 먼저 한다 (정의 순).
+   *   - 없으면 쉼(앉아 쉬기·눕기·드라마·웹툰) 중 덜 한 것을 고른다. 집안일(바닥 닦기·버리기)은 쉴 거리가 없을 때만 스스로 한다.
+   *   - 할 일이 없는 때의 선택지가 둘 이상이면 선택지를 남긴다 (요정이 보는 것, 바뀔 때만).
+   *   - 요정의 조언: 그 시각이 지난 조언 하나가 다음에 고를 때 닿는다. 선택지 중 하나면 그것을 고르고, 아니면 듣지 않는다.
+   *     스트레스 임계(생각이 멈춤)에 있으면 해석하지 못해 듣지 않는다.
+   */
+  #choose(world: World, t: number, who: string, cands: readonly { readonly id: string; readonly offer: string; readonly at: string; readonly verb: string; readonly cls: 'task' | 'pastime' | 'upkeep'; readonly cause: string | null; readonly commit: (advised: string | null) => RecentAction[] }[]): RecentAction[] {
+    const tasks = cands.filter((c) => c.cls === 'task');
+    const free = cands.filter((c) => c.cls !== 'task');
+    if (tasks.length === 0 && free.length >= 2) {
+      const options = free.map((c) => ({ offer: c.offer, at: c.at, verb: c.verb, kind: c.cls }));
+      const sig = JSON.stringify(options);
+      if (sig !== this.#lastOptions) {
+        this.#lastOptions = sig;
+        this.#log.append({ t, type: OPTIONS_FORMED, src: AGENCY_SRC, cause: latestSeq(free.map((c) => c.cause ?? undefined)), data: { who, options } });
+      }
+    }
+    const adv = this.#advice[0];
+    if (adv !== undefined && adv.t <= t) {
+      this.#advice.shift();
+      const given = this.#log.append({ t, type: ADVICE_GIVEN, src: FAIRY_SRC, cause: null, data: { who, offer: adv.offer, at: adv.at, asked: adv.t } });
+      const def = this.#db.defs[world.defOfInstance(who) ?? ''];
+      const mind = def?.mind;
+      const stuck = mind !== undefined && def?.slots?.[MOOD_SLOT] !== undefined && isOverwhelmed(this.#vocab, mind, who, (k) => world.level(k));
+      const pick = cands.find((c) => c.id === `${adv.offer}@${adv.at}`);
+      if (stuck || pick === undefined) this.#log.append({ t, type: ADVICE_IGNORED, src: AGENCY_SRC, cause: given.seq, data: { who, reason: stuck ? 'overwhelmed' : 'not_option' } });
+      else return pick.commit(given.seq);
+    }
+    const last = (c: { readonly id: string }): number => this.#lastPastime.get(c.id) ?? -1;
+    const rest = cands.filter((c) => c.cls === 'pastime').sort((a, b) => last(a) - last(b))[0];
+    const first = tasks[0] ?? rest ?? cands.find((c) => c.cls === 'upkeep');
+    return first === undefined ? [] : first.commit(null);
   }
 }

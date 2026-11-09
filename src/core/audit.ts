@@ -14,6 +14,7 @@ import { conceive } from './conceive.ts';
 import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
 import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, isUnfinished, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED, THOUGHT_SURFACED } from './emotion.ts';
 import type { Appraisal, Episode } from './emotion.ts';
+import { ADVICE_GIVEN, ADVICE_IGNORED, OPTIONS_FORMED } from './agency.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
 import type { FeltOne } from './sensation.ts';
@@ -170,6 +171,13 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const memoriesA = new Map<string, Map<string, string>>(); // 인물 → 정의 → 감정이 붙은 기억
   const emotionSeqs = new Set<string>(); // 감정 사건 (축의 변화의 원인)
   const surfacedA = new Map<string, Map<string, number>>(); // 인물 → 정의 → 마지막으로 갑자기 떠오른 때
+  // ⓒ 요정의 조언 (agency.ts #choose): 조언은 바로 다음 사건에서 닿거나(그것을 고름) 듣지 않는다
+  let adviceOpen: { seq: string; who: string; offer: string; at: string; t: number } | null = null;
+  let optionsA: { t: number; ids: Set<string> } | null = null; // 마지막으로 남긴 선택지
+  const stuckNow = (who: string): boolean => {
+    const def = db.defs[instances.get(who) ?? ''];
+    return def?.mind !== undefined && def.slots?.[MOOD_SLOT] !== undefined && isOverwhelmed(vocab, def.mind, who, (k) => levelIn(levels, k));
+  };
   let innerExpect: { cause: string; who: string; image: string; t: number; a: Appraisal } | null = null; // 심상(과 몸의 반응) 바로 뒤에 와야 할 감정
   let innerQueue: { cause: string; items: { type: string; key: string }[]; then: { key: string; to: string }[] } | null = null; // 감정 바로 뒤의 기억·생각이 멈춤
   const memoryKey = (d: { readonly of?: unknown; readonly emotion?: unknown; readonly replaces?: unknown }): string => [d.of, d.emotion, d.replaces].map((x) => (typeof x === 'string' ? x : '')).join('|');
@@ -243,6 +251,42 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
 
   for (const e of events) {
     bySeq.set(e.seq, e);
+    if (adviceOpen !== null) {
+      const a: { seq: string; who: string; offer: string; at: string; t: number } = adviceOpen;
+      adviceOpen = null;
+      const stuck = stuckNow(a.who);
+      if (e.type === ADVICE_IGNORED && e.cause === a.seq) {
+        bump('action');
+        const reason = str(e.data['reason']);
+        if (reason === 'overwhelmed' ? !stuck : reason !== 'not_option' || stuck) bad(e.seq, 'action', stuck ? '생각이 멈춰 있었으니 조언을 듣지 않은 이유는 overwhelmed다' : `생각이 멈춰 있지 않았는데 조언을 듣지 않은 이유가 ${reason}이다`);
+        continue;
+      }
+      if (e.type === 'action_chosen' && e.data['advised'] === a.seq) {
+        if (stuck) bad(e.seq, 'action', '생각이 멈춰 있었는데 요정의 조언을 들었다');
+        if (str(e.data['via']) !== a.offer || str(e.data['at']) !== a.at || str(e.data['who']) !== a.who || e.t !== a.t) bad(e.seq, 'action', `요정이 권한 것(${a.offer}@${a.at})과 다른 것을 골랐다`);
+      } else bad(a.seq, 'action', '요정의 조언 바로 뒤에 그것을 고르거나 듣지 않은 기록이 없다');
+    }
+    if (e.type === ADVICE_GIVEN) {
+      bump('action');
+      if (e.cause !== null || !str(e.data['who']).startsWith('CHR') || !instances.has(str(e.data['who'])) || num(e.data['asked']) > e.t) bad(e.seq, 'action', '요정의 조언은 원인 없이, 있는 인물에게, 권한 시각 뒤에 닿는다');
+      adviceOpen = { seq: e.seq, who: str(e.data['who']), offer: str(e.data['offer']), at: str(e.data['at']), t: e.t };
+      continue;
+    }
+    if (e.type === ADVICE_IGNORED) {
+      bad(e.seq, 'action', '닿은 조언이 없는데 듣지 않았다');
+      continue;
+    }
+    if (e.type === OPTIONS_FORMED) {
+      bump('action');
+      const opts = Array.isArray(e.data['options']) ? e.data['options'] : [];
+      optionsA = { t: e.t, ids: new Set(opts.map((o) => (typeof o === 'object' && o !== null && !Array.isArray(o) ? `${str(o['offer'])}@${str(o['at'])}` : ''))) };
+      if (optionsA.ids.size < 2) bad(e.seq, 'action', '선택지는 둘 이상일 때만 남긴다');
+      continue;
+    }
+    if (e.type === 'action_chosen' && e.data['advised'] === undefined && optionsA !== null && optionsA.t === e.t && !optionsA.ids.has(`${str(e.data['via'])}@${str(e.data['at'])}`)) {
+      bad(e.seq, 'action', '방금 떠올린 선택지에 없는 것을 골랐다');
+    }
+    if (e.type === 'action_chosen' && e.data['advised'] !== undefined && bySeq.get(str(e.data['advised']))?.type !== ADVICE_GIVEN) bad(e.seq, 'action', '닿지 않은 조언으로 골랐다');
     // 감각 바로 뒤에는 그 감각이 일으킨 조건반사 배움·반사가 차례로 와야 한다 (reflex.ts)
     if (reflexQueue !== null) {
       const head = reflexQueue.items[0];
@@ -822,6 +866,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   for (const [seq, r] of open) if (r.due <= last) bad(seq, 'timing', `예약 시각 ${r.due}분이 지났는데 발화·취소가 없다 (${r.via}@${r.at})`);
   closeMoment();
   checkSustained(events.at(-1)?.seq ?? '');
+  if (adviceOpen !== null) bad((adviceOpen as { seq: string }).seq, 'action', '요정의 조언 뒤에 그것을 고르거나 듣지 않은 기록이 없다');
   if (reflexQueue !== null) for (const m of reflexQueue.items) bad(reflexQueue.cause, 'awareness', `이 감각 뒤에 ${m.type}(${m.reflex})가 빠졌다`);
   for (const [seq, q] of moveQueue) {
     const lastT = events.at(-1)?.t ?? 0;

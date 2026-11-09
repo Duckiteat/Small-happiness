@@ -334,6 +334,8 @@ export interface Scenario {
   readonly routine: unknown;
   /** 이야기가 정한 지난 기억 (내면-설계 10장): 인물 개체 who가 정의 of에 감정 emotion이 붙은 기억을 갖고 시작한다. */
   readonly memories: readonly { readonly who: string; readonly of: string; readonly emotion: string }[];
+  /** 요정의 작은 조언 (내면-설계 12장): 시각 t에 하루씨의 선택지 중 하나(offer 근거 참조, at 개체)를 권한다. 플레이어의 입력 자리다. */
+  readonly advice: readonly { readonly t: number; readonly offer: string; readonly at: string }[];
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
@@ -343,7 +345,7 @@ function isObj(v: unknown): v is Record<string, unknown> {
 /** 시나리오 파일을 해석한다. 모양이 틀리면 던진다. */
 export function parseScenario(raw: unknown): Scenario {
   if (!isObj(raw)) throw new TypeError('시나리오는 객체여야 한다');
-  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain, scripted, memories } = raw;
+  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain, scripted, memories, advice } = raw;
   if (typeof why !== 'string' || why.trim() === '') throw new TypeError('why(이 시나리오를 두는 이유)가 필요하다');
   if (use_db !== undefined && typeof use_db !== 'boolean') throw new TypeError('use_db는 true/false여야 한다');
   const fromDb = use_db === true;
@@ -380,7 +382,11 @@ export function parseScenario(raw: unknown): Scenario {
   if (memories !== undefined && (!Array.isArray(memories) || !memories.every((x) => isObj(x) && typeof x['who'] === 'string' && typeof x['of'] === 'string' && typeof x['emotion'] === 'string'))) {
     throw new TypeError('memories는 { who, of, emotion } 목록이어야 한다');
   }
+  if (advice !== undefined && (!Array.isArray(advice) || !advice.every((x) => isObj(x) && typeof x['t'] === 'number' && Number.isInteger(x['t']) && typeof x['offer'] === 'string' && typeof x['at'] === 'string'))) {
+    throw new TypeError('advice는 { t(분), offer(근거 참조), at(개체) } 목록이어야 한다');
+  }
   return {
+    advice: ((advice as { t: number; offer: string; at: string }[] | undefined) ?? []).map((x) => ({ t: x.t, offer: x.offer, at: x.at })),
     memories: ((memories as { who: string; of: string; emotion: string }[] | undefined) ?? []).map((x) => ({ who: x.who, of: x.of, emotion: x.emotion })),
     scripted: scriptedChanges,
     layout: [...((layout as string[] | undefined) ?? [])],
@@ -411,11 +417,13 @@ export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: 
     if (db.defs[m.of] === undefined || !world.instances().includes(m.who)) throw new TypeError(`memories: 없는 정의나 인물 (${m.of}, ${m.who})`);
     perception.remember(m.who, m.of, m.emotion, setupEnd);
   }
+  const agency = new Agency(db, vocab, log);
+  agency.advise(scenario.advice);
   const engine: Engine = {
     world,
     causal: new Causal(db, vocab, log, setupEnd),
     perception,
-    agency: new Agency(db, vocab, log),
+    agency,
     log,
   };
   const routine = parsePlan(scenario.routine, vocab);

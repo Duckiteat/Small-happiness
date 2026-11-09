@@ -819,7 +819,8 @@
         "en": "wipe",
         "attrs": {
           "handles": true,
-          "tidies": true
+          "tidies": true,
+          "upkeep": true
         }
       },
       {
@@ -828,7 +829,8 @@
         "en": "ventilate",
         "desc": "창문을 열어 공기를 바꾼다",
         "attrs": {
-          "tidies": true
+          "tidies": true,
+          "upkeep": true
         }
       },
       {
@@ -891,7 +893,8 @@
         "desc": "물건을 쓰레기로 보낸다. 물건은 지워지지 않고 그 상태가 소멸(gone)로 바뀐다 (보관 장소는 위치 구현 뒤)",
         "attrs": {
           "handles": true,
-          "tidies": true
+          "tidies": true,
+          "upkeep": true
         }
       },
       {
