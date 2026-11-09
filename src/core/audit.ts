@@ -14,7 +14,9 @@ import { conceive } from './conceive.ts';
 import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
 import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, isUnfinished, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED, THOUGHT_SURFACED } from './emotion.ts';
 import type { Appraisal, Episode } from './emotion.ts';
-import { ADVICE_GIVEN, ADVICE_IGNORED, OPTIONS_FORMED } from './agency.ts';
+import { actionClass, ADVICE_GIVEN, ADVICE_IGNORED, OPTIONS_FORMED } from './agency.ts';
+import { afterDone, hasCondition, MODE_CHANGED, modeCause, modeDefs, modeMinutes, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
+import type { ModeDef } from './condition.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
 import type { FeltOne } from './sensation.ts';
@@ -78,6 +80,8 @@ interface Reservation {
 }
 
 interface Chosen {
+  /** 고른 시각 (활동한 분을 셀 때) */
+  readonly t: number;
   readonly via: string;
   readonly who: string;
   readonly verb: string;
@@ -193,7 +197,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     const surfacedAt = surfacedA.get(who) ?? new Map<string, number>();
     surfacedA.set(who, surfacedAt);
     const unfinished = (d: string): boolean => isUnfinished(db, vocab, d, [...instances.keys()].filter((i) => instances.get(i) === d).sort(), (k) => knows.get(`${who}|${k}`)?.level);
-    const a = appraise(vocab, mind, who, image, cueOf(parts, (i) => instances.get(i)), t, episodesA.get(who) ?? [], memoriesA.get(who) ?? new Map<string, string>(), level, { unfinished, surfacedAt });
+    const a = appraise(vocab, mind, who, image, cueOf(parts, (i) => instances.get(i)), t, episodesA.get(who) ?? [], memoriesA.get(who) ?? new Map<string, string>(), level, { unfinished, surfacedAt, has: (k) => viewA.keysOf(who).includes(k) });
     if (a !== null) innerExpect = { cause, who, image, t, a };
   };
   const PERCEPT_TYPES = new Set(['stimulus_perceived', REFLEX, REFLEX_LEARNED, IMAGE_FORMED, BODY_RESPONSE]);
@@ -272,6 +276,16 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     const thingSeq = thing === undefined ? undefined : [...knowSeq].find(([k]) => k.startsWith(`${who}|${thing}|`) && k.endsWith(`:${spec.feature}`))?.[1];
     return { felt: true, r, cause: ladderCause(read, lastChangeOf, [hasSkill ? lastChangeOf(sk) : null, thingSeq, memorySeqA.get(who), r === null ? null : conceptCause(r.state.concepts, seen)]) };
   };
+  // 컨디션과 모드 (condition.ts)
+  const carryA = new Map<string, number>(); // 인물 → 에너지를 아직 덜지 않은 활동 분
+  const modesA = new Map<string, { mode: string; seq: string }>(); // 인물 → 남긴 모드와 그 사건
+  const modeJudge = (who: string): ReturnType<typeof modeOf> => {
+    if (!hasCondition(db, instances.get(who) ?? '')) return null;
+    const keys = new Set(viewA.keysOf(who));
+    return modeOf(vocab, who, unfinishedCount(db, vocab, [...instances.keys()], (i) => instances.get(i), (k) => knows.get(`${who}|${k}`)?.level), (k) => keys.has(k), (k) => levelIn(levels, k));
+  };
+  const modeAt = (who: string): ModeDef | null => modeJudge(who)?.mode ?? null;
+  const modeReadAt = (who: string): string[] => modeJudge(who)?.read ?? [];
   let pending: Pending | null = null;
   let batch: ReadonlyMap<string, string> | null = null; // 같은 시각 발화들은 직전 값을 읽는다: 첫 발화 직전의 상태
   const batchFired = new Set<string>();
@@ -498,7 +512,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           if (options.externalUntil !== undefined && e.t > options.externalUntil) bad(e.seq, 'state', `원인 없는 상태 변화가 처음 설정 시각(${options.externalUntil}분) 뒤에 있다: ${key}`);
         } else {
           const cause = bySeq.get(e.cause);
-          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event', EMOTION_FORMED].includes(cause.type)) {
+          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event', EMOTION_FORMED, WOKE, RELEASED].includes(cause.type)) {
             bad(e.seq, 'state', `상태 변화의 원인이 ${cause?.type ?? '없는 사건'}이다 (처음 상태 · 발화 · 행동 끝 · 진행 · 외부 사건 · 감정만 상태를 바꾼다)`);
           } else if (!consumed) bad(e.seq, 'effects', `${cause.type}의 정의가 요구하지 않는 결과다: ${key} → ${to}`);
         }
@@ -732,7 +746,13 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (!who.startsWith('CHR') || !instances.has(who)) bad(e.seq, 'action', `행동하는 이가 인물이 아니다: ${who}`);
         if (verb !== offer.item.verb) bad(e.seq, 'action', `동사가 ${verb}인데 행동의 동사는 ${offer.item.verb}이다`);
         const ends = num(e.data['ends']);
-        const minutes = skilledMinutes(vocab, offer.item, (f) => levelIn(levels, skillKey(who, f)));
+        // 모드 (condition.ts): 남긴 모드가 지금 상태로 계산한 것과 같아야 하고, 그 모드가 고를 수 있는 갈래·걸리는 시간을 지켜야 한다
+        const cls = actionClass(vocab, verb);
+        const modeNowA = modeAt(who);
+        const tracked = modesA.get(who);
+        if (modeNowA !== null && tracked?.mode !== modeNowA.key) bad(e.seq, 'action', `그때의 컨디션으로는 모드가 ${modeNowA.key}인데 ${tracked?.mode ?? '없음'}로 남아 있다 (모드가 바뀜이 빠졌다)`);
+        if (modeNowA?.allows !== undefined && !modeNowA.allows.includes(cls)) bad(e.seq, 'action', `${modeNowA.key} 모드에서는 ${modeNowA.allows.join('·')}만 고를 수 있는데 ${cls}를 골랐다`);
+        const minutes = modeMinutes(skilledMinutes(vocab, offer.item, (f) => levelIn(levels, skillKey(who, f))), modeNowA ?? undefined, cls);
         if (ends !== e.t + minutes) bad(e.seq, 'action', `끝나는 시각이 ${ends}분인데 행동은 ${minutes}분 걸려 ${e.t + minutes}분이다`);
         const effects: Chosen['effects'][number][] = offer.item.effect.flatMap((text) => {
           const p = parsePattern(text);
@@ -816,7 +836,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         // 숙련: 인물에게 그 부위가 있을 때만 쌓인다
         const skillFeatures = db.defs[instances.get(who) ?? '']?.slots?.[SKILL_SLOT]?.features ?? [];
         const trains = (offer.item.trains ?? []).filter((f) => skillFeatures.includes(f)).map((f) => ({ feature: f, gain: practiceGain(offer.item) }));
-        chosen.set(e.seq, { via, who, verb, at, ends, effects, moves, trains });
+        chosen.set(e.seq, { t: e.t, via, who, verb, at, ends, effects, moves, trains });
         // 원인: 이 행동의 조건을 채운 하루씨의 앎(awareness 사건). 어느 앎인지까지는 행동을 고른 이유를 다시 계산해야 안다 (LIM014)
         // 앎이 필요 없는 행동(needs가 빈 요리 등)은 시간(일정)이 이끈 것이라 원인 사건이 없을 수 있다 (한계 LIM020)
         bump('cause');
@@ -844,7 +864,52 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           const to = practicedLevel(vocab, tr.feature, levelIn(levels, key), count);
           if (to !== levelIn(levels, key)) expect.push({ key, to });
         }
+        // 컨디션 (condition.ts): 쉼이면 차고 가라앉고, 아니면 활동한 분만큼 에너지를 쓴다
+        const local = new Map(levels);
+        for (const x of expect) local.set(x.key, x.to);
+        const cond = afterDone(db, vocab, c.who, instances.get(c.who) ?? '', actionClass(vocab, c.verb) === 'pastime', c.ends - c.t, carryA.get(c.who) ?? 0, (k) => levelIn(local, k));
+        carryA.set(c.who, cond.carry);
+        expect.push(...cond.changes);
         if (expect.length > 0) pending = { cause: e.seq, what: `${via} 끝`, expect };
+        break;
+      }
+      case WOKE: {
+        // 잠에서 깸: 원인 없는 원천. 그때의 상태로 돌아오는 컨디션이 바로 뒤에 와야 한다
+        bump('state');
+        const who = str(e.data['who']);
+        if (!instances.has(who) || !who.startsWith('CHR') || e.cause !== null) {
+          bad(e.seq, 'state', '잠에서 깬 이는 있는 인물이고 원인이 없다');
+          break;
+        }
+        const changes = wakeChanges(db, vocab, who, instances.get(who) ?? '', (k) => levelIn(levels, k));
+        if (changes.length === 0) bad(e.seq, 'state', '깨어도 돌아올 컨디션이 없는데 잠에서 깼다고 적었다');
+        else pending = { cause: e.seq, what: '잠에서 깸', expect: [...changes] };
+        break;
+      }
+      case MODE_CHANGED: {
+        bump('action');
+        const who = str(e.data['who']);
+        const m = modeAt(who);
+        const prev = modesA.get(who);
+        if (m === null || m.key !== str(e.data['mode'])) bad(e.seq, 'action', `그때의 컨디션·감정·남은 집안일로는 모드가 ${m?.key ?? '없음'}이다 (기록: ${str(e.data['mode'])})`);
+        if (prev?.mode === str(e.data['mode']) || (prev === undefined ? e.data['from'] !== undefined : str(e.data['from']) !== prev.mode)) bad(e.seq, 'action', `모드가 바뀐 것이 아니거나 앞의 모드(${prev?.mode ?? '없음'})가 틀렸다`);
+        const read = modeReadAt(who);
+        expectCause(e.seq, 'cause', e.cause, modeCause(read, lastChangeOf), '모드가 바뀜');
+        modesA.set(who, { mode: str(e.data['mode']), seq: e.seq });
+        break;
+      }
+      case RELEASED: {
+        bump('state');
+        const who = str(e.data['who']);
+        const tracked = modesA.get(who);
+        const md = modeDefs(vocab).find((x) => x.key === tracked?.mode);
+        if (md?.releases !== true || e.cause !== tracked?.seq || modeAt(who)?.key !== md.key) {
+          bad(e.seq, 'state', '방출하는 모드(터짐)가 아닌데 몸이 방출했다');
+          break;
+        }
+        const changes = releaseChanges(db, vocab, who, instances.get(who) ?? '', (k) => levelIn(levels, k));
+        if (changes.length === 0) bad(e.seq, 'state', '방출해도 줄어들 것이 없다');
+        else pending = { cause: e.seq, what: '방출', expect: [...changes] };
         break;
       }
       case LADDER_MOVED: {

@@ -71,14 +71,18 @@ test('기억: 쾌·불쾌가 문턱을 넘으면 감정과 이어져 잊지 않�
   assert.deepEqual([calm, tense].map((a) => a?.changes.find((c) => c.key.endsWith(':displeasure'))?.to), ['faint', 'mild'], '안심되지 않을수록 더 크게');
 });
 
-test('스트레스 임계: 불쾌가 높고 안정이 낮으면 생각이 멈추고, 그 뒤로는 심상과 몸의 반응만 오고 감정이 생기지 않는다', () => {
+test('스트레스 임계: 불쾌가 높고 안정이 낮으면 생각이 멈추고, 몸이 방출하기 전까지는 심상과 몸의 반응만 오고 감정이 생기지 않는다', () => {
   assert.equal(isOverwhelmed(vocab, mind, WHO, mood('none', 'strong', 'uneasy')), true);
   assert.equal(isOverwhelmed(vocab, mind, WHO, mood('none', 'strong', 'wary')), false);
   assert.equal(appraise(vocab, mind, WHO, 'cold_sour', [], 0, [], new Map(), mood('none', 'clear', 'uneasy'))?.overwhelms, true);
   const over = events.find((e) => e.type === 'overwhelmed');
   assert.ok(over !== undefined, '둘째 날 김치찌개의 톡 쏘는 신맛이 냄비의 좋은 기억과 어긋나 생각이 멈춘다');
+  // 생각이 멈춘 동안 (몸이 먼저 방출할 때까지, condition.ts): 감정이 생기지 않는다
   const later = events.slice(events.indexOf(over) + 1);
-  assert.equal(later.filter((e) => e.type === 'emotion_formed').length, 0);
+  const released = later.find((e) => e.type === 'released');
+  assert.ok(released !== undefined, '에너지가 남아 있어 몸이 먼저 방출한다 (터짐)');
+  assert.equal(later.slice(0, later.indexOf(released)).filter((e) => e.type === 'emotion_formed').length, 0);
+  assert.equal(events.find((e) => e.seq === released.cause)?.data['mode'], 'release', '방출의 원인은 터짐으로 바뀐 모드');
 });
 
 test('된장찌개 시나리오: 지난 기억(그리움)이 둘째 날 남은 찌개를 먹을 때 되살아나고, 안정은 처음엔 내려가다 겪어 본 일에서 오른다', () => {
@@ -91,7 +95,9 @@ test('된장찌개 시나리오: 지난 기억(그리움)이 둘째 날 남은 �
   assert.ok(emotions.some((e) => e.t > 1440 && e.data['thought'] === 'recalled'));
   // 감정의 원인은 그 심상, 축의 변화의 원인은 그 감정
   for (const em of emotions) assert.equal(events.find((x) => x.seq === em.cause)?.type, 'image_formed');
-  for (const c of events.filter((e) => e.type === 'state_changed' && str(e.data['key']).includes('|mood:') && e.t > 0)) assert.equal(events.find((x) => x.seq === c.cause)?.type, 'emotion_formed');
+  // (컨디션 이후: 잠에서 깸·몸의 방출도 축을 가라앉힌다 — condition.ts)
+  for (const c of events.filter((e) => e.type === 'state_changed' && str(e.data['key']).includes('|mood:') && e.t > 0)) assert.ok(['emotion_formed', 'woke', 'released'].includes(events.find((x) => x.seq === c.cause)?.type ?? ''), str(c.data['key']));
+  assert.ok(events.some((e) => e.type === 'state_changed' && str(e.data['key']).includes('|mood:') && events.find((x) => x.seq === e.cause)?.type === 'emotion_formed'));
 });
 
 test('감사: 감정·기억·생각이 멈춤·축의 변화를 그때의 생각으로 다시 계산해, 빠지거나 지어낸 것을 잡는다', () => {

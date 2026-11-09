@@ -11,7 +11,8 @@
 import { practicedLevel, skillKey } from './skill.ts';
 import type { BoardValue } from './board.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
-import { Agency, parseRecent } from './agency.ts';
+import { actionClass, Agency, parseRecent } from './agency.ts';
+import { afterDone } from './condition.ts';
 import type { RecentAction } from './agency.ts';
 import { applyLevel, Causal, stateMatches } from './causal.ts';
 import { parseAware, Perception } from './perception.ts';
@@ -132,6 +133,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
   let awayUntil = -1; // 집을 비우는 행동이 끝나는 시각
   const deliveries: Delivery[] = []; // 주문해 오는 중인 것 (온라인 장보기)
   const practice = new Map<string, number>(); // 숙련 상태 키 → 해 본 횟수 (기록의 행동 끝에서 다시 셀 수 있다)
+  const activeCarry = new Map<string, number>(); // 인물 → 에너지를 아직 덜지 않은 활동 분 (condition.ts)
   const script = [...scripted].sort((a, b) => a.t - b.t); // 아직 일어나지 않은 외부 사건 (정전·문 열림 같은, 시나리오가 정한 것)
   return [
     {
@@ -205,6 +207,11 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
             practice.set(key, count);
             world.set(key, practicedLevel(vocab, tr.feature, world.level(key), count), { t: a.ends, cause: done.seq });
           }
+          // 컨디션 (condition.ts): 쉼이 끝나면 차고 가라앉는다. 다른 행동은 활동한 분만큼 에너지를 쓴다. 원인은 행동의 끝
+          const startedAt = log.get(a.event)?.t ?? a.ends;
+          const cond = afterDone(db, vocab, a.who, defOf(a.who) ?? '', actionClass(vocab, a.verb) === 'pastime', a.ends - startedAt, activeCarry.get(a.who) ?? 0, (k) => world.level(k));
+          activeCarry.set(a.who, cond.carry);
+          for (const ch of cond.changes) world.set(ch.key, ch.to, { t: a.ends, cause: done.seq });
           // 만들고 옮기기 (요리-설계 8장): 결과를 기록한 뒤 새 개체를 만들어 놓고, 물건을 옮긴다. 원인은 모두 행동의 끝
           const made: string[] = [];
           for (const cr of a.creates ?? []) {

@@ -37,6 +37,7 @@ import { practiceGain, skilledMinutes, skillKey } from './skill.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
+import { hasCondition, modeMinutes, modeOf, unfinishedCount } from './condition.ts';
 import { isOverwhelmed, MOOD_SLOT } from './emotion.ts';
 import type { World } from './world.ts';
 
@@ -184,6 +185,11 @@ export class Agency {
     };
     /** 자기 숙련 단계 (자기 솜씨는 안다). 숙련 부위가 없는 인물은 빈 값. */
     const skillOf = (f: string): string => (world.keysOf(who).includes(skillKey(who, f)) ? world.level(skillKey(who, f)) : '');
+    // 모드 (condition.ts): 지각 층이 남긴 것과 같은 계산. 고를 수 있는 갈래(allows)와 먼저 하는 갈래·걸리는 시간(first·minutes_pct)을 바꾼다
+    const whoKeys = new Set(world.keysOf(who));
+    const mode = hasCondition(this.#db, world.defOfInstance(who) ?? '')
+      ? modeOf(this.#vocab, who, unfinishedCount(this.#db, this.#vocab, instances, (i) => world.defOfInstance(i), (k) => knows[k]?.level), (k) => whoKeys.has(k), (k) => world.level(k))?.mode
+      : undefined;
     const lastPlanned = (m: string): number => Math.max(-1, ...[...this.#menus].filter(([, x]) => x === m).map(([from]) => from));
     const knownIds = new Set(Object.keys(knows).map((k) => k.slice(0, k.indexOf('|'))));
     const known = (d: string): string[] => instancesOfKind(world, this.#db, d).filter((i) => knownIds.has(i)).sort();
@@ -276,6 +282,7 @@ export class Agency {
           const knowing = (k: string): string => `${knows[k]?.aw ?? 'unknown'}:${knows[k]?.since ?? knows[k]?.level ?? ''}`;
           // 요리법의 단계는 한 끼(일정 구간)에 한 번: 끝나고 시간이 남아도 같은 메뉴를 다시 만들지 않는다
           const cls = actionClass(this.#vocab, offer.verb);
+          if (mode?.allows !== undefined && !mode.allows.includes(cls)) continue; // 방전: 쉼만
           const signature = offer.buys !== undefined || cls === 'pastime' // 장보기와 쉼은 되풀이할 수 있다
             ? `${owner}/${key}@${at}|again@${t}`
             : offer.menu !== undefined
@@ -290,7 +297,7 @@ export class Agency {
           ]);
           const commit = (advised: string | null): RecentAction[] => {
           this.#tried.add(signature);
-          const ends = t + skilledMinutes(this.#vocab, offer, skillOf);
+          const ends = t + modeMinutes(skilledMinutes(this.#vocab, offer, skillOf), mode, cls);
           for (const b of bought) if (b.at > ends) this.#ordered.set(b.def, b.at);
           this.#busyUntil = ends;
           if (cls === 'pastime') this.#lastPastime.set(`${formatVia(owner, 'offer', key)}@${at}`, t);
@@ -324,7 +331,7 @@ export class Agency {
         }
       }
     }
-    return this.#choose(world, t, who, cands);
+    return this.#choose(world, t, who, cands, mode?.first);
   }
 
   /**
@@ -335,7 +342,7 @@ export class Agency {
    *   - 요정의 조언: 그 시각이 지난 조언 하나가 다음에 고를 때 닿는다. 선택지 중 하나면 그것을 고르고, 아니면 듣지 않는다.
    *     스트레스 임계(생각이 멈춤)에 있으면 해석하지 못해 듣지 않는다.
    */
-  #choose(world: World, t: number, who: string, cands: readonly { readonly id: string; readonly offer: string; readonly at: string; readonly verb: string; readonly cls: 'task' | 'pastime' | 'upkeep'; readonly cause: string | null; readonly commit: (advised: string | null) => RecentAction[] }[]): RecentAction[] {
+  #choose(world: World, t: number, who: string, cands: readonly { readonly id: string; readonly offer: string; readonly at: string; readonly verb: string; readonly cls: 'task' | 'pastime' | 'upkeep'; readonly cause: string | null; readonly commit: (advised: string | null) => RecentAction[] }[], firstCls?: string): RecentAction[] {
     const tasks = cands.filter((c) => c.cls === 'task');
     const free = cands.filter((c) => c.cls !== 'task');
     if (tasks.length === 0 && free.length >= 2) {
@@ -359,7 +366,8 @@ export class Agency {
     }
     const last = (c: { readonly id: string }): number => this.#lastPastime.get(c.id) ?? -1;
     const rest = cands.filter((c) => c.cls === 'pastime').sort((a, b) => last(a) - last(b))[0];
-    const first = tasks[0] ?? rest ?? cands.find((c) => c.cls === 'upkeep');
+    // 몰아침: 그 갈래(집안일)를 먼저 한다
+    const first = (firstCls !== undefined ? cands.find((c) => c.cls === firstCls) : undefined) ?? tasks[0] ?? rest ?? cands.find((c) => c.cls === 'upkeep');
     return first === undefined ? [] : first.commit(null);
   }
 }

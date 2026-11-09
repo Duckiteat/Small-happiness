@@ -36,7 +36,8 @@
               "ko": "벅참"
             }
           ],
-          "tuned": false
+          "tuned": false,
+          "settles": 1
         }
       },
       {
@@ -73,7 +74,10 @@
               "ko": "견딜 수 없음"
             }
           ],
-          "tuned": false
+          "tuned": false,
+          "settles": 1,
+          "on_rest": -1,
+          "on_release": -1
         }
       },
       {

@@ -33,6 +33,7 @@ import { parseRecent } from './agency.ts';
 import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, conceptCause, conceptPool, knownConcepts, strengthKeyOf } from './ladder.ts';
 import type { LadderState, LadderView } from './ladder.ts';
 import { skillKey } from './skill.ts';
+import { hasCondition, MODE_CHANGED, modeCause, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 
 export const PERCEPTION_SRC = 'perception';
 export const AWARENESS_UP = 'awareness_up';
@@ -103,6 +104,8 @@ export class Perception {
   readonly #familiar = new Map<string, Map<string, number>>(); // 인물 → 좁히거나 정체를 안 개념 → 횟수 (자주 겪음)
   readonly #memorySeq = new Map<string, string>(); // 인물 → 마지막으로 감정이 붙은 기억 사건 (떠올리는 개념이 바뀐 원인)
   readonly #seenDefs = new Map<string, Map<string, string>>(); // 인물 → 본 적 있는 정의 → 처음 안 사건 (아는 개념)
+  readonly #modes = new Map<string, { readonly mode: string; readonly seq: string }>(); // 인물 → 지금의 모드와 그 사건
+  #lastPresence: string | null = null; // 직전 단계의 상황 (잠에서 깼는지)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -114,6 +117,17 @@ export class Perception {
   step(world: World, t: number, presence: string, prevRecent: BoardValue | undefined): { perceived: Percept[]; aware: AwareMap } {
     for (const r of parseRecent(prevRecent)) if (r.reveals !== undefined) this.#reveals.push({ place: r.reveals, ends: r.ends, via: r.via, event: r.event });
     const perceived: Percept[] = [];
+    // 잠에서 깸 (condition.ts): 자는 상황이 끝나면 컨디션이 돌아온다. 일정에서 오는 원천이라 원인이 없다
+    const sleeps = (p: string | null): boolean => p !== null && this.#vocab.entry('presence', p)?.attrs['sleeps'] === true;
+    if (sleeps(this.#lastPresence) && !sleeps(presence)) {
+      for (const who of world.instances().filter((i) => i.startsWith('CHR'))) {
+        const changes = wakeChanges(this.#db, this.#vocab, who, defOf(who) ?? '', (k) => world.level(k));
+        if (changes.length === 0) continue;
+        const e = this.#log.append({ t, type: WOKE, src: PERCEPTION_SRC, cause: null, data: { who } });
+        for (const c of changes) world.set(c.key, c.to, { t, cause: e.seq });
+      }
+    }
+    this.#lastPresence = presence;
     if (isObserved(this.#vocab, presence)) {
       const revealed = this.#reveals.filter((r) => r.ends <= t);
       this.#reveals.splice(0, this.#reveals.length, ...this.#reveals.filter((r) => r.ends > t));
@@ -171,6 +185,8 @@ export class Perception {
         }
         // 심상 사다리 (ladder.ts): 머무는 곳의 냄새가 무엇인지. 살펴서 안 것까지 본 뒤에 오른다
         this.#climb(world, t, who, [...places].sort(), senseVia);
+        // 모드 (condition.ts): 이 단계의 감정·컨디션·남은 집안일로. 방출하는 모드면 몸이 먼저 방출하고 다시 판정한다
+        this.#settle(world, t, who);
       }
     }
     return { perceived, aware: this.snapshot() };
@@ -237,7 +253,7 @@ export class Perception {
     this.#surfaced.set(who, surfacedAt);
     const knows = this.#aware.get(who);
     const unfinished = (d: string): boolean => isUnfinished(this.#db, this.#vocab, d, world.instances().filter((i) => world.defOfInstance(i) === d), (k) => knows?.get(k)?.level);
-    const a = appraise(this.#vocab, mind, who, image, of, t, episodes, memories, level, { unfinished, surfacedAt });
+    const a = appraise(this.#vocab, mind, who, image, of, t, episodes, memories, level, { unfinished, surfacedAt, has: (k) => world.keysOf(who).includes(k) });
     if (a === null) return;
     const em = this.#log.append({ t, type: EMOTION_FORMED, src: PERCEPTION_SRC, cause: e.seq, data: { who, emotion: a.emotion, image, thought: a.thought, of: [...a.of] } });
     for (const m of a.memories) {
@@ -398,6 +414,33 @@ export class Perception {
         const b = believed(now?.state);
         if (b !== null && now !== undefined) this.#observe(who, at.kind, NOTICED, b, t, senseVia(at.kind), now.seq, now.since);
       }
+    }
+  }
+
+  /**
+   * 모드를 판정해 바뀌면 남긴다. 방출하는 모드(터짐)면 몸이 먼저 방출한다 (해석 전, 요정이 닿지 않음):
+   * 방출 사건(원인: 그 모드) → 컨디션·축의 변화(원인: 방출) → 다시 판정.
+   */
+  #settle(world: World, t: number, who: string): void {
+    const def = defOf(who) ?? '';
+    if (!hasCondition(this.#db, def)) return;
+    const keys = new Set(world.keysOf(who));
+    const knows = this.#aware.get(who);
+    const judge = (): ReturnType<typeof modeOf> =>
+      modeOf(this.#vocab, who, unfinishedCount(this.#db, this.#vocab, world.instances(), (i) => world.defOfInstance(i), (k) => knows?.get(k)?.level), (k) => keys.has(k), (k) => world.level(k));
+    for (let guard = 0; guard < 4; guard++) {
+      const m = judge();
+      if (m === null) return;
+      const prev = this.#modes.get(who);
+      if (prev?.mode !== m.mode.key) {
+        const e = this.#log.append({ t, type: MODE_CHANGED, src: PERCEPTION_SRC, cause: modeCause(m.read, (k) => world.lastChange(k)), data: { who, mode: m.mode.key, ...(prev !== undefined ? { from: prev.mode } : {}) } });
+        this.#modes.set(who, { mode: m.mode.key, seq: e.seq });
+      }
+      if (!m.mode.releases) return;
+      const changes = releaseChanges(this.#db, this.#vocab, who, def, (k) => world.level(k));
+      if (changes.length === 0) return;
+      const r = this.#log.append({ t, type: RELEASED, src: PERCEPTION_SRC, cause: this.#modes.get(who)?.seq ?? null, data: { who } });
+      for (const c of changes) world.set(c.key, c.to, { t, cause: r.seq });
     }
   }
 
