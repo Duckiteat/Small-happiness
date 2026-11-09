@@ -18,6 +18,7 @@ import { actionClass, ADVICE_GIVEN, ADVICE_IGNORED, OPTIONS_FORMED } from './age
 import { afterDone, conditionFeature, stepped, hasCondition, MODE_CHANGED, modeCause, modeDefs, modeMinutes, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 import type { ModeDef } from './condition.ts';
 import { cardChanges, doorKey, OUTSIDE_DAY_DONE, PASSED_DOOR } from './outside.ts';
+import { closeKeys, coreOf, dayPartOf, EVENT_CLOSED, EVENT_OPENED, pickScene, SCENE_SHOWN, senseOf } from './scene.ts';
 import { ACTION_STOPPED, againstOdor, enduredTotal, isHabituated, URGENCY_ENDURED, URGENCY_FELT, urgencySense } from './urgency.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
@@ -291,6 +292,15 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const urgentA = new Map<string, { since: number; seq: string; bumps: number }>(); // `${인물}|${상태 키}`
   const dulledA = new Set<string>();
   const stoppedA = new Set<string>(); // 끝나기 전에 그만둔 행동 (고른 사건)
+  // 장면 (scene.ts): 열린 이벤트와 지금 보이는 장면
+  const openEventsA = new Map<string, { scene: string | null; lastSeq: string }>(); // `${인물}|${이벤트}|${장소}`
+  const instancesOfA = (d: string): string[] => [...instances.keys()].filter((i) => instances.get(i) === d).sort();
+  const closesHoldA = (id: string, place: string): { holds: boolean; keys: string[] } => {
+    const def = db.defs[id];
+    if (def === undefined) return { holds: false, keys: [] };
+    const groups = closeKeys(def, place, instancesOfA);
+    return { holds: groups.every((g) => g.some((x) => x.p.cond !== null && levelMatches(vocab, x.p.feature, levelIn(levels, x.key), x.p.cond))), keys: groups.flat().map((x) => x.key) };
+  };
   const urgentOf = (who: string): string | undefined => [...urgentA].filter(([id]) => id.startsWith(`${who}|`)).map(([, a]) => a.seq).sort().at(-1);
   const modeReadAt = (who: string): string[] => modeJudge(who)?.read ?? [];
   let pending: Pending | null = null;
@@ -884,6 +894,52 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         carryA.set(c.who, cond.carry);
         expect.push(...cond.changes);
         if (expect.length > 0) pending = { cause: e.seq, what: `${via} 끝`, expect };
+        break;
+      }
+      case EVENT_OPENED:
+      case SCENE_SHOWN:
+      case EVENT_CLOSED: {
+        // 이벤트와 장면: 그때의 사다리·하루 구간·모드로 다시 고른다 (작가의 원문이 바이트 그대로인지도)
+        bump('awareness');
+        const who = str(e.data['who']), id = str(e.data['event']), place = str(e.data['place']);
+        const def = db.defs[id];
+        const core = def === undefined ? null : coreOf(def);
+        if (def === undefined || core === null || !instances.has(who) || instances.get(place) !== core.def) {
+          bad(e.seq, 'awareness', `없는 이벤트이거나 그 장소가 이벤트의 핵심이 아니다: ${id} · ${place}`);
+          break;
+        }
+        const k = `${who}|${id}|${place}`;
+        const lad = laddersA.get(`${who}|${place}|${core.feature}`);
+        const cl = closesHoldA(id, place);
+        const cur = openEventsA.get(k);
+        if (e.type === EVENT_OPENED) {
+          if (cur !== undefined || lad === undefined || cl.holds) bad(e.seq, 'awareness', '이미 열렸거나, 핵심의 사다리가 닫혔거나, 닫힘 조건이 맞는데 열렸다');
+          else expectCause(e.seq, 'cause', e.cause, lad.seq, '이벤트 열림');
+          if (lad !== undefined) openEventsA.set(k, { scene: null, lastSeq: lad.seq });
+          break;
+        }
+        if (cur === undefined) {
+          bad(e.seq, 'awareness', '열리지 않은 이벤트다');
+          break;
+        }
+        if (e.type === EVENT_CLOSED) {
+          const reason = str(e.data['reason']);
+          if (reason === 'closes' ? !cl.holds : reason !== 'ladder' || lad !== undefined) bad(e.seq, 'awareness', `닫힐 까닭(${reason})이 그때의 상태와 맞지 않는다`);
+          else expectCause(e.seq, 'cause', e.cause, reason === 'closes' ? latestSeq(cl.keys.map(lastChangeOf)) : cur.lastSeq, '이벤트 닫힘');
+          openEventsA.delete(k);
+          break;
+        }
+        const sense = senseOf(vocab, core.feature);
+        const m = modesA.get(who);
+        const sc = lad === undefined || sense === null ? null : pickScene(def.scenes ?? [], sense, lad.state.rung, dayPartOf(vocab, e.t), m?.mode ?? null);
+        const lines = Array.isArray(e.data['lines']) ? e.data['lines'].map(String) : [];
+        if (sc === null || lad === undefined || sc.name !== str(e.data['scene']) || sc.name === cur.scene) bad(e.seq, 'awareness', `그때의 칸·하루 구간·모드로는 장면이 ${sc?.name ?? '없음'}이다 (기록: ${str(e.data['scene'])}, 앞 장면 ${cur.scene ?? '없음'})`);
+        else {
+          if (lines.length !== sc.lines.length || lines.some((l, i) => l !== sc.lines[i])) bad(e.seq, 'awareness', '장면의 문장이 작가의 원문과 바이트까지 같지 않다');
+          expectCause(e.seq, 'cause', e.cause, latestSeq([lad.seq, m?.seq]), '장면');
+          cur.scene = sc.name;
+          cur.lastSeq = lad.seq;
+        }
         break;
       }
       case PASSED_DOOR: {

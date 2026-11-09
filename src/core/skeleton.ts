@@ -14,6 +14,7 @@ import { MINUTES_PER_DAY } from './clock.ts';
 import { actionClass, Agency, parseRecent } from './agency.ts';
 import { afterDone } from './condition.ts';
 import { cardRange, drawCards, OUTSIDE_DAY_DONE } from './outside.ts';
+import { Stage } from './scene.ts';
 import type { RecentAction } from './agency.ts';
 import { applyLevel, Causal, stateMatches } from './causal.ts';
 import { parseAware, Perception } from './perception.ts';
@@ -26,7 +27,7 @@ import { HEAT_FEATURE, readTemperature, STORAGE_FEATURE } from './temperature.ts
 import type { Db } from './db.ts';
 import { EventLog } from './log.ts';
 import { Rng } from './rng.ts';
-import { mealAt, parsePlan, presenceAt } from './schedule.ts';
+import { isObserved, mealAt, parsePlan, presenceAt } from './schedule.ts';
 import type { PlanBlock } from './schedule.ts';
 import { runDay } from './step.ts';
 import type { Layer } from './step.ts';
@@ -137,6 +138,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
   const activeCarry = new Map<string, number>(); // 인물 → 에너지를 아직 덜지 않은 활동 분 (condition.ts)
   const script = [...scripted].sort((a, b) => a.t - b.t); // 아직 일어나지 않은 외부 사건 (정전·문 열림 같은, 시나리오가 정한 것)
   const drawn = new Set<number>(); // 카드를 뽑은 밖의 구간 (시작 분)
+  const stage = new Stage(db, vocab, log); // 7층 장면 (scene.ts)
   return [
     {
       id: '0',
@@ -307,7 +309,12 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
     },
     {
       id: '7',
-      run: (c) => c.write('scene', {}),
+      // 장면 (scene.ts): 열린 이벤트에서 지금의 칸·하루 구간·모드에 맞는 작가의 원문
+      // 하루씨가 집에 깨어 있을 때만 장면을 보고 이벤트를 열고 닫는다 (보지 않는 시간의 단계 간격에 기록이 매이지 않게)
+      run: (c) => {
+        const where = awayUntil > c.t ? AWAY : presenceAt(parsePlan(c.read('plan'), vocab), c.t);
+        c.write('scene', isObserved(vocab, where) ? stage.step(world, c.t, { ladder: (w, p, f) => perception.ladderOf(w, p, f), mode: (w) => perception.modeOf(w) }) : {});
+      },
     },
     {
       id: '8',

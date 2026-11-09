@@ -3,6 +3,7 @@
 // 영수증(JSON)을 사람이 읽는 영수증 모양으로 찍는다. 표시만 한다: 해시에 들어가지 않고, 검증은 JSON으로 한다.
 // 이름은 정의 저장소(names.ko)와 사전(ko)에서 가져온다. 코드에 오브젝트·장소 이름을 박지 않는다.
 
+import { renderLine } from './script.ts';
 import type { JsonValue } from './events.ts';
 import type { Db } from './db.ts';
 import { instanceName } from './skeleton.ts';
@@ -139,6 +140,14 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
     case 'outside_day_done': {
       const cards = Array.isArray(d['cards']) ? d['cards'].map((x) => n.word('outside_card', s(x))) : [];
       return `${n.thing(s(d['who']))} · ${typeKo}: ${cards.length > 0 ? cards.join(' · ') : '카드 없음'}`;
+    }
+    case 'event_opened':
+    case 'event_closed':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.thing(s(d['event']))} (${n.thing(s(d['place']))})`;
+    case 'scene_shown': {
+      // 작가의 원문을 보이는 글로 (앵커는 보이는 말만)
+      const lines = Array.isArray(d['lines']) ? d['lines'].map((x) => renderLine(s(x))) : [];
+      return `${n.thing(s(d['who']))} · ${typeKo} "${s(d['scene'])}": ${lines.join(' ')}`;
     }
     case 'passed_door':
       return `${n.thing(s(d['who']))} · ${typeKo} (${d['dir'] === 'out' ? '나섬' : '들어옴'})`;

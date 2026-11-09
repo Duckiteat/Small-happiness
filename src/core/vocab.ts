@@ -257,6 +257,13 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '카드의 효과가 조정된 값인지 tuned를 적어야 한다');
       break;
     }
+    case 'day_part': {
+      // 하루 구간 (시계 기준): from·to(그날의 분, 0~1440). to가 from보다 작으면 자정을 넘는다
+      const f = attrs['from'], t = attrs['to'];
+      if (!isInt(f) || !isInt(t) || f < 0 || f >= 1440 || t < 0 || t > 1440 || f === t) push(`${path}.attrs`, 'from·to는 그날의 분(0~1440) 정수이고 같지 않아야 한다');
+      if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '구간이 조정된 값인지 tuned를 적어야 한다');
+      break;
+    }
     case 'rung': {
       // 심상 사다리의 칸 (ladder.ts): 순서(rank)로 올라가기만 한다
       const r = attrs['rank'];
@@ -523,6 +530,20 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
   checkOdorKnowledge(grouped, keysByCategory, push);
   checkLadders(grouped, keysByCategory, push);
   checkCondition(grouped, keysByCategory, push);
+  // 하루 구간은 하루를 빈틈없이, 겹치지 않게 나눈다
+  const parts = (grouped.get('day_part') ?? []).flatMap((e) => (isInt(e.attrs?.['from']) && isInt(e.attrs?.['to']) ? [{ k: e.key, f: e.attrs?.['from'] as number, t: e.attrs?.['to'] as number }] : []));
+  if (parts.length > 0) {
+    const cover = new Array<number>(1440).fill(0);
+    for (const p of parts) {
+      const end = p.t % 1440;
+      let m = p.f;
+      do {
+        cover[m] = (cover[m] ?? 0) + 1;
+        m = (m + 1) % 1440;
+      } while (m !== end);
+    }
+    if (cover.some((c) => c !== 1)) push('day_part', '하루 구간은 하루(0~1440분)를 빈틈없이, 겹치지 않게 나눠야 한다');
+  }
   // 가열로 되돌리는 시계: 가열 특징과 두 단계가 실제 사다리의 쓸 수 있는 칸이어야 한다
   const featureLevels = (feature: unknown): string[] | undefined => {
     const levels = grouped.get('feature')?.find((x) => x.key === feature)?.attrs?.['levels'];

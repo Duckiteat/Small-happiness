@@ -310,5 +310,17 @@
   "senses-unbearable-below-notice.json": {
     "stage": "gate",
     "match": "긴박함은 unbearable\\(알아채는 칸 이상"
+  },
+  "event-no-closes.json": {
+    "stage": "gate",
+    "match": "닫힘 조건이 없는 이벤트는 받지 않는다"
+  },
+  "event-anchor-unknown-verb.json": {
+    "stage": "gate",
+    "match": "의 동사 \"fly\"는 사전의"
+  },
+  "event-no-default-scene.json": {
+    "stage": "gate",
+    "match": "조건 없는 기본 장면이 없다"
   }
 }

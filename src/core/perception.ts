@@ -554,6 +554,17 @@ export class Perception {
     }
   }
 
+  /** 7층이 읽는 심상 사다리의 지금 자리와 그 사건 (scene.ts). 닫혔거나 없으면 undefined. */
+  ladderOf(who: string, place: string, feature: string): { readonly rung: string; readonly seq: string } | undefined {
+    const l = this.#ladders.get(`${who}|${place}|${feature}`);
+    return l === undefined ? undefined : { rung: l.state.rung, seq: l.seq };
+  }
+
+  /** 7층이 읽는 지금의 모드와 그 사건 (scene.ts). */
+  modeOf(who: string): { readonly mode: string; readonly seq: string } | undefined {
+    return this.#modes.get(who);
+  }
+
   /** 고른 행동이 끝났음을 알려 준다 (2층이 끝난 사건을 기록한 직후). 살펴서 안 것의 원인이 된다. */
   recordDone(chosen: string, done: string): void {
     this.#done.set(chosen, done);

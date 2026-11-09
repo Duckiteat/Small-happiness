@@ -163,6 +163,53 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     }
   }
 
+  // 이벤트 (S7, script.ts): 핵심은 심상 사다리를 타는 장소의 종류 키, 닫힘 조건이 반드시 있고, 장면은 사전의 감각·칸·하루 구간·모드,
+  // 앵커의 동사는 사전의 주의·행동 단어이거나 같은 이벤트의 장면 이름, 감각 × 칸마다 조건 없는 기본 장면이 있다 (구체성 우선의 바닥)
+  for (const [id, def] of Object.entries(db.defs)) {
+    if (!id.startsWith('EVT')) continue;
+    const at = (f: string): string => `${id}.${f}`;
+    const core = def.core === undefined ? null : parsePattern(def.core);
+    if (core === null || core.cond !== null) error(at('core'), '핵심(core)은 조건 없는 상태 키(정의|부위:특징)여야 한다');
+    else {
+      const target = db.defs[core.def];
+      if (target === undefined || !core.def.startsWith('PLC')) error(at('core'), `핵심은 있는 장소를 가리켜야 한다: ${core.def}`);
+      else {
+        slotCheck(target, core.slot, core.feature, null, vocab, at('core'), error);
+        if (vocab.entry('feature', core.feature)?.attrs['ladder'] === undefined) error(at('core'), `핵심의 특징 "${core.feature}"는 심상 사다리를 타지 않는다 (사전 feature의 ladder)`);
+      }
+    }
+    if ((def.closes ?? []).length === 0) error(at('closes'), '닫힘 조건이 없는 이벤트는 받지 않는다');
+    (def.closes ?? []).forEach((text, i) => {
+      const p = parsePattern(text);
+      if (p === null || p.cond === null) return void error(at(`closes[${i}]`), `닫힘은 조건이 있는 패턴이어야 한다: ${text}`);
+      const target = db.defs[p.def];
+      if (target === undefined) return void error(at(`closes[${i}]`), `없는 정의를 가리킨다: ${p.def}`);
+      slotCheck(target, p.slot, p.feature, p.cond, vocab, at(`closes[${i}]`), error);
+    });
+    const scenes = def.scenes ?? [];
+    if (scenes.length === 0) error(at('scenes'), '장면이 하나도 없다');
+    const names = new Set<string>();
+    scenes.forEach((sc, i) => {
+      const w = at(`scenes[${i}]`);
+      if (names.has(sc.name)) error(w, `장면 이름 "${sc.name}"가 겹친다`);
+      names.add(sc.name);
+      if (!vocab.has('sense', sc.sense)) error(w, `사전에 없는 감각: ${sc.sense}`);
+      if (!vocab.has('rung', sc.rung)) error(w, `사전에 없는 사다리 칸: ${sc.rung}`);
+      if (sc.day_part !== undefined && !vocab.has('day_part', sc.day_part)) error(w, `사전에 없는 하루 구간: ${sc.day_part}`);
+      if (sc.mode !== undefined && !vocab.has('mode', sc.mode)) error(w, `사전에 없는 모드: ${sc.mode}`);
+      for (const a of sc.anchors) {
+        if (a.line < 0 || a.line >= sc.lines.length || !(sc.lines[a.line] ?? '').includes(`{${a.text}|`)) error(w, `앵커 "${a.text}"가 그 줄에 없다`);
+      }
+    });
+    scenes.forEach((sc, i) => {
+      for (const a of sc.anchors) {
+        if (!vocab.has('attention', a.verb) && !vocab.has('action', a.verb) && !names.has(a.verb)) error(at(`scenes[${i}]`), `앵커 "${a.text}"의 동사 "${a.verb}"는 사전의 주의·행동 단어도, 이 이벤트의 장면 이름도 아니다`);
+      }
+    });
+    const pairs = new Set(scenes.map((sc) => `${sc.sense}/${sc.rung}`));
+    for (const pr of pairs) if (!scenes.some((sc) => `${sc.sense}/${sc.rung}` === pr && sc.day_part === undefined && sc.mode === undefined)) error(at('scenes'), `${pr}에 조건 없는 기본 장면이 없다 (구체성 우선: 모든 장면에 기본 문장)`);
+  }
+
   // 종류(is_a): 같은 종류의 정의를 가리키고(여러 단계 가능, 돌아오면 안 된다), 모든 조상에게서 물려받는 규칙·행동이 쓰는 부위·특징을 갖는다
   for (const [id, def] of Object.entries(db.defs)) {
     if (def.is_a === undefined) continue;

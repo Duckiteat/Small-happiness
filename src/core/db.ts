@@ -37,6 +37,7 @@ const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
   OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'feels', 'rules', 'offers', 'progress', 'initial'],
   PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'feels', 'rules', 'offers'],
   CHR: [...COMMON_FIELDS, 'senses', 'stays', 'slots', 'initial', 'mind'],
+  EVT: [...COMMON_FIELDS, 'core', 'closes', 'scenes'],
 };
 
 /** 이 종류의 정의가 가질 수 있는 최상위 필드. 아직 설계되지 않은 종류는 공통 필드만 쓴다. */
@@ -261,6 +262,23 @@ export interface Definition {
   readonly progress?: { readonly [feature: string]: ProgressDef };
   /** 들여놓을 때(살 때)의 상태: `부위:특징` → 단계 키 (음식-변화-모델 8장: 처음 조건은 구매와 붙어 있다). */
   readonly initial?: { readonly [slotFeature: string]: string };
+  /** 이벤트 (S7, script.ts): 핵심 — 심상 사다리를 타는 장소의 종류 키 (예: 주방의 냄새 종류). 그 사다리가 열리면 이벤트가 열린다 */
+  readonly core?: string;
+  /** 이벤트의 닫힘 조건 (세계의 패턴, 모두 맞으면 닫힌다). 비어 있으면 관문이 거부한다 */
+  readonly closes?: readonly string[];
+  /** 장면들: 감각 · 사다리 칸 · (하루 구간 · 모드)에 맞는 것이 뽑히고, 작가의 원문 줄을 그대로 보인다 */
+  readonly scenes?: readonly SceneDef[];
+}
+
+/** 장면 하나 (script.ts). lines는 작가의 원문 줄 그대로(앵커 표기 포함), anchors는 그 안의 {말|동사|라벨?}. */
+export interface SceneDef {
+  readonly name: string;
+  readonly sense: string;
+  readonly rung: string;
+  readonly day_part?: string;
+  readonly mode?: string;
+  readonly lines: readonly string[];
+  readonly anchors: readonly { readonly line: number; readonly text: string; readonly verb: string; readonly label?: string }[];
 }
 
 export interface Db {
@@ -529,6 +547,24 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
   return ok ? out : undefined;
 }
 
+/** 장면 목록의 모양 (뜻은 관문이 사전·이벤트로 본다). */
+function fieldScenes(v: unknown, where: string, push: Push): SceneDef[] | undefined {
+  if (!Array.isArray(v)) return void push(where, 'scenes는 장면 목록이어야 한다');
+  const out: SceneDef[] = [];
+  for (const [i, sc] of v.entries()) {
+    const at = `${where}[${i}]`;
+    const anchorsOk = (x: unknown): boolean => Array.isArray(x) && x.every((a) => isObj(a) && typeof a['line'] === 'number' && Number.isInteger(a['line']) && typeof a['text'] === 'string' && a['text'] !== '' && typeof a['verb'] === 'string' && (a['label'] === undefined || typeof a['label'] === 'string') && Object.keys(a).every((k) => ['line', 'text', 'verb', 'label'].includes(k)));
+    if (!isObj(sc) || typeof sc['name'] !== 'string' || sc['name'].trim() === '' || typeof sc['sense'] !== 'string' || typeof sc['rung'] !== 'string' || !isStrArr(sc['lines']) || sc['lines'].length === 0 || !anchorsOk(sc['anchors']) || (sc['day_part'] !== undefined && typeof sc['day_part'] !== 'string') || (sc['mode'] !== undefined && typeof sc['mode'] !== 'string')) {
+      push(at, '장면은 { name, sense, rung, day_part?, mode?, lines: 원문 줄(하나 이상), anchors: [{ line, text, verb, label? }] }이어야 한다');
+      continue;
+    }
+    onlyKeys(sc, ['name', 'sense', 'rung', 'day_part', 'mode', 'lines', 'anchors'], at, push);
+    const anchors = (sc['anchors'] as Record<string, unknown>[]).map((a) => ({ line: a['line'] as number, text: String(a['text']), verb: String(a['verb']), ...(typeof a['label'] === 'string' ? { label: a['label'] } : {}) }));
+    out.push({ name: sc['name'].trim(), sense: sc['sense'], rung: sc['rung'], ...(typeof sc['day_part'] === 'string' ? { day_part: sc['day_part'] } : {}), ...(typeof sc['mode'] === 'string' ? { mode: sc['mode'] } : {}), lines: [...(sc['lines'] as string[])], anchors });
+  }
+  return out;
+}
+
 function fieldMind(v: unknown, where: string, push: Push): MindDef | undefined {
   const rung = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= 5;
   if (!isObj(v)) return void push(where, 'mind는 객체여야 한다');
@@ -693,6 +729,9 @@ export type Fields = Partial<{
   passages: PassageDef[];
   progress: Record<string, ProgressDef>;
   initial: Record<string, string>;
+  core: string;
+  closes: string[];
+  scenes: SceneDef[];
 }>;
 
 /**
@@ -814,6 +853,20 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.initial = v;
         break;
       }
+      case 'core':
+        if (typeof value !== 'string' || value.trim() === '') push(at, 'core는 상태 키 문자열(정의|부위:특징)이어야 한다');
+        else out.core = value.trim();
+        break;
+      case 'closes': {
+        const v = fieldStringList(value, 'closes', at, push);
+        if (v !== undefined) out.closes = v;
+        break;
+      }
+      case 'scenes': {
+        const v = fieldScenes(value, at, push);
+        if (v !== undefined) out.scenes = v;
+        break;
+      }
       default:
         break;
     }
@@ -856,6 +909,9 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
     ...(f.passages !== undefined ? { passages: f.passages } : {}),
     ...(f.progress !== undefined ? { progress: f.progress } : {}),
     ...(f.initial !== undefined ? { initial: f.initial } : {}),
+    ...(f.core !== undefined ? { core: f.core } : {}),
+    ...(f.closes !== undefined ? { closes: f.closes } : {}),
+    ...(f.scenes !== undefined ? { scenes: f.scenes } : {}),
     desc: f.desc ?? [],
   };
 }

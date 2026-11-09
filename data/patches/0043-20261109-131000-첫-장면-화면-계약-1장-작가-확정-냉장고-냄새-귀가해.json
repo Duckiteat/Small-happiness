@@ -1,0 +1,138 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "첫 장면 (화면-계약 1장, 작가 확정: 냉장고 냄새 — 귀가해 현관을 여는 순간). 문장은 Claude의 초안이고 작가가 고친다",
+    "defs": [
+      {
+        "id": "EVT+1",
+        "names": {
+          "ko": "냉장고 냄새"
+        },
+        "desc": [
+          "주방에 냄새가 나기 시작해 정체를 알 때까지. 심상 사다리의 칸(느낌 → 짐작 → 좁힘 → 정체)마다 장면이 바뀐다"
+        ],
+        "core": "PLC000002|space:odor",
+        "closes": [
+          "PLC000002|space:smell@<=none"
+        ],
+        "scenes": [
+          {
+            "name": "냄새가 남",
+            "sense": "smell",
+            "rung": "feel",
+            "lines": [
+              "어디선가 {꼬릿한 냄새?|킁킁}가 난다."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "꼬릿한 냄새?",
+                "verb": "sniff"
+              }
+            ]
+          },
+          {
+            "name": "현관을 열자",
+            "sense": "smell",
+            "rung": "feel",
+            "lines": [
+              "현관을 열자 {꼬릿한 냄새?|킁킁}가 훅 끼쳤다."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "꼬릿한 냄새?",
+                "verb": "sniff"
+              }
+            ],
+            "day_part": "evening"
+          },
+          {
+            "name": "무슨 냄새지",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "킁킁. 이게 무슨 냄새지. {어디지.|탐색}",
+              "구수한 것 같기도 하고, 시큼한 것 같기도 하다."
+            ],
+            "anchors": [
+              {
+                "line": 0,
+                "text": "어디지.",
+                "verb": "search"
+              }
+            ]
+          },
+          {
+            "name": "무슨 냄새지 (지침)",
+            "sense": "smell",
+            "rung": "guess",
+            "lines": [
+              "냄새가 나는데, 지금은 아무것도 하기 싫다."
+            ],
+            "anchors": [],
+            "mode": "drained"
+          },
+          {
+            "name": "이 냄새다",
+            "sense": "smell",
+            "rung": "narrow",
+            "lines": [
+              "이 냄새는 안다. 문제는 어디서 나느냐다.",
+              "주방 쪽이다. {냉장고|열어보기} 쪽인가."
+            ],
+            "anchors": [
+              {
+                "line": 1,
+                "text": "냉장고",
+                "verb": "peek"
+              }
+            ]
+          },
+          {
+            "name": "찾았다",
+            "sense": "smell",
+            "rung": "thing",
+            "lines": [
+              "찾았다. 이거였구나."
+            ],
+            "anchors": []
+          }
+        ]
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {
+    "EVT+1": "EVT000001"
+  },
+  "mapped": [],
+  "report": {
+    "why": "첫 장면 (화면-계약 1장, 작가 확정: 냉장고 냄새 — 귀가해 현관을 여는 순간). 문장은 Claude의 초안이고 작가가 고친다",
+    "scope": {
+      "added": {
+        "event": [
+          "EVT000001"
+        ]
+      },
+      "updated": {},
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

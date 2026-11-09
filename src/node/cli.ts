@@ -20,6 +20,7 @@ import { buildEdges, chainRoots, chainsFrom, collectRules, ruleNodes } from '../
 import { generatedRules } from '../core/generated.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
+import { parseScript } from '../core/script.ts';
 import { appendix, auditEvents, auditScenario, commitPatch, gaps, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
 import { verifyReceipts } from '../core/receipt.ts';
 import { auditSummary } from '../core/audit.ts';
@@ -194,7 +195,17 @@ function main(): void {
       // 원본 파일들 → 패치 JSON (표준 출력). 형식·사전·펼치기 검사 후 기존 패치 형식으로 낸다. 파일은 쓰지 않는다.
       const files = positional.slice(1);
       if (files.length === 0) die('원본 파일을 하나 이상 지정하세요');
-      const sources = files.map((f) => JSON.parse(readFileSync(resolve(f), 'utf8')) as unknown);
+      // 줄글 스크립트(.ev)는 이벤트 원본으로 먼저 읽는다 (script.ts, 줄 번호가 있는 오류)
+      const sources = files.map((f) => {
+        const text = readFileSync(resolve(f), 'utf8');
+        if (!f.endsWith('.ev')) return JSON.parse(text) as unknown;
+        const r = parseScript(text, loadVocabDir(join(root, 'data', 'vocab')));
+        if (r.source === null) {
+          for (const i of r.issues) console.error(`  오류 ${f}:${i.line}: ${i.msg}`);
+          process.exit(1);
+        }
+        return r.source;
+      });
       const r = compileSources(sources);
       if (r.patch === null) {
         for (const i of r.issues) console.error(`  오류 ${i.where}: ${i.msg}`);

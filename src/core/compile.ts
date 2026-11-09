@@ -10,13 +10,14 @@ import { PATCH_FORMAT, PATCH_VERSION } from './patch.ts';
 export const SOURCE_FORMAT_VERSION = 1;
 
 /** 지금 받는 종류와 그 접두. 나머지 종류는 명세 단계다. */
-const KIND_PREFIX: Readonly<Record<string, string>> = { objects: 'OBJ', places: 'PLC', characters: 'CHR' };
+const KIND_PREFIX: Readonly<Record<string, string>> = { objects: 'OBJ', places: 'PLC', characters: 'CHR', events: 'EVT' };
 
 /** 종류별로 지금 받는 최상위 필드. */
 const FIELDS: Readonly<Record<string, readonly string[]>> = {
   objects: [...allowedFields('OBJ'), 'override'],
   places: allowedFields('PLC'),
   characters: allowedFields('CHR'),
+  events: allowedFields('EVT'),
 };
 
 /** 원본 종류가 받는 최상위 필드 (정의 형식의 목록과 같고, 물건만 펼치기용 override를 더 받는다). */
