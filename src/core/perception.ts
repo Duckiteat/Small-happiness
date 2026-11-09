@@ -13,6 +13,8 @@
 //
 // 단순화 (기본안, 위치·번짐 11번 전까지): 물건의 위치가 없어서, 장소를 살피면 집 안의 모든 물건을 본다.
 
+import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED } from './emotion.ts';
+import type { Episode } from './emotion.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { latestSeq } from './events.ts';
 import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
@@ -88,6 +90,8 @@ export class Perception {
   readonly #feltSeq = new Map<string, string>(); // `${인물}|${감각질}` → 멀리서 마지막으로 느끼기 시작한(세기 바뀐) 사건
   readonly #offSeq = new Map<string, string>(); // `${인물}|${감각질}` → 마지막으로 그친 사건
   readonly #imaged = new Map<string, Set<string>>(); // 인물 → 이어지고 있는 심상
+  readonly #episodes = new Map<string, Episode[]>(); // 인물 → 겪은 일 (생각)
+  readonly #memories = new Map<string, Map<string, string>>(); // 인물 → 정의 → 감정이 붙은 기억
   readonly #paired = new Map<string, number>(); // `${인물}|${반사}` → 짝지어 겪은 횟수 // 고른 행동 사건 → 끝난 사건 (살펴서 안 것의 원인)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
@@ -176,12 +180,14 @@ export class Perception {
     const view = worldView(world);
     const seen = new Set<string>();
     const moments = new Map<string, string>(); // 이 순간 느낀 감각질 → 그 사건
+    const sources = new Map<string, { source: string; reach: string }>(); // 이 순간 느낀 감각질 → 준 개체와 그 길
     for (const reach of reaches) {
       for (const f of feltFrom(this.#db, this.#vocab, view, subjects, reach, senses, this.#scale(who)).values()) {
         if (seen.has(f.sensation)) continue;
         seen.add(f.sensation);
         const e = this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause, data: { who, sensation: f.sensation, sense: f.sense, on: true, moment: true, level: f.level, scale: f.scale, via } });
         moments.set(f.sensation, e.seq);
+        sources.set(f.sensation, { source: f.source, reach });
         this.#afterFelt(who, t, e.seq, f.sensation, f.level, f.scale, undefined, true);
       }
     }
@@ -190,14 +196,53 @@ export class Perception {
     const m = new Set(moments.keys());
     for (const img of imageDefs(this.#vocab)) {
       if (!momentary(img, d, m)) continue;
-      this.#formImage(who, t, img.key, latestSeq(img.parts.map((p) => moments.get(p) ?? this.#feltSeq.get(`${who}|${p}`))), true);
+      this.#formImage(world, who, t, img.key, latestSeq(img.parts.map((p) => moments.get(p) ?? this.#feltSeq.get(`${who}|${p}`))), true, img.parts.map((p) => this.#partSource(who, p, sources)));
     }
   }
 
-  /** 심상이 생긴다 → 거기 붙은 몸의 반응이 곧바로 따른다 (해석 전 행동). */
-  #formImage(who: string, t: number, image: string, cause: string | null, moment: boolean): void {
+  /**
+   * 심상이 생긴다 → 거기 붙은 몸의 반응이 곧바로 따른다 (해석 전 행동). 그 뒤 생각과 합쳐 감정이 생긴다 (emotion.ts):
+   * 감정 → 감정이 붙은 기억(생기거나 덧씌워짐) → 스트레스 임계를 넘었으면 생각이 멈춤 → 축의 변화. 원인은 모두 그 감정.
+   * 스트레스 임계에 있으면 생각하고 해석하지 못해 감정이 생기지 않는다.
+   */
+  #formImage(world: World, who: string, t: number, image: string, cause: string | null, moment: boolean, parts: readonly { readonly source: string | undefined; readonly reach: string }[]): void {
     const e = this.#log.append({ t, type: IMAGE_FORMED, src: PERCEPTION_SRC, cause, data: { who, image, on: true, ...(moment ? { moment: true } : {}) } });
     for (const r of responsesTo(this.#vocab, image)) this.#log.append({ t, type: BODY_RESPONSE, src: PERCEPTION_SRC, cause: e.seq, data: { who, response: r, image } });
+    const def = this.#db.defs[defOf(who) ?? ''];
+    const mind = def?.mind;
+    if (mind === undefined || def?.slots?.[MOOD_SLOT] === undefined) return;
+    const level = (key: string): string => world.level(key);
+    if (isOverwhelmed(this.#vocab, mind, who, level)) return;
+    const of = cueOf(parts, (i) => world.defOfInstance(i));
+    const episodes = this.#episodes.get(who) ?? [];
+    this.#episodes.set(who, episodes);
+    const memories = this.#memories.get(who) ?? new Map<string, string>();
+    this.#memories.set(who, memories);
+    const a = appraise(this.#vocab, mind, who, image, of, t, episodes, memories, level);
+    if (a === null) return;
+    const em = this.#log.append({ t, type: EMOTION_FORMED, src: PERCEPTION_SRC, cause: e.seq, data: { who, emotion: a.emotion, image, thought: a.thought, of: [...a.of] } });
+    for (const m of a.memories) {
+      this.#log.append({ t, type: MEMORY_FORMED, src: PERCEPTION_SRC, cause: em.seq, data: { who, of: m.of, emotion: m.emotion, ...(m.replaces !== undefined ? { replaces: m.replaces } : {}) } });
+      memories.set(m.of, m.emotion);
+    }
+    if (a.overwhelms) this.#log.append({ t, type: OVERWHELMED, src: PERCEPTION_SRC, cause: em.seq, data: { who, on: true } });
+    for (const c of a.changes) world.set(c.key, c.to, { t, cause: em.seq });
+    episodes.push({ image, of: a.of, t });
+  }
+
+  /** 심상의 재료 하나를 준 개체와 그 길: 이 순간 느낀 것(닿음·입)이 먼저, 아니면 멀리서 느끼는 것. */
+  #partSource(who: string, part: string, moments: ReadonlyMap<string, { readonly source: string; readonly reach: string }>): { source: string | undefined; reach: string } {
+    const m = moments.get(part);
+    if (m !== undefined) return { source: m.source, reach: m.reach };
+    return { source: this.#felt.get(who)?.get(part)?.source, reach: 'distance' };
+  }
+
+  /** 이야기가 정한 지난 기억 (시나리오의 memories): 처음에 원인 없이 남긴다. */
+  remember(who: string, of: string, emotion: string, t: number): void {
+    const memories = this.#memories.get(who) ?? new Map<string, string>();
+    this.#memories.set(who, memories);
+    this.#log.append({ t, type: MEMORY_FORMED, src: PERCEPTION_SRC, cause: null, data: { who, of, emotion, given: true } });
+    memories.set(of, emotion);
   }
 
   /**
@@ -266,7 +311,7 @@ export class Perception {
     for (const img of imageDefs(this.#vocab)) {
       if (imaged.has(img.key) || !sustained(img, d)) continue;
       imaged.add(img.key);
-      this.#formImage(who, t, img.key, latestSeq(img.parts.map((p) => this.#feltSeq.get(`${who}|${p}`))), false);
+      this.#formImage(world, who, t, img.key, latestSeq(img.parts.map((p) => this.#feltSeq.get(`${who}|${p}`))), false, img.parts.map((p) => this.#partSource(who, p, new Map())));
     }
   }
 

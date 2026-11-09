@@ -25,6 +25,13 @@
       },
       "aliases": [],
       "slots": {
+        "mood": {
+          "features": [
+            "pleasure",
+            "displeasure",
+            "stability"
+          ]
+        },
         "skill": {
           "features": [
             "cooking",
@@ -60,11 +67,28 @@
           "tuned": false
         }
       },
+      "mind": {
+        "thought_days": {
+          "min": 3,
+          "max": 5
+        },
+        "binds_at": 3,
+        "tense_at": 1,
+        "overwhelm": {
+          "displeasure_at_least": 4,
+          "stability_at_most": 1
+        },
+        "tuned": false
+      },
       "stays": "PLC000002",
+      "initial": {
+        "mood:stability": "steady"
+      },
       "desc": [
         "혼자 사는 직장인 (세계-설정 1장). 직업·출퇴근은 미정",
         "숙련(요리 솜씨·손질 솜씨·감별)은 재료를 쓸 때마다 쌓인다 (요리-설계 11장)",
-        "감각 다섯(시각·청각·후각·촉각·미각). 멀리서 닿는 것(냄새·보기·소리)은 머무는 곳에서, 촉각은 손에 닿을 때, 미각은 먹을 때 느낀다"
+        "감각 다섯(시각·청각·후각·촉각·미각). 멀리서 닿는 것(냄새·보기·소리)은 머무는 곳에서, 촉각은 손에 닿을 때, 미각은 먹을 때 느낀다",
+        "감정의 축 셋(쾌·불쾌·안정)을 갖고, 생각은 3~5일 기억한다. 감정과 이어진 일은 잊지 않는다 (내면-설계 10장)"
       ]
     },
     "OBJ000001": {

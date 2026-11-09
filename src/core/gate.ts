@@ -396,6 +396,13 @@ export function checkDb(db: Db, vocab: Vocab): Issue[] {
     for (const sense of Object.keys(def.senses ?? {})) {
       if (!vocab.has('sense', sense)) error(`${id}.senses.${sense}`, `사전에 없는 감각: ${sense}`);
     }
+    // 생각과 감정의 문턱(mind)이 있으면 감정의 축 세 개가 인물의 mood 부위에 있어야 한다 (내면-설계 10장)
+    if (def.mind !== undefined) {
+      const axes = vocab.keys('feature').filter((f) => vocab.entry('feature', f)?.attrs['axis'] !== undefined).sort();
+      const have = def.slots?.['mood']?.features ?? [];
+      const missing = axes.filter((f) => !have.includes(f));
+      if (missing.length > 0) error(`${id}.mind`, `생각과 감정이 있는 인물은 mood 부위에 감정의 축이 있어야 한다 (빠짐: ${missing.join(', ')})`);
+    }
   }
 
   for (const ref of selfLoops(collectRules(db), vocab, db)) { // 종류(is_a)를 거쳐 돌아오는 것도 (인과와 같은 판단)

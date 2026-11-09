@@ -388,7 +388,8 @@
           "parts": [
             "steaming",
             "savory_scent"
-          ]
+          ],
+          "tone": "pleasant"
         }
       },
       {
@@ -399,7 +400,8 @@
           "parts": [
             "steaming",
             "sweet_scent"
-          ]
+          ],
+          "tone": "pleasant"
         }
       },
       {
@@ -410,7 +412,8 @@
           "parts": [
             "cold_feel",
             "sour_scent"
-          ]
+          ],
+          "tone": "unpleasant"
         }
       },
       {
@@ -421,7 +424,8 @@
           "parts": [
             "damp_feel",
             "rotten_scent"
-          ]
+          ],
+          "tone": "unpleasant"
         }
       },
       {
@@ -432,7 +436,8 @@
           "parts": [
             "bubbling",
             "steaming"
-          ]
+          ],
+          "tone": "pleasant"
         }
       },
       {
@@ -443,7 +448,8 @@
           "parts": [
             "umami",
             "savory_scent"
-          ]
+          ],
+          "tone": "pleasant"
         }
       },
       {
@@ -454,7 +460,8 @@
           "parts": [
             "sour_taste",
             "sharp_scent"
-          ]
+          ],
+          "tone": "unpleasant"
         }
       }
     ]

@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { EventLog } from '../src/core/log.ts';
 import { Vocab, VocabError, normalizeWord, validateVocab } from '../src/core/vocab.ts';
-import type { VocabCategoryRaw } from '../src/core/vocab.ts';
+import type { VocabCategoryRaw, VocabEntryRaw } from '../src/core/vocab.ts';
+import type { JsonValue } from '../src/core/events.ts';
 import { loadVocabDir } from '../src/node/vocab-files.ts';
 
 const VOCAB_DIR = fileURLToPath(new URL('../data/vocab', import.meta.url));
@@ -168,4 +169,21 @@ test('공감각 심상: 감각질 둘 이상이 서로 다른 감각에서 와�
   assert.equal(messages([...base, img(['steaming', 'savory_scent']), resp(['i'])]), '');
   assert.match(messages([...base, img(['steaming', 'savory_scent']), resp(['nope'])]), /image 분류에 없는 키/);
   assert.match(messages([...base, resp([])]), /붙는 심상\(on\) 목록이 필요하다/);
+});
+
+test('감정: 결과 생각으로 하나가 정해지고, 쾌·불쾌만 감정이 움직이며, 안정은 생각(by_thought)이 움직인다', () => {
+  const lv = (keys: string[]): { key: string; ko: string }[] => keys.map((k) => ({ key: k, ko: k }));
+  const six = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const axis = (key: string, ax: string, extra: Record<string, JsonValue> = {}): VocabEntryRaw => ({ key, ko: key, attrs: { inner: true, axis: ax, levels: lv(six), tuned: false, ...extra } });
+  const bt = { by_thought: { new: -1, familiar: 1, recalled: 1, against: -1 } };
+  const feats = (stab: Record<string, JsonValue> = bt): VocabCategoryRaw => ({ category: 'feature', entries: [axis('p', 'pleasure'), axis('d', 'displeasure'), axis('s', 'stability', stab)] });
+  const emo = (...es: Record<string, JsonValue>[]): VocabCategoryRaw => ({ category: 'emotion', entries: es.map((attrs, i) => ({ key: `e${i}`, ko: `감정${i}`, attrs: { tuned: false, ...attrs } })) });
+  assert.equal(messages([feats(), emo({ tone: 'pleasant', thought: 'new', shifts: { p: 1 } }, { tone: 'pleasant', shifts: { p: 1, d: 1 } })]), '');
+  assert.match(messages([feats(), emo({ tone: 'pleasant', thought: 'new', shifts: { p: 1 } }, { tone: 'pleasant', thought: 'new', shifts: { p: 2 } })]), /감정이 둘이다/);
+  assert.match(messages([feats(), emo({ tone: 'pleasant', thought: 'new', shifts: { s: 1 } })]), /안정은 생각이 움직인다/);
+  assert.match(messages([feats(), emo({ tone: 'sweet', thought: 'new', shifts: { p: 1 } })]), /tone은 pleasant/);
+  assert.match(messages([feats(), emo({ tone: 'pleasant', thought: 'maybe', shifts: { p: 1 } })]), /thought는 new/);
+  assert.match(messages([feats(), emo({ tone: 'pleasant', thought: 'new', shifts: {} })]), /비어 있지 않아야/);
+  assert.match(messages([feats({})]), /by_thought/);
+  assert.match(messages([{ category: 'feature', entries: [axis('p', 'pleasure'), axis('q', 'pleasure')] }]), /이미 p에 있다/);
 });

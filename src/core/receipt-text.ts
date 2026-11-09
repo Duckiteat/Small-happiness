@@ -127,6 +127,15 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('image', s(d['image']))} (${d['moment'] === true ? '그 순간' : d['on'] === true ? '생김' : '깨짐'})`;
     case 'body_response':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('response', s(d['response']))} (${n.word('image', s(d['image']))})`;
+    case 'emotion_formed': {
+      const of = Array.isArray(d['of']) ? d['of'].map((x) => n.thing(s(x))).join('·') : '';
+      const th: Record<string, string> = { new: '처음', familiar: '겪어 봄', recalled: '기억대로', against: '기억과 어긋남' };
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('emotion', s(d['emotion']))} (${n.word('image', s(d['image']))} · ${of === '' ? '무엇인지 모름' : of} · ${th[s(d['thought'])] ?? s(d['thought'])})`;
+    }
+    case 'memory_formed':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.thing(s(d['of']))} → ${n.word('emotion', s(d['emotion']))}${d['replaces'] !== undefined ? ` (${n.word('emotion', s(d['replaces']))}을 덧씌움)` : d['given'] === true ? ' (지난 기억)' : ''}`;
+    case 'overwhelmed':
+      return `${n.thing(s(d['who']))} · ${typeKo}`;
     case 'menu_planned':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('menu', s(d['menu']))}`;
     case 'action_done':

@@ -12,6 +12,8 @@ import { menusOf } from './db.ts';
 import { pickUse } from './amount.ts';
 import { conceive } from './conceive.ts';
 import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
+import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED } from './emotion.ts';
+import type { Appraisal, Episode } from './emotion.ts';
 import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
 import type { FeltOne } from './sensation.ts';
@@ -162,7 +164,24 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const feltSeqA = new Map<string, string>(); // `${인물}|${감각질}` → 멀리서 마지막으로 느끼기 시작한(세기 바뀐) 사건
   const offSeqA = new Map<string, string>(); // `${인물}|${감각질}` → 마지막으로 그친 사건
   const imagedA = new Map<string, Set<string>>(); // 인물 → 이어지는 심상
-  let momentBatch: { who: string; cause: string; t: number; sens: Map<string, string>; seen: Set<string> } | null = null;
+  let momentBatch: { who: string; cause: string; t: number; sens: Map<string, string>; src: Map<string, { source: string; reach: string }>; seen: Set<string> } | null = null;
+  // ③ 감정 (emotion.ts): 그때까지의 생각·기억·축으로 다시 계산한다
+  const episodesA = new Map<string, Episode[]>(); // 인물 → 겪은 일
+  const memoriesA = new Map<string, Map<string, string>>(); // 인물 → 정의 → 감정이 붙은 기억
+  const emotionSeqs = new Set<string>(); // 감정 사건 (축의 변화의 원인)
+  let innerExpect: { cause: string; who: string; image: string; t: number; a: Appraisal } | null = null; // 심상(과 몸의 반응) 바로 뒤에 와야 할 감정
+  let innerQueue: { cause: string; items: { type: string; key: string }[]; then: { key: string; to: string }[] } | null = null; // 감정 바로 뒤의 기억·생각이 멈춤
+  const memoryKey = (d: { readonly of?: unknown; readonly emotion?: unknown; readonly replaces?: unknown }): string => [d.of, d.emotion, d.replaces].map((x) => (typeof x === 'string' ? x : '')).join('|');
+  /** 심상이 생겼을 때 와야 할 감정 (지각 층과 같은 계산). 마음이 없거나 생각이 멈춰 있으면 없다 */
+  const expectEmotion = (cause: string, who: string, image: string, t: number, parts: { source: string | undefined; reach: string }[]): void => {
+    const def = db.defs[instances.get(who) ?? ''];
+    const mind = def?.mind;
+    if (mind === undefined || def?.slots?.[MOOD_SLOT] === undefined) return;
+    const level = (k: string): string => levelIn(levels, k);
+    if (isOverwhelmed(vocab, mind, who, level)) return;
+    const a = appraise(vocab, mind, who, image, cueOf(parts, (i) => instances.get(i)), t, episodesA.get(who) ?? [], memoriesA.get(who) ?? new Map<string, string>(), level);
+    if (a !== null) innerExpect = { cause, who, image, t, a };
+  };
   const PERCEPT_TYPES = new Set(['stimulus_perceived', REFLEX, REFLEX_LEARNED, IMAGE_FORMED, BODY_RESPONSE]);
   /** 그 순간의 감각 묶음이 끝났다: 생겼어야 할 그 순간의 심상이 다 나왔나 */
   const closeMoment = (): void => {
@@ -233,14 +252,69 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
       for (const m of reflexQueue.items) bad(reflexQueue.cause, 'awareness', `이 감각 뒤에 ${m.type === REFLEX ? '반사' : '조건반사 배움'}(${m.reflex})가 빠졌다`);
       reflexQueue = null;
     }
+    // 감정 바로 뒤에는 그 감정이 만든 기억, 생각이 멈춤이 차례로 오고, 그다음 축의 변화가 온다
+    if (innerQueue !== null) {
+      const q: { cause: string; items: { type: string; key: string }[]; then: { key: string; to: string }[] } = innerQueue;
+      const head = q.items[0];
+      const key = e.type === MEMORY_FORMED ? memoryKey(e.data) : e.type === OVERWHELMED ? String(e.data['on']) : '';
+      if (head !== undefined && e.type === head.type && key === head.key && e.cause === q.cause) {
+        q.items.shift();
+        bump('awareness');
+        if (q.items.length === 0) {
+          innerQueue = null;
+          if (q.then.length > 0) pending = { cause: q.cause, what: '감정', expect: [...q.then] };
+        }
+        continue;
+      }
+      for (const m of q.items) bad(q.cause, 'awareness', `이 감정 뒤에 ${m.type === MEMORY_FORMED ? `기억(${m.key})` : '생각이 멈춤'}이 빠졌다`);
+      innerQueue = null;
+      if (q.then.length > 0) pending = { cause: q.cause, what: '감정', expect: [...q.then] };
+    }
+    if (innerExpect !== null) {
+      const x: { cause: string; who: string; image: string; t: number; a: Appraisal } = innerExpect;
+      innerExpect = null;
+      // 감정을 따라간다 (기록이 빠지거나 틀려도 감사는 자기 계산을 따른다)
+      const eps = episodesA.get(x.who) ?? [];
+      episodesA.set(x.who, eps);
+      eps.push({ image: x.image, of: x.a.of, t: x.t });
+      const mems = memoriesA.get(x.who) ?? new Map<string, string>();
+      memoriesA.set(x.who, mems);
+      for (const m of x.a.memories) mems.set(m.of, m.emotion);
+      const items = [...x.a.memories.map((m) => ({ type: MEMORY_FORMED, key: memoryKey({ ...m }) })), ...(x.a.overwhelms ? [{ type: OVERWHELMED, key: 'true' }] : [])];
+      if (e.type === EMOTION_FORMED && e.cause === x.cause) {
+        bump('awareness');
+        emotionSeqs.add(e.seq);
+        const of = Array.isArray(e.data['of']) ? e.data['of'].map(String) : [];
+        if (str(e.data['who']) !== x.who || str(e.data['image']) !== x.image || str(e.data['emotion']) !== x.a.emotion || str(e.data['thought']) !== x.a.thought || of.join(',') !== x.a.of.join(',')) {
+          bad(e.seq, 'awareness', `그때의 생각으로는 ${x.image} 심상에서 ${x.a.emotion}(${x.a.thought}, ${x.a.of.join(',') || '무엇인지 모름'})이 생긴다 (기록: ${str(e.data['emotion'])}(${str(e.data['thought'])}, ${of.join(',') || '무엇인지 모름'}))`);
+        }
+        if (items.length > 0) innerQueue = { cause: e.seq, items, then: [...x.a.changes] };
+        else if (x.a.changes.length > 0) pending = { cause: e.seq, what: '감정', expect: [...x.a.changes] };
+        continue;
+      }
+      bad(x.cause, 'awareness', `이 심상 뒤에 감정(${x.a.emotion})이 빠졌다`);
+    }
+    if (e.type === MEMORY_FORMED && e.cause === null && e.data['given'] === true && chosen.size === 0 && vocab.has('emotion', str(e.data['emotion'])) && db.defs[str(e.data['of'])] !== undefined && instances.has(str(e.data['who']))) {
+      // 이야기가 정한 지난 기억: 하루가 움직이기 전에만
+      bump('awareness');
+      const mems = memoriesA.get(str(e.data['who'])) ?? new Map<string, string>();
+      memoriesA.set(str(e.data['who']), mems);
+      mems.set(str(e.data['of']), str(e.data['emotion']));
+      continue;
+    }
+    if (e.type === EMOTION_FORMED || e.type === MEMORY_FORMED || e.type === OVERWHELMED) {
+      bad(e.seq, 'awareness', `그때의 심상과 생각이 만들지 않는 ${e.type === EMOTION_FORMED ? '감정' : e.type === MEMORY_FORMED ? '기억' : '생각이 멈춤'}이다`);
+      continue;
+    }
     if (e.type === REFLEX || e.type === REFLEX_LEARNED || e.type === BODY_RESPONSE) {
       bad(e.seq, 'awareness', `그 감각·심상이 일으키지 않는 ${e.type === REFLEX ? '반사' : e.type === BODY_RESPONSE ? '몸의 반응' : '조건반사 배움'}다: ${str(e.data['reflex'] ?? e.data['response'])}`);
       continue;
     }
     // 그 순간의 묶음은 같은 행동 끝의 감각과 그 뒤의 반사·심상까지다
     const sameMoment = e.type === 'stimulus_perceived' && e.data['moment'] === true && momentBatch !== null && e.cause === momentBatch.cause;
-    if (momentBatch !== null && !sameMoment && e.type !== IMAGE_FORMED) closeMoment();
-    if (!PERCEPT_TYPES.has(e.type)) checkSustained(e.seq);
+    const innerChange = e.type === 'state_changed' && e.cause !== null && emotionSeqs.has(e.cause); // 감정이 움직인 축은 감각 묶음 안에 있다
+    if (momentBatch !== null && !sameMoment && e.type !== IMAGE_FORMED && !innerChange) closeMoment();
+    if (!PERCEPT_TYPES.has(e.type) && !innerChange) checkSustained(e.seq);
     let consumed = false;
     // 직전 사건이 요구한 결과를 차례로 받는다
     if (pending !== null) {
@@ -336,8 +410,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           if (options.externalUntil !== undefined && e.t > options.externalUntil) bad(e.seq, 'state', `원인 없는 상태 변화가 처음 설정 시각(${options.externalUntil}분) 뒤에 있다: ${key}`);
         } else {
           const cause = bySeq.get(e.cause);
-          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event'].includes(cause.type)) {
-            bad(e.seq, 'state', `상태 변화의 원인이 ${cause?.type ?? '없는 사건'}이다 (처음 상태 · 발화 · 행동 끝 · 진행 · 외부 사건만 상태를 바꾼다)`);
+          if (cause === undefined || !['instance_created', 'delay_fired', 'action_done', 'stage_advanced', 'external_event', EMOTION_FORMED].includes(cause.type)) {
+            bad(e.seq, 'state', `상태 변화의 원인이 ${cause?.type ?? '없는 사건'}이다 (처음 상태 · 발화 · 행동 끝 · 진행 · 외부 사건 · 감정만 상태를 바꾼다)`);
           } else if (!consumed) bad(e.seq, 'effects', `${cause.type}의 정의가 요구하지 않는 결과다: ${key} → ${to}`);
         }
         break;
@@ -475,11 +549,13 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
             break;
           }
           const handled = [c.at, ...[...new Set(c.effects.map((x: Chosen['effects'][number]) => x.key.slice(0, x.key.indexOf('|'))))].filter((x) => x !== c.at).sort()].filter((x) => x.startsWith('OBJ'));
-          const got = actionReaches(vocab, c.verb).map((r) => feltFrom(db, vocab, view, handled, r, senses, scaleFn).get(s)).find((x) => x !== undefined);
+          const gotAt = actionReaches(vocab, c.verb).map((r) => ({ r, f: feltFrom(db, vocab, view, handled, r, senses, scaleFn).get(s) })).find((x) => x.f !== undefined);
+          const got = gotAt?.f;
           const ok = got !== undefined && got.level === num(e.data['level']) && got.scale === num(e.data['scale']);
           if (!ok || e.data['moment'] !== true || !on) bad(e.seq, 'awareness', `${c.verb} 행동이 다룬 것은 ${s}를 주지 않는다`);
-          if (momentBatch === null) momentBatch = { who, cause: e.cause ?? '', t: e.t, sens: new Map(), seen: new Set() };
+          if (momentBatch === null) momentBatch = { who, cause: e.cause ?? '', t: e.t, sens: new Map(), src: new Map(), seen: new Set() };
           momentBatch.sens.set(s, e.seq);
+          if (got !== undefined && gotAt !== undefined) momentBatch.src.set(s, { source: got.source, reach: gotAt.r });
         }
         if (on) {
           // 반사가 따라와야 한다: 닿거나 먹은 순간이면 먼저 조건반사 짝짓기, 그다음 문턱을 넘은 반사 (지각 층과 같은 계산)
@@ -537,6 +613,9 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
         if (on) {
           const items = responsesTo(vocab, key).map((r) => ({ type: BODY_RESPONSE, reflex: r }));
           if (items.length > 0) reflexQueue = { cause: e.seq, items };
+          // 그다음 생각과 합친 감정 (재료를 준 것: 이 순간 느낀 것이 먼저, 아니면 멀리서 느끼는 것)
+          const b = e.data['moment'] === true ? momentBatch : null;
+          expectEmotion(e.seq, who, key, e.t, img.parts.map((p) => b?.src.get(p) ?? { source: sensed.get(who)?.get(p)?.source, reach: 'distance' }));
         }
         break;
       }

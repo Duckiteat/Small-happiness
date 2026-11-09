@@ -1,0 +1,35 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 감정과 이어지는 문턱이 사다리 밖 (0~5칸만)",
+ "defs": [
+  {
+   "id": "CHR+1",
+   "names": {
+    "ko": "시험 사람"
+   },
+   "slots": {
+    "mood": {
+     "features": [
+      "pleasure",
+      "displeasure",
+      "stability"
+     ]
+    }
+   },
+   "mind": {
+    "thought_days": {
+     "min": 3,
+     "max": 5
+    },
+    "binds_at": 9,
+    "tense_at": 1,
+    "overwhelm": {
+     "displeasure_at_least": 4,
+     "stability_at_most": 1
+    },
+    "tuned": false
+   }
+  }
+ ]
+}

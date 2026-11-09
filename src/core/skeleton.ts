@@ -332,6 +332,8 @@ export interface Scenario {
   readonly end: number;
   /** 하루씨의 일정. 판의 plan과 같은 모양 { blocks: [...] }. */
   readonly routine: unknown;
+  /** 이야기가 정한 지난 기억 (내면-설계 10장): 인물 개체 who가 정의 of에 감정 emotion이 붙은 기억을 갖고 시작한다. */
+  readonly memories: readonly { readonly who: string; readonly of: string; readonly emotion: string }[];
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
@@ -341,7 +343,7 @@ function isObj(v: unknown): v is Record<string, unknown> {
 /** 시나리오 파일을 해석한다. 모양이 틀리면 던진다. */
 export function parseScenario(raw: unknown): Scenario {
   if (!isObj(raw)) throw new TypeError('시나리오는 객체여야 한다');
-  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain, scripted } = raw;
+  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain, scripted, memories } = raw;
   if (typeof why !== 'string' || why.trim() === '') throw new TypeError('why(이 시나리오를 두는 이유)가 필요하다');
   if (use_db !== undefined && typeof use_db !== 'boolean') throw new TypeError('use_db는 true/false여야 한다');
   const fromDb = use_db === true;
@@ -375,7 +377,11 @@ export function parseScenario(raw: unknown): Scenario {
     if (x['t'] < start) throw new TypeError(`scripted[${i}]의 시각 ${x['t']}가 하루의 시작(${start})보다 앞선다 (시작 전의 설정은 set이다)`);
     return { t: x['t'], key: x['key'], level: x['level'], label: x['label'] };
   });
+  if (memories !== undefined && (!Array.isArray(memories) || !memories.every((x) => isObj(x) && typeof x['who'] === 'string' && typeof x['of'] === 'string' && typeof x['emotion'] === 'string'))) {
+    throw new TypeError('memories는 { who, of, emotion } 목록이어야 한다');
+  }
   return {
+    memories: ((memories as { who: string; of: string; emotion: string }[] | undefined) ?? []).map((x) => ({ who: x.who, of: x.of, emotion: x.emotion })),
     scripted: scriptedChanges,
     layout: [...((layout as string[] | undefined) ?? [])],
     contain: ((contain as { id: string; in: string }[] | undefined) ?? []).map((x) => ({ id: x.id, in: x.in })),
@@ -399,10 +405,16 @@ export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: 
   for (const c of scenario.contain) world.place(c.id, 'in', c.in, { t: 0 });
   for (const s of scenario.set) world.set(s.key, s.level, { t: s.t });
   const setupEnd = Math.max(0, ...scenario.set.map((s) => s.t));
+  const perception = new Perception(db, vocab, log);
+  for (const m of scenario.memories) {
+    if (!vocab.has('emotion', m.emotion)) throw new TypeError(`memories: 사전에 없는 감정 ${m.emotion}`);
+    if (db.defs[m.of] === undefined || !world.instances().includes(m.who)) throw new TypeError(`memories: 없는 정의나 인물 (${m.of}, ${m.who})`);
+    perception.remember(m.who, m.of, m.emotion, setupEnd);
+  }
   const engine: Engine = {
     world,
     causal: new Causal(db, vocab, log, setupEnd),
-    perception: new Perception(db, vocab, log),
+    perception,
     agency: new Agency(db, vocab, log),
     log,
   };

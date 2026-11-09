@@ -36,7 +36,7 @@ const COMMON_FIELDS = ['id', 'names', 'aliases', 'desc'] as const;
 const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
   OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'feels', 'rules', 'offers', 'progress', 'initial'],
   PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'feels', 'rules', 'offers'],
-  CHR: [...COMMON_FIELDS, 'senses', 'stays', 'slots', 'initial'],
+  CHR: [...COMMON_FIELDS, 'senses', 'stays', 'slots', 'initial', 'mind'],
 };
 
 /** 이 종류의 정의가 가질 수 있는 최상위 필드. 아직 설계되지 않은 종류는 공통 필드만 쓴다. */
@@ -204,6 +204,21 @@ export interface SenseDef {
   readonly tuned: boolean;
 }
 
+/**
+ * 인물의 생각과 감정의 문턱 (내면-설계 10장). 칸은 감정 축 사다리의 칸 번호(0~5).
+ *   - thought_days: 감정이 붙지 않은 일(생각)을 기억하는 날 수. 날에 따라 min~max (작가: 3일일 때도 5일일 때도). 무엇이 그날을 정하는지는 미정이라 지금은 min
+ *   - binds_at: 감정으로 쾌·불쾌가 이 칸 이상이 되면 그 일이 감정과 이어져 잊지 않는다
+ *   - tense_at: 안정이 이 칸 이하면 긴장 — 안심되지 않을수록 불쾌가 한 칸 더 오른다
+ *   - overwhelm: 불쾌가 이 칸 이상이고 안정이 이 칸 이하면 스트레스 임계 — 생각하고 해석하지 못한다
+ */
+export interface MindDef {
+  readonly thought_days: { readonly min: number; readonly max: number };
+  readonly binds_at: number;
+  readonly tense_at: number;
+  readonly overwhelm: { readonly displeasure_at_least: number; readonly stability_at_most: number };
+  readonly tuned: boolean;
+}
+
 export interface Definition {
   readonly id: string;
   readonly names: Names;
@@ -229,6 +244,8 @@ export interface Definition {
   readonly rules?: { readonly [key: string]: RuleDef };
   readonly offers?: { readonly [key: string]: OfferDef };
   readonly senses?: { readonly [sense: string]: SenseDef };
+  /** 인물의 생각과 감정의 문턱 (내면-설계 10장) */
+  readonly mind?: MindDef;
   /** 인물이 집에 있는 동안 머무는 장소 (번호 또는 이름). 그 장소의 냄새만 맡는다. 없으면 모든 장소 (위치를 아직 안 둔 것) */
   readonly stays?: string;
   /** 장소의 환경 특성: 사전 env_trait → 사전 env_level */
@@ -505,6 +522,21 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
   return ok ? out : undefined;
 }
 
+function fieldMind(v: unknown, where: string, push: Push): MindDef | undefined {
+  const rung = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= 5;
+  if (!isObj(v)) return void push(where, 'mind는 객체여야 한다');
+  onlyKeys(v, ['thought_days', 'binds_at', 'tense_at', 'overwhelm', 'tuned'], where, push);
+  const td = v['thought_days'], ow = v['overwhelm'];
+  if (!isObj(td) || typeof td['min'] !== 'number' || typeof td['max'] !== 'number' || !Number.isInteger(td['min']) || !Number.isInteger(td['max']) || td['min'] < 1 || td['max'] < td['min']) {
+    return void push(`${where}.thought_days`, 'thought_days는 { min, max } (1 이상 정수, min ≤ max)여야 한다');
+  }
+  if (!rung(v['binds_at']) || !rung(v['tense_at'])) return void push(where, 'binds_at · tense_at은 감정 축 사다리의 칸(0~5 정수)이어야 한다');
+  if (!isObj(ow) || !rung(ow['displeasure_at_least']) || !rung(ow['stability_at_most'])) return void push(`${where}.overwhelm`, 'overwhelm은 { displeasure_at_least, stability_at_most } (0~5 칸)여야 한다');
+  onlyKeys(ow, ['displeasure_at_least', 'stability_at_most'], `${where}.overwhelm`, push);
+  if (typeof v['tuned'] !== 'boolean') return void push(`${where}.tuned`, '문턱이 조정된 값인지 tuned를 적어야 한다');
+  return { thought_days: { min: td['min'], max: td['max'] }, binds_at: v['binds_at'], tense_at: v['tense_at'], overwhelm: { displeasure_at_least: ow['displeasure_at_least'], stability_at_most: ow['stability_at_most'] }, tuned: v['tuned'] };
+}
+
 function fieldSenses(v: unknown, where: string, push: Push): Record<string, SenseDef> | undefined {
   if (!isObj(v)) return void push(where, 'senses는 객체여야 한다');
   const out: Record<string, SenseDef> = {};
@@ -636,6 +668,7 @@ export type Fields = Partial<{
   rules: Record<string, RuleDef>;
   offers: Record<string, OfferDef>;
   senses: Record<string, SenseDef>;
+  mind: MindDef;
   stays: string;
   environment: Record<string, string>;
   passages: PassageDef[];
@@ -728,6 +761,11 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.offers = v;
         break;
       }
+      case 'mind': {
+        const v = fieldMind(value, at, push);
+        if (v !== undefined) out.mind = v;
+        break;
+      }
       case 'senses': {
         const v = fieldSenses(value, at, push);
         if (v !== undefined) out.senses = v;
@@ -793,6 +831,7 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
     ...(f.rules !== undefined ? { rules: f.rules } : {}),
     ...(f.offers !== undefined ? { offers: f.offers } : {}),
     ...(f.senses !== undefined ? { senses: f.senses } : {}),
+    ...(f.mind !== undefined ? { mind: f.mind } : {}),
     ...(f.stays !== undefined ? { stays: f.stays } : {}),
     ...(f.environment !== undefined ? { environment: f.environment } : {}),
     ...(f.passages !== undefined ? { passages: f.passages } : {}),

@@ -187,6 +187,17 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       for (const k of ['handles', 'eats']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
       break;
     }
+    case 'emotion': {
+      // 감정 (내면-설계 10장): tone(좋은·싫은 심상에서), thought(생각: new 처음 · familiar 며칠 안에 겪어 봄 · against 기억과 어긋남, 없으면 기억에서만 온다), shifts(축 특징 → 움직이는 칸 수)
+      if (attrs['tone'] !== 'pleasant' && attrs['tone'] !== 'unpleasant') push(`${path}.attrs.tone`, 'tone은 pleasant(좋은 심상)나 unpleasant(싫은 심상)여야 한다');
+      if (attrs['thought'] !== undefined && !['new', 'familiar', 'against'].includes(String(attrs['thought']))) push(`${path}.attrs.thought`, 'thought는 new · familiar · against 중 하나이거나 없어야 한다 (없으면 기억에서만 온다)');
+      const sh = attrs['shifts'];
+      if (typeof sh !== 'object' || sh === null || Array.isArray(sh) || Object.keys(sh).length === 0 || !Object.values(sh).every((x) => isInt(x) && x !== 0 && Math.abs(x) <= 2)) {
+        push(`${path}.attrs.shifts`, 'shifts는 { 축 특징: 움직이는 칸 수(±1~2, 0이 아닌 정수) }이고 비어 있지 않아야 한다');
+      }
+      if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '움직이는 칸 수가 조정된 값인지 tuned를 적어야 한다');
+      break;
+    }
     case 'reflex': {
       // 반사: on(감각질)을 그 사람의 단계 중 at_least% 이상 세게 느끼면. 조건반사는 pairs_with와 times로 배운다
       const al = attrs['at_least'];
@@ -369,6 +380,36 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
     }
     for (const p of parts) if (sensationSense(String(p)) === undefined) push(`image.${e.key}.attrs.parts`, `"${String(p)}"는 sensation 분류에 없는 키다`);
     if (new Set(parts.map((p) => String(sensationSense(String(p))))).size < 2) push(`image.${e.key}.attrs.parts`, '공감각 심상은 서로 다른 감각 둘 이상에서 와야 한다 (한 감각끼리는 섞임이 아니다)');
+  }
+  // 감정의 축: 내면 특징의 axis는 pleasure · displeasure · stability 중 하나이고 겹치지 않는다
+  const axes = new Map<string, string>();
+  for (const e of grouped.get('feature') ?? []) {
+    const ax = e.attrs?.['axis'];
+    if (ax === undefined) continue;
+    if (e.attrs?.['inner'] !== true || !['pleasure', 'displeasure', 'stability'].includes(String(ax))) push(`feature.${e.key}.attrs.axis`, 'axis(감정의 축)는 내면 특징에만 있고 pleasure · displeasure · stability 중 하나여야 한다');
+    else if (axes.has(String(ax))) push(`feature.${e.key}.attrs.axis`, `감정의 축 ${String(ax)}가 이미 ${axes.get(String(ax))}에 있다`);
+    else axes.set(String(ax), e.key);
+    // 안정은 감정이 아니라 생각으로 움직인다: by_thought { new, familiar, recalled, against: 칸 수 }
+    const bt = e.attrs?.['by_thought'];
+    if (ax === 'stability' && (typeof bt !== 'object' || bt === null || Array.isArray(bt) || !['new', 'familiar', 'recalled', 'against'].every((k) => isInt(bt[k]) && Math.abs(bt[k] as number) <= 2) || Object.keys(bt).length !== 4)) {
+      push(`feature.${e.key}.attrs.by_thought`, '안정 축은 by_thought { new, familiar, recalled, against: 움직이는 칸 수(-2~2 정수) }가 필요하다 (예측할 수 있음은 생각이 정한다)');
+    }
+    if (ax !== 'stability' && bt !== undefined) push(`feature.${e.key}.attrs.by_thought`, 'by_thought는 안정 축에만 있다');
+  }
+  const axisFeatures = new Set([...axes].filter(([a]) => a !== 'stability').map(([, f]) => f));
+  const ruled = new Set<string>();
+  for (const e of grouped.get('emotion') ?? []) {
+    const sh = e.attrs?.['shifts'];
+    if (typeof sh === 'object' && sh !== null && !Array.isArray(sh)) for (const f of Object.keys(sh)) if (!axisFeatures.has(f)) push(`emotion.${e.key}.attrs.shifts`, `"${f}"는 감정이 움직이는 축(쾌·불쾌의 내면 특징)이 아니다 (안정은 생각이 움직인다)`);
+    const th = e.attrs?.['thought'];
+    if (th === undefined) continue;
+    const k = `${String(e.attrs?.['tone'])}/${String(th)}`;
+    if (ruled.has(k)) push(`emotion.${e.key}.attrs.thought`, `같은 심상(${String(e.attrs?.['tone'])})과 생각(${String(th)})에서 오는 감정이 둘이다 (하나여야 같은 상태에서 같은 감정이 난다)`);
+    ruled.add(k);
+  }
+  for (const e of grouped.get('image') ?? []) {
+    const tone = e.attrs?.['tone'];
+    if (tone !== undefined && tone !== 'pleasant' && tone !== 'unpleasant') push(`image.${e.key}.attrs.tone`, 'tone은 pleasant나 unpleasant이거나 없어야 한다 (없으면 감정이 생기지 않는다)');
   }
   const images = new Set((grouped.get('image') ?? []).map((x) => x.key));
   for (const e of grouped.get('response') ?? []) {
