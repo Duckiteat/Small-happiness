@@ -153,3 +153,19 @@ test('반사: 문턱은 1~100%, 종류는 무조건·조건, 조건반사만 예
   assert.match(with_({ on: 'bitter', at_least: 10, kind: 'unconditioned', tuned: false }), /sensation 분류에 없는 키/);
   assert.match(with_({ on: 'sour_taste', at_least: 10, kind: 'unconditioned' }), /tuned/);
 });
+
+test('공감각 심상: 감각질 둘 이상이 서로 다른 감각에서 와야 하고, 몸의 반응은 있는 심상에 붙어야 한다', () => {
+  const base: VocabCategoryRaw[] = [
+    { category: 'sense', entries: [{ key: 'smell', ko: '후각', attrs: { reach: 'distance' } }, { key: 'sight', ko: '시각', attrs: { reach: 'distance' } }] },
+    { category: 'sensation', entries: [{ key: 'savory_scent', ko: '구수한 냄새', attrs: { sense: 'smell' } }, { key: 'sour_scent', ko: '신향', attrs: { sense: 'smell' } }, { key: 'steaming', ko: '김이 남', attrs: { sense: 'sight' } }] },
+  ];
+  const img = (parts: string[]): VocabCategoryRaw => ({ category: 'image', entries: [{ key: 'i', ko: '심상', attrs: { parts } }] });
+  assert.equal(messages([...base, img(['steaming', 'savory_scent'])]), '');
+  assert.match(messages([...base, img(['savory_scent', 'sour_scent'])]), /서로 다른 감각 둘 이상/);
+  assert.match(messages([...base, img(['steaming'])]), /감각질 둘 이상/);
+  assert.match(messages([...base, img(['steaming', 'umami'])]), /sensation 분류에 없는 키/);
+  const resp = (on: string[]): VocabCategoryRaw => ({ category: 'response', entries: [{ key: 'r', ko: '반응', attrs: { on } }] });
+  assert.equal(messages([...base, img(['steaming', 'savory_scent']), resp(['i'])]), '');
+  assert.match(messages([...base, img(['steaming', 'savory_scent']), resp(['nope'])]), /image 분류에 없는 키/);
+  assert.match(messages([...base, resp([])]), /붙는 심상\(on\) 목록이 필요하다/);
+});

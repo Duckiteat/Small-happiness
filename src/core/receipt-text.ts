@@ -123,6 +123,10 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('reflex', s(d['reflex']))} (${n.word('sensation', s(d['sensation']))})`;
     case 'reflex_learned':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('reflex', s(d['reflex']))}`;
+    case 'image_formed':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('image', s(d['image']))} (${d['moment'] === true ? '그 순간' : d['on'] === true ? '생김' : '깨짐'})`;
+    case 'body_response':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('response', s(d['response']))} (${n.word('image', s(d['image']))})`;
     case 'menu_planned':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('menu', s(d['menu']))}`;
     case 'action_done':

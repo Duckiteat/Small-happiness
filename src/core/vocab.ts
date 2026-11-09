@@ -359,6 +359,23 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
     const levels = grouped.get('feature')?.find((x) => x.key === feature)?.attrs?.['levels'];
     return Array.isArray(levels) ? levels.flatMap((l) => (typeof l === 'object' && l !== null && !Array.isArray(l) && l['locked'] !== true && typeof l['key'] === 'string' ? [l['key']] : [])) : undefined;
   };
+  // 공감각 심상: 사전의 감각질 둘 이상, 서로 다른 감각에서. 몸의 반응: 사전의 심상에 붙는다
+  const sensationSense = (k: string): unknown => grouped.get('sensation')?.find((x) => x.key === k)?.attrs?.['sense'];
+  for (const e of grouped.get('image') ?? []) {
+    const parts = e.attrs?.['parts'];
+    if (!Array.isArray(parts) || parts.length < 2 || !parts.every((p) => typeof p === 'string')) {
+      push(`image.${e.key}.attrs.parts`, '공감각 심상은 감각질 둘 이상(parts)이어야 한다');
+      continue;
+    }
+    for (const p of parts) if (sensationSense(String(p)) === undefined) push(`image.${e.key}.attrs.parts`, `"${String(p)}"는 sensation 분류에 없는 키다`);
+    if (new Set(parts.map((p) => String(sensationSense(String(p))))).size < 2) push(`image.${e.key}.attrs.parts`, '공감각 심상은 서로 다른 감각 둘 이상에서 와야 한다 (한 감각끼리는 섞임이 아니다)');
+  }
+  const images = new Set((grouped.get('image') ?? []).map((x) => x.key));
+  for (const e of grouped.get('response') ?? []) {
+    const on = e.attrs?.['on'];
+    if (!Array.isArray(on) || on.length === 0) push(`response.${e.key}.attrs.on`, '몸의 반응은 붙는 심상(on) 목록이 필요하다');
+    else for (const x of on) if (!images.has(String(x))) push(`response.${e.key}.attrs.on`, `"${String(x)}"는 image 분류에 없는 키다`);
+  }
   // 메뉴에 필요한 숙련: 내면 특징의 쓸 수 있는 단계여야 한다
   for (const e of grouped.get('menu') ?? []) {
     const ns = e.attrs?.['needs_skill'];

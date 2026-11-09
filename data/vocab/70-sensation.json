@@ -376,5 +376,166 @@
         }
       }
     ]
+  },
+  {
+    "category": "image",
+    "entries": [
+      {
+        "key": "warm_savory",
+        "ko": "따뜻한 구수함",
+        "desc": "김이 나는 것을 보며 구수한 냄새를 맡음",
+        "attrs": {
+          "parts": [
+            "steaming",
+            "savory_scent"
+          ]
+        }
+      },
+      {
+        "key": "warm_sweet",
+        "ko": "따뜻한 단향",
+        "desc": "김이 나는 것을 보며 단향을 맡음",
+        "attrs": {
+          "parts": [
+            "steaming",
+            "sweet_scent"
+          ]
+        }
+      },
+      {
+        "key": "cold_sour",
+        "ko": "차가운 신향",
+        "desc": "차가운 것을 만지며 신향을 맡음",
+        "attrs": {
+          "parts": [
+            "cold_feel",
+            "sour_scent"
+          ]
+        }
+      },
+      {
+        "key": "damp_rot",
+        "ko": "눅눅한 썩은내",
+        "desc": "축축한 것을 만지며 썩은 냄새를 맡음",
+        "attrs": {
+          "parts": [
+            "damp_feel",
+            "rotten_scent"
+          ]
+        }
+      },
+      {
+        "key": "boiling_steam",
+        "ko": "끓어오르는 김",
+        "desc": "보글보글 소리와 김이 함께",
+        "attrs": {
+          "parts": [
+            "bubbling",
+            "steaming"
+          ]
+        }
+      },
+      {
+        "key": "deep_savory",
+        "ko": "깊은 구수함",
+        "desc": "구수한 냄새 속에서 감칠맛을 느낌",
+        "attrs": {
+          "parts": [
+            "umami",
+            "savory_scent"
+          ]
+        }
+      },
+      {
+        "key": "sharp_sour",
+        "ko": "톡 쏘는 신맛",
+        "desc": "시큰한 냄새 속에서 신맛을 느낌",
+        "attrs": {
+          "parts": [
+            "sour_taste",
+            "sharp_scent"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "category": "response",
+    "entries": [
+      {
+        "key": "face_relaxes",
+        "ko": "표정이 풀림",
+        "desc": "따뜻하고 구수하거나 단 것에 얼굴이 먼저 풀린다",
+        "attrs": {
+          "on": [
+            "warm_savory",
+            "warm_sweet",
+            "deep_savory"
+          ]
+        }
+      },
+      {
+        "key": "shoulders_drop",
+        "ko": "어깨가 내려감",
+        "desc": "몸에 들어갔던 힘이 빠진다",
+        "attrs": {
+          "on": [
+            "warm_savory",
+            "deep_savory"
+          ]
+        }
+      },
+      {
+        "key": "shiver",
+        "ko": "몸이 떨림",
+        "desc": "차가운 신향에 몸이 떨린다",
+        "attrs": {
+          "on": [
+            "cold_sour"
+          ]
+        }
+      },
+      {
+        "key": "goosebumps",
+        "ko": "닭살이 돋음",
+        "desc": "차갑고 시거나 톡 쏘는 것에 닭살이 돋는다",
+        "attrs": {
+          "on": [
+            "cold_sour",
+            "sharp_sour"
+          ]
+        }
+      },
+      {
+        "key": "recoil",
+        "ko": "몸이 움츠러듦",
+        "desc": "눅눅한 썩은내에 몸이 뒤로 빠진다",
+        "attrs": {
+          "on": [
+            "damp_rot"
+          ]
+        }
+      },
+      {
+        "key": "lean_in",
+        "ko": "몸이 그쪽으로 기욺",
+        "desc": "끓어오르는 김 쪽으로 몸이 기운다",
+        "attrs": {
+          "on": [
+            "boiling_steam"
+          ]
+        }
+      },
+      {
+        "key": "squint",
+        "ko": "눈이 찡그려짐",
+        "desc": "톡 쏘는 신맛에 눈이 찡그려진다",
+        "attrs": {
+          "on": [
+            "sharp_sour"
+          ]
+        }
+      }
+    ]
   }
 ]

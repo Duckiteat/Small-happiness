@@ -13,6 +13,8 @@
 //
 // 단순화 (기본안, 위치·번짐 11번 전까지): 물건의 위치가 없어서, 장소를 살피면 집 안의 모든 물건을 본다.
 
+import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
+import { latestSeq } from './events.ts';
 import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, STIMULUS_PERCEIVED, stopCause } from './sensation.ts';
 import type { FeltOne, StateView } from './sensation.ts';
@@ -83,6 +85,9 @@ export class Perception {
   readonly #done = new Map<string, string>();
   readonly #felt = new Map<string, Map<string, FeltOne>>(); // 인물 → 지금 멀리서 느끼는 감각질
   readonly #learned = new Map<string, Set<string>>(); // 인물 → 배운 조건반사
+  readonly #feltSeq = new Map<string, string>(); // `${인물}|${감각질}` → 멀리서 마지막으로 느끼기 시작한(세기 바뀐) 사건
+  readonly #offSeq = new Map<string, string>(); // `${인물}|${감각질}` → 마지막으로 그친 사건
+  readonly #imaged = new Map<string, Set<string>>(); // 인물 → 이어지고 있는 심상
   readonly #paired = new Map<string, number>(); // `${인물}|${반사}` → 짝지어 겪은 횟수 // 고른 행동 사건 → 끝난 사건 (살펴서 안 것의 원인)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
@@ -170,14 +175,29 @@ export class Perception {
     const senses = sensesOf(this.#db, defOf(who) ?? '');
     const view = worldView(world);
     const seen = new Set<string>();
+    const moments = new Map<string, string>(); // 이 순간 느낀 감각질 → 그 사건
     for (const reach of reaches) {
       for (const f of feltFrom(this.#db, this.#vocab, view, subjects, reach, senses, this.#scale(who)).values()) {
         if (seen.has(f.sensation)) continue;
         seen.add(f.sensation);
         const e = this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause, data: { who, sensation: f.sensation, sense: f.sense, on: true, moment: true, level: f.level, scale: f.scale, via } });
+        moments.set(f.sensation, e.seq);
         this.#afterFelt(who, t, e.seq, f.sensation, f.level, f.scale, undefined, true);
       }
     }
+    // 그 순간의 심상: 이 순간의 감각이 하나라도 들어가고 나머지는 멀리서 느끼고 있으면
+    const d = new Set(this.#felt.get(who)?.keys() ?? []);
+    const m = new Set(moments.keys());
+    for (const img of imageDefs(this.#vocab)) {
+      if (!momentary(img, d, m)) continue;
+      this.#formImage(who, t, img.key, latestSeq(img.parts.map((p) => moments.get(p) ?? this.#feltSeq.get(`${who}|${p}`))), true);
+    }
+  }
+
+  /** 심상이 생긴다 → 거기 붙은 몸의 반응이 곧바로 따른다 (해석 전 행동). */
+  #formImage(who: string, t: number, image: string, cause: string | null, moment: boolean): void {
+    const e = this.#log.append({ t, type: IMAGE_FORMED, src: PERCEPTION_SRC, cause, data: { who, image, on: true, ...(moment ? { moment: true } : {}) } });
+    for (const r of responsesTo(this.#vocab, image)) this.#log.append({ t, type: BODY_RESPONSE, src: PERCEPTION_SRC, cause: e.seq, data: { who, response: r, image } });
   }
 
   /**
@@ -221,16 +241,33 @@ export class Perception {
     for (const [s, f] of [...before].sort(([a], [b]) => a.localeCompare(b))) {
       if (now.has(s)) continue;
       const cause = stopCause(this.#db, this.#vocab, [...places, ...here], s, (i) => world.defOfInstance(i), lastChange);
-      this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause, data: { who, sensation: s, sense: f.sense, on: false, via: via(f.sense) } });
+      const off = this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause, data: { who, sensation: s, sense: f.sense, on: false, via: via(f.sense) } });
+      this.#offSeq.set(`${who}|${s}`, off.seq);
     }
     // 새로 느낀 것, 그리고 느끼던 것의 세기가 바뀐 것 (was: 바뀌기 전 세기)
     for (const [s, f] of [...now].sort(([a], [b]) => a.localeCompare(b))) {
       const had = before.get(s);
       if (had !== undefined && had.level === f.level) continue;
       const e = this.#log.append({ t, type: STIMULUS_PERCEIVED, src: PERCEPTION_SRC, cause: feltCause(f, lastChange, born), data: { who, sensation: s, sense: f.sense, on: true, level: f.level, scale: f.scale, ...(had !== undefined ? { was: had.level } : {}), via: via(f.sense) } });
+      this.#feltSeq.set(`${who}|${s}`, e.seq);
       this.#afterFelt(who, t, e.seq, s, f.level, f.scale, had?.level, false);
     }
     this.#felt.set(who, now);
+    // 이어지는 심상: 멀리서 느끼는 것끼리 다 갖춰지면 생기고, 하나가 그치면 깨진다 (깨진 것 먼저)
+    const d = new Set(now.keys());
+    const imaged = this.#imaged.get(who) ?? new Set<string>();
+    this.#imaged.set(who, imaged);
+    for (const img of imageDefs(this.#vocab)) {
+      if (!imaged.has(img.key) || sustained(img, d)) continue;
+      imaged.delete(img.key);
+      const cause = latestSeq(img.parts.filter((p) => !d.has(p)).map((p) => this.#offSeq.get(`${who}|${p}`)));
+      this.#log.append({ t, type: IMAGE_FORMED, src: PERCEPTION_SRC, cause, data: { who, image: img.key, on: false } });
+    }
+    for (const img of imageDefs(this.#vocab)) {
+      if (imaged.has(img.key) || !sustained(img, d)) continue;
+      imaged.add(img.key);
+      this.#formImage(who, t, img.key, latestSeq(img.parts.map((p) => this.#feltSeq.get(`${who}|${p}`))), false);
+    }
   }
 
   /** 고른 행동이 끝났음을 알려 준다 (2층이 끝난 사건을 기록한 직후). 살펴서 안 것의 원인이 된다. */

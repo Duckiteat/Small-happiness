@@ -12,6 +12,7 @@ import { menusOf } from './db.ts';
 import { pickUse } from './amount.ts';
 import { conceive } from './conceive.ts';
 import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
+import { BODY_RESPONSE, IMAGE_FORMED, imageDefs, momentary, responsesTo, sustained } from './imagery.ts';
 import { actionReaches, feltCause, feltFrom, reachOf, scaleOf, sensesOf, stopCause } from './sensation.ts';
 import type { FeltOne } from './sensation.ts';
 import { canBuy, readyAt, shoppingList } from './shopping.ts';
@@ -157,7 +158,28 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const sensed = new Map<string, Map<string, FeltOne>>(); // 인물 → 멀리서 느끼고 있는 감각질
   const learnedReflex = new Map<string, Set<string>>(); // 인물 → 배운 조건반사
   const pairedReflex = new Map<string, number>(); // `${인물}|${반사}` → 짝지어 겪은 횟수
-  let reflexQueue: { cause: string; items: { type: string; reflex: string }[] } | null = null; // 감각 바로 뒤에 와야 할 반사
+  let reflexQueue: { cause: string; items: { type: string; reflex: string }[] } | null = null; // 감각·심상 바로 뒤에 와야 할 반사·몸의 반응
+  const feltSeqA = new Map<string, string>(); // `${인물}|${감각질}` → 멀리서 마지막으로 느끼기 시작한(세기 바뀐) 사건
+  const offSeqA = new Map<string, string>(); // `${인물}|${감각질}` → 마지막으로 그친 사건
+  const imagedA = new Map<string, Set<string>>(); // 인물 → 이어지는 심상
+  let momentBatch: { who: string; cause: string; t: number; sens: Map<string, string>; seen: Set<string> } | null = null;
+  const PERCEPT_TYPES = new Set(['stimulus_perceived', REFLEX, REFLEX_LEARNED, IMAGE_FORMED, BODY_RESPONSE]);
+  /** 그 순간의 감각 묶음이 끝났다: 생겼어야 할 그 순간의 심상이 다 나왔나 */
+  const closeMoment = (): void => {
+    if (momentBatch === null) return;
+    const b = momentBatch;
+    const d = new Set(sensed.get(b.who)?.keys() ?? []);
+    for (const img of imageDefs(vocab)) if (momentary(img, d, new Set(b.sens.keys())) && !b.seen.has(img.key)) bad(b.cause, 'awareness', `이 순간의 심상(${img.key})이 빠졌다`);
+    momentBatch = null;
+  };
+  /** 감각 묶음 밖에서는, 이어지는 심상이 멀리서 느끼는 것과 맞아야 한다 */
+  const checkSustained = (seq: string): void => {
+    for (const [who, set] of sensed) {
+      const d = new Set(set.keys());
+      const now = imagedA.get(who) ?? new Set<string>();
+      for (const img of imageDefs(vocab)) if (sustained(img, d) !== now.has(img.key)) bad(seq, 'awareness', `${who}의 이어지는 심상 ${img.key}가 ${now.has(img.key) ? '깨졌어야' : '생겼어야'} 한다`);
+    }
+  };
   const knowSeq = new Map<string, string>(); // `${who}|${key}` → 그 앎을 정한 사건
   const planned = new Map<string, string>(); // `${who}|${끼니}` → 구상한 메뉴
   const practiced = new Map<string, number>(); // 숙련 상태 키 → 해 본 횟수
@@ -201,7 +223,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
     // 감각 바로 뒤에는 그 감각이 일으킨 조건반사 배움·반사가 차례로 와야 한다 (reflex.ts)
     if (reflexQueue !== null) {
       const head = reflexQueue.items[0];
-      if ((e.type === REFLEX || e.type === REFLEX_LEARNED) && head !== undefined && e.type === head.type && str(e.data['reflex']) === head.reflex && e.cause === reflexQueue.cause) {
+      const key = e.type === BODY_RESPONSE ? str(e.data['response']) : str(e.data['reflex']);
+      if ((e.type === REFLEX || e.type === REFLEX_LEARNED || e.type === BODY_RESPONSE) && head !== undefined && e.type === head.type && key === head.reflex && e.cause === reflexQueue.cause) {
         reflexQueue.items.shift();
         if (reflexQueue.items.length === 0) reflexQueue = null;
         bump('awareness');
@@ -210,10 +233,14 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
       for (const m of reflexQueue.items) bad(reflexQueue.cause, 'awareness', `이 감각 뒤에 ${m.type === REFLEX ? '반사' : '조건반사 배움'}(${m.reflex})가 빠졌다`);
       reflexQueue = null;
     }
-    if (e.type === REFLEX || e.type === REFLEX_LEARNED) {
-      bad(e.seq, 'awareness', `그 감각이 일으키지 않는 ${e.type === REFLEX ? '반사' : '조건반사 배움'}다: ${str(e.data['reflex'])}`);
+    if (e.type === REFLEX || e.type === REFLEX_LEARNED || e.type === BODY_RESPONSE) {
+      bad(e.seq, 'awareness', `그 감각·심상이 일으키지 않는 ${e.type === REFLEX ? '반사' : e.type === BODY_RESPONSE ? '몸의 반응' : '조건반사 배움'}다: ${str(e.data['reflex'] ?? e.data['response'])}`);
       continue;
     }
+    // 그 순간의 묶음은 같은 행동 끝의 감각과 그 뒤의 반사·심상까지다
+    const sameMoment = e.type === 'stimulus_perceived' && e.data['moment'] === true && momentBatch !== null && e.cause === momentBatch.cause;
+    if (momentBatch !== null && !sameMoment && e.type !== IMAGE_FORMED) closeMoment();
+    if (!PERCEPT_TYPES.has(e.type)) checkSustained(e.seq);
     let consumed = false;
     // 직전 사건이 요구한 결과를 차례로 받는다
     if (pending !== null) {
@@ -437,18 +464,22 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           if (on && f !== undefined) next.set(s, f);
           else next.delete(s);
           sensed.set(who, next);
+          if (on) feltSeqA.set(`${who}|${s}`, e.seq);
+          else offSeqA.set(`${who}|${s}`, e.seq);
         } else {
           // 다루고 먹은 것: 원인은 그 행동의 끝이고, 그 행동이 다룬 것(행동을 내놓은 물건, 결과가 바뀐 물건)이 그 길로 주는 것이어야 한다
-          const d = e.cause === null ? undefined : bySeq.get(e.cause);
-          const c = d === undefined || d.cause === null ? undefined : chosen.get(d.cause);
+          const d: GameEvent | undefined = e.cause === null ? undefined : bySeq.get(e.cause);
+          const c: Chosen | undefined = d === undefined || d.cause === null ? undefined : chosen.get(d.cause);
           if (d?.type !== 'action_done' || c === undefined || c.who !== who || c.via !== via) {
             bad(e.seq, 'cause', `다루고 먹은 감각의 원인이 그 행동의 끝이 아니다: ${e.cause ?? '없음'}`);
             break;
           }
-          const handled = [c.at, ...[...new Set(c.effects.map((x) => x.key.slice(0, x.key.indexOf('|'))))].filter((x) => x !== c.at).sort()].filter((x) => x.startsWith('OBJ'));
+          const handled = [c.at, ...[...new Set(c.effects.map((x: Chosen['effects'][number]) => x.key.slice(0, x.key.indexOf('|'))))].filter((x) => x !== c.at).sort()].filter((x) => x.startsWith('OBJ'));
           const got = actionReaches(vocab, c.verb).map((r) => feltFrom(db, vocab, view, handled, r, senses, scaleFn).get(s)).find((x) => x !== undefined);
           const ok = got !== undefined && got.level === num(e.data['level']) && got.scale === num(e.data['scale']);
           if (!ok || e.data['moment'] !== true || !on) bad(e.seq, 'awareness', `${c.verb} 행동이 다룬 것은 ${s}를 주지 않는다`);
+          if (momentBatch === null) momentBatch = { who, cause: e.cause ?? '', t: e.t, sens: new Map(), seen: new Set() };
+          momentBatch.sens.set(s, e.seq);
         }
         if (on) {
           // 반사가 따라와야 한다: 닿거나 먹은 순간이면 먼저 조건반사 짝짓기, 그다음 문턱을 넘은 반사 (지각 층과 같은 계산)
@@ -470,6 +501,41 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
           const level = num(e.data['level']), scale = num(e.data['scale']);
           const was = typeof e.data['was'] === 'number' ? e.data['was'] : undefined;
           for (const r of reflexDefs(vocab)) if (r.on === s && (!r.conditioned || learned.has(r.key)) && triggers(r, level, scale, was)) items.push({ type: REFLEX, reflex: r.key });
+          if (items.length > 0) reflexQueue = { cause: e.seq, items };
+        }
+        break;
+      }
+      case IMAGE_FORMED: {
+        // 공감각 심상 (imagery.ts): 그때 느끼던 감각질로 다시 맞춰 본다
+        bump('awareness');
+        const who = str(e.data['who']), key = str(e.data['image']), on = e.data['on'] === true;
+        const img = imageDefs(vocab).find((x) => x.key === key);
+        if (img === undefined) {
+          bad(e.seq, 'awareness', `사전에 없는 심상: ${key}`);
+          break;
+        }
+        const d = new Set(sensed.get(who)?.keys() ?? []);
+        const set = imagedA.get(who) ?? new Set<string>();
+        imagedA.set(who, set);
+        if (e.data['moment'] === true) {
+          const b = momentBatch;
+          if (b === null || b.who !== who || !momentary(img, d, new Set(b.sens.keys())) || b.seen.has(key)) {
+            bad(e.seq, 'awareness', `그 순간 느낀 것으로는 ${key}가 생기지 않는다`);
+            break;
+          }
+          b.seen.add(key);
+          expectCause(e.seq, 'cause', e.cause, latestSeq(img.parts.map((p) => b.sens.get(p) ?? feltSeqA.get(`${who}|${p}`))), `${key} 심상`);
+        } else if (on) {
+          if (set.has(key) || !sustained(img, d)) bad(e.seq, 'awareness', `멀리서 느끼는 것으로는 ${key}가 새로 생기지 않는다`);
+          else expectCause(e.seq, 'cause', e.cause, latestSeq(img.parts.map((p) => feltSeqA.get(`${who}|${p}`))), `${key} 심상`);
+          set.add(key);
+        } else {
+          if (!set.has(key) || sustained(img, d)) bad(e.seq, 'awareness', `${key}는 깨지지 않았다`);
+          else expectCause(e.seq, 'cause', e.cause, latestSeq(img.parts.filter((p) => !d.has(p)).map((p) => offSeqA.get(`${who}|${p}`))), `${key} 심상 깨짐`);
+          set.delete(key);
+        }
+        if (on) {
+          const items = responsesTo(vocab, key).map((r) => ({ type: BODY_RESPONSE, reflex: r }));
           if (items.length > 0) reflexQueue = { cause: e.seq, items };
         }
         break;
@@ -670,6 +736,8 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   closePending();
   const last = events.at(-1)?.t ?? 0;
   for (const [seq, r] of open) if (r.due <= last) bad(seq, 'timing', `예약 시각 ${r.due}분이 지났는데 발화·취소가 없다 (${r.via}@${r.at})`);
+  closeMoment();
+  checkSustained(events.at(-1)?.seq ?? '');
   if (reflexQueue !== null) for (const m of reflexQueue.items) bad(reflexQueue.cause, 'awareness', `이 감각 뒤에 ${m.type}(${m.reflex})가 빠졌다`);
   for (const [seq, q] of moveQueue) {
     const lastT = events.at(-1)?.t ?? 0;
