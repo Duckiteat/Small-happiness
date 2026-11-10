@@ -29,7 +29,7 @@ import { EventLog } from './log.ts';
 import { Rng } from './rng.ts';
 import { isObserved, mealAt, parsePlan, presenceAt } from './schedule.ts';
 import type { PlanBlock } from './schedule.ts';
-import { runDay } from './step.ts';
+import { Session } from './session.ts';
 import type { Layer } from './step.ts';
 import type { Vocab } from './vocab.ts';
 import { World } from './world.ts';
@@ -454,40 +454,11 @@ export interface DayTrace {
   readonly log: readonly unknown[];
 }
 
-/** 시나리오대로 세계를 세우고 뼈대 층으로 하루를 돌린다. 같은 입력이면 같은 기록이 나온다. */
+/** 시나리오대로 세계를 세우고 뼈대 층으로 하루를 돌린다. 같은 입력이면 같은 기록이 나온다. 엔진 입구(session.ts)를 지나 끝까지 진행한다. */
 export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: number): DayTrace {
-  const log = new EventLog({ isKnownType: (type) => vocab.has('event_type', type), checkData: viaCheck(vocab) });
-  const world = new World(db, vocab, log);
-  for (const def of scenario.spawn) world.spawn(def, { t: 0 });
-  for (const line of scenario.layout) {
-    const ids = parseChain(line) ?? [];
-    for (const { below, above } of chainPairs(ids)) world.place(above, 'on', below, { t: 0 });
-  }
-  for (const c of scenario.contain) world.place(c.id, 'in', c.in, { t: 0 });
-  for (const s of scenario.set) world.set(s.key, s.level, { t: s.t });
-  const setupEnd = Math.max(0, ...scenario.set.map((s) => s.t));
-  const perception = new Perception(db, vocab, log);
-  for (const m of scenario.memories) {
-    if (!vocab.has('emotion', m.emotion)) throw new TypeError(`memories: 사전에 없는 감정 ${m.emotion}`);
-    if (db.defs[m.of] === undefined || !world.instances().includes(m.who)) throw new TypeError(`memories: 없는 정의나 인물 (${m.of}, ${m.who})`);
-    perception.remember(m.who, m.of, m.emotion, setupEnd);
-  }
-  const agency = new Agency(db, vocab, log);
-  agency.advise(scenario.advice);
-  const engine: Engine = {
-    world,
-    causal: new Causal(db, vocab, log, setupEnd),
-    perception,
-    agency,
-    log,
-  };
-  const routine = parsePlan(scenario.routine, vocab);
-  const layers = skeletonLayers(db, engine, routine, vocab, scenario.scripted, scenario.outside, scenario.start);
-  const results = runDay(layers, scenario.start, scenario.end, Rng.fromSeed(scenario.seed), vocab, stepMin);
-  return {
-    steps: results.map((r) => ({ ...r.board.snapshot(), lines: r.lines })),
-    log: log.toJSON(),
-  };
+  const s = Session.start(db, vocab, scenario, stepMin);
+  s.advance(scenario.end);
+  return s.trace();
 }
 
 export function serializeTrace(trace: DayTrace): string {
