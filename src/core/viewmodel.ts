@@ -11,7 +11,8 @@ export const MAX_VISIBLE_NODES = 5;
 export const CIRCLES = ['none', 'open', 'closed'] as const;
 export const EVENT_STATUSES = ['none', 'open', 'closed', 'reopened'] as const;
 export const NODE_KINDS = ['percept', 'action', 'object', 'memory', 'ghost'] as const;
-export const RUNGS = ['feel', 'guess', 'thing'] as const;
+/** 심상 사다리의 칸 (작가 2026-11-09: 네 칸 — 느낌 · 짐작 · 좁힘 · 정체) */
+export const RUNGS = ['feel', 'guess', 'narrow', 'thing'] as const;
 export const RINGS = ['core', 'periphery', 'none'] as const;
 export const NODE_STATES = ['new', 'seen', 'done', 'faded'] as const;
 export const EDGE_KINDS = ['option', 'link', 'unknown'] as const;

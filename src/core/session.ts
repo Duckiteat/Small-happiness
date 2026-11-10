@@ -23,6 +23,8 @@ import { chainPairs, parseChain } from './placement.ts';
 import { Rng } from './rng.ts';
 import { canonicalJson } from './save.ts';
 import { parsePlan } from './schedule.ts';
+import { screenView } from './screen.ts';
+import type { View } from './viewmodel.ts';
 import { parseScenario, skeletonLayers } from './skeleton.ts';
 import type { DayTrace, Engine, Scenario } from './skeleton.ts';
 import { DayRunner } from './step.ts';
@@ -211,6 +213,11 @@ export class Session {
       options,
       pendingAdvice: all.slice(given).map((a) => ({ t: a.t, offer: a.offer, at: a.at })),
     };
+  }
+
+  /** 화면 계약의 뷰 (노드·앵커): 인물 who의 가장 최근 이벤트. 보여 줄 장면이 없으면 null (screen.ts). */
+  screen(who: string): View | null {
+    return screenView(this.#db, this.#vocab, this.#log.list(), who);
   }
 
   /** 저장 파일 (정규 JSON 문자열). content는 바깥이 계산한 콘텐츠 해시. */

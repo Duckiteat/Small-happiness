@@ -148,3 +148,13 @@ test('계약 위반은 거부된다 (검증기가 실제로 잡는다)', () => {
   assert.equal(parseView(null).view, null);
   assert.equal(parseView([]).view, null);
 });
+
+test('사다리 칸은 네 칸 (느낌 · 짐작 · 좁힘 · 정체): 좁힘은 받고, 사전 밖 칸은 거부한다', () => {
+  const ok = raw('04-thing.json');
+  const s1 = ok.nodes.find((n) => n.id === 's1');
+  assert.ok(s1);
+  s1.rung = 'narrow';
+  assert.deepEqual(parseView(ok).problems, []);
+  s1.rung = 'smell';
+  assert.ok(parseView(ok).problems.some((p) => p.includes('rung')));
+});

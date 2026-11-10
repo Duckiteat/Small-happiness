@@ -84,6 +84,20 @@ export function renderLine(line: string): string {
   return line.replace(ANCHOR_RE, (_m, text: string) => text);
 }
 
+/** 문장 줄을 조각으로: 앵커가 아닌 글과 앵커(보이는 말 · 동사 · 라벨)를 차례대로. 빈 글 조각은 넣지 않는다. */
+export function lineParts(line: string): ({ readonly text: string } | { readonly text: string; readonly verb: string; readonly label?: string })[] {
+  const out: ({ text: string } | { text: string; verb: string; label?: string })[] = [];
+  let at = 0;
+  for (const m of line.matchAll(ANCHOR_RE)) {
+    const i = m.index ?? 0;
+    if (i > at) out.push({ text: line.slice(at, i) });
+    out.push({ text: m[1] ?? '', verb: (m[2] ?? '').trim(), ...(m[3] !== undefined ? { label: m[3].trim() } : {}) });
+    at = i + m[0].length;
+  }
+  if (at < line.length) out.push({ text: line.slice(at) });
+  return out;
+}
+
 /** 스크립트 → 이벤트 원본 (compile.ts의 file_kind events). 오류가 하나라도 있으면 source는 null. */
 export function parseScript(text: string, vocab: Vocab, resolveDef: (name: string) => string | null = () => null): { source: Obj | null; issues: ScriptIssue[] } {
   const issues: ScriptIssue[] = [];
