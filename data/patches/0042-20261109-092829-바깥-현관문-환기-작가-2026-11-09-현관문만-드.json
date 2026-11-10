@@ -1,0 +1,834 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "바깥·현관문·환기 (작가 2026-11-09: 현관문만 드나들 때 잠깐 열림, 바깥과 환기부터): 현관에 현관문, 주방에 창문을 두고, 열려 있는 동안 주방 냄새가 바깥으로 빨리 빠진다. 현관문은 드나들 때 열리고 10분 뒤, 창은 환기하면 열리고 30분 뒤 닫힌다. 환기는 상한 냄새(시큼함 이상)가 뚜렷할 때 하는 집안일이다. 시간은 임시값.",
+    "defs": [
+      {
+        "id": "PLC000001",
+        "names": {
+          "ko": "현관",
+          "en": "entrance"
+        },
+        "environment": {
+          "weather_effect": "mid",
+          "temp_swing": "mid",
+          "ventilation": "low",
+          "humidity": "low"
+        },
+        "passages": [
+          {
+            "to": "PLC000002",
+            "kind": "open",
+            "medium_pass": {
+              "air": 1000,
+              "self_move": 1000
+            },
+            "tuned": false
+          }
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell"
+            ]
+          },
+          "door": {
+            "features": [
+              "door_state"
+            ]
+          }
+        },
+        "desc": [
+          "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)",
+          "현관문은 드나들 때 열리고 잠시 뒤 닫힌다. 열려 있는 동안 주방 공기가 바깥으로 빠진다"
+        ],
+        "rules": {
+          "door_close": {
+            "label": "열린 현관문은 10분 뒤 저절로 닫힌다",
+            "on": [
+              "PLC000001|door:door_state@=open"
+            ],
+            "emits": [
+              "PLC000001|door:door_state@=closed"
+            ],
+            "delay_s": 600,
+            "tuned": false
+          }
+        }
+      },
+      {
+        "id": "PLC000002",
+        "names": {
+          "ko": "주방",
+          "en": "kitchen"
+        },
+        "aliases": [
+          "부엌"
+        ],
+        "environment": {
+          "weather_effect": "low",
+          "temp_swing": "low",
+          "ventilation": "low",
+          "humidity": "mid"
+        },
+        "passages": [
+          {
+            "to": "PLC000003",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          },
+          {
+            "to": "PLC000004",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          }
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "odor",
+              "bug"
+            ]
+          },
+          "grid": {
+            "features": [
+              "grid_electric",
+              "grid_water",
+              "grid_gas"
+            ]
+          },
+          "floor": {
+            "features": [
+              "dirt"
+            ]
+          },
+          "window": {
+            "features": [
+              "window"
+            ]
+          }
+        },
+        "rules": {
+          "odor_reach": {
+            "label": "상한 음식의 냄새가 주방에 퍼진다",
+            "on": [
+              "OBJ000001|body:smell@>=distinct"
+            ],
+            "emits": [
+              "PLC000002|space:smell@>=faint"
+            ]
+          },
+          "odor_thicken": {
+            "label": "냄새나는 음식이 남아 있으면 주방 냄새가 짙어진다",
+            "on": [
+              "OBJ000001|body:smell@>=distinct",
+              "PLC000002|space:smell@=faint"
+            ],
+            "emits": [
+              "PLC000002|space:smell@>=distinct"
+            ],
+            "delay_s": 10800,
+            "tuned": false
+          },
+          "air_out": {
+            "label": "냄새나는 음식이 하나도 없으면 주방 냄새가 빠진다",
+            "on": [
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:smell@<=none"
+            ],
+            "on_all": [
+              "OBJ000001|body:smell@<=faint"
+            ],
+            "delay_s": 10800,
+            "tuned": false
+          },
+          "bugs": {
+            "label": "상한 냄새(시큼함 이상)가 뚜렷하면 벌레가 꼬인다",
+            "on": [
+              "PLC000002|space:smell@>=distinct",
+              "PLC000002|space:odor@>=sour"
+            ],
+            "emits": [
+              "PLC000002|space:bug@=few"
+            ],
+            "delay_s": 28800,
+            "tuned": false
+          },
+          "kind_sour": {
+            "label": "음식 중 가장 심한 냄새가 시큼한 발효 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 시큼한 발효 냄새가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=sour",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=sour"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=sour"
+            ]
+          },
+          "kind_musty": {
+            "label": "음식 중 가장 심한 냄새가 곰팡내이고 주방에 냄새가 퍼지면 주방 냄새도 곰팡내가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=musty",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=musty"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=musty"
+            ]
+          },
+          "kind_sulfur": {
+            "label": "음식 중 가장 심한 냄새가 황 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 황 냄새가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=sulfur",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=sulfur"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=sulfur"
+            ]
+          },
+          "kind_putrid": {
+            "label": "음식 중 가장 심한 냄새가 썩는 냄새이고 주방에 냄새가 퍼지면 주방 냄새도 썩는 냄새가 된다",
+            "on": [
+              "OBJ000001|body:odor@>=putrid",
+              "PLC000002|space:smell@>=faint"
+            ],
+            "emits": [
+              "PLC000002|space:odor@>=putrid"
+            ],
+            "on_all": [
+              "OBJ000001|body:odor@<=putrid"
+            ]
+          },
+          "kind_clear": {
+            "label": "주방 냄새가 가시면 냄새 종류도 사라진다",
+            "on": [
+              "PLC000002|space:smell@<=none"
+            ],
+            "emits": [
+              "PLC000002|space:odor@<=none"
+            ]
+          },
+          "restore_electric": {
+            "label": "끊긴 electric 공급은 두 시간 뒤 돌아온다",
+            "on": [
+              "PLC000002|grid:grid_electric@=cut"
+            ],
+            "emits": [
+              "PLC000002|grid:grid_electric@<=normal"
+            ],
+            "delay_s": 7200,
+            "tuned": false
+          },
+          "restore_water": {
+            "label": "끊긴 water 공급은 두 시간 뒤 돌아온다",
+            "on": [
+              "PLC000002|grid:grid_water@=cut"
+            ],
+            "emits": [
+              "PLC000002|grid:grid_water@<=normal"
+            ],
+            "delay_s": 7200,
+            "tuned": false
+          },
+          "restore_gas": {
+            "label": "끊긴 gas 공급은 두 시간 뒤 돌아온다",
+            "on": [
+              "PLC000002|grid:grid_gas@=cut"
+            ],
+            "emits": [
+              "PLC000002|grid:grid_gas@<=normal"
+            ],
+            "delay_s": 7200,
+            "tuned": false
+          },
+          "window_close": {
+            "label": "환기로 연 창은 30분 뒤 닫는다",
+            "on": [
+              "PLC000002|window:window@=open"
+            ],
+            "emits": [
+              "PLC000002|window:window@=closed"
+            ],
+            "delay_s": 1800,
+            "tuned": false
+          },
+          "air_out_window": {
+            "label": "창이 열려 있으면 뚜렷한 냄새가 10분 만에 은은해진다 (바깥으로 빠짐)",
+            "on": [
+              "PLC000002|window:window@=open",
+              "PLC000002|space:smell@>=distinct"
+            ],
+            "emits": [
+              "PLC000002|space:smell@<=faint"
+            ],
+            "delay_s": 600,
+            "tuned": false
+          },
+          "air_out_window_clear": {
+            "label": "창이 열려 있으면 은은한 냄새가 15분 만에 가신다",
+            "on": [
+              "PLC000002|window:window@=open",
+              "PLC000002|space:smell@=faint"
+            ],
+            "emits": [
+              "PLC000002|space:smell@<=none"
+            ],
+            "delay_s": 900,
+            "tuned": false
+          },
+          "air_out_door": {
+            "label": "현관문이 열려 있으면 뚜렷한 냄새가 5분 만에 은은해진다 (바깥으로 빠짐)",
+            "on": [
+              "PLC000001|door:door_state@=open",
+              "PLC000002|space:smell@>=distinct"
+            ],
+            "emits": [
+              "PLC000002|space:smell@<=faint"
+            ],
+            "delay_s": 300,
+            "tuned": false
+          }
+        },
+        "offers": {
+          "inspect": {
+            "label": "냄새가 어디서 나는지 주방과 냉장고를 살핀다 (구수한 요리 냄새는 살피지 않는다)",
+            "verb": "inspect",
+            "needs": [
+              {
+                "aware": "PLC000002|space:smell",
+                "at_least": "noticed"
+              }
+            ],
+            "effect": [],
+            "reveals": true,
+            "minutes": 5,
+            "tuned": false,
+            "when": [
+              "PLC000002|space:odor@>=sour"
+            ]
+          },
+          "wipe_floor": {
+            "label": "더러워진 주방 바닥을 닦는다 (집안일)",
+            "verb": "wipe",
+            "needs": [],
+            "when": [
+              "PLC000002|floor:dirt@>=dirty"
+            ],
+            "effect": [
+              "PLC000002|floor:dirt@=clean"
+            ],
+            "minutes": 15,
+            "tuned": false,
+            "during": [
+              "home"
+            ]
+          },
+          "ventilate": {
+            "label": "상한 냄새가 뚜렷하면 주방 창을 열어 환기한다 (집안일)",
+            "verb": "ventilate",
+            "needs": [
+              {
+                "aware": "PLC000002|space:smell",
+                "at_least": "noticed"
+              }
+            ],
+            "when": [
+              "PLC000002|window:window@=closed",
+              "PLC000002|space:smell@>=distinct",
+              "PLC000002|space:odor@>=sour"
+            ],
+            "effect": [
+              "PLC000002|window:window@=open"
+            ],
+            "minutes": 2,
+            "tuned": false
+          }
+        },
+        "desc": [
+          "현관을 열면 바로 있다. 냄새가 고인다. 냉장고의 자리 (세계-설정 2·3장)"
+        ],
+        "supplies": [
+          "electric",
+          "water",
+          "gas"
+        ],
+        "feels": [
+          {
+            "sensation": "savory_scent",
+            "when": [
+              "space:odor@=savory"
+            ],
+            "by": "space:smell"
+          },
+          {
+            "sensation": "sour_scent",
+            "when": [
+              "space:odor@=sour"
+            ],
+            "by": "space:smell"
+          },
+          {
+            "sensation": "musty_scent",
+            "when": [
+              "space:odor@=musty"
+            ],
+            "by": "space:smell"
+          },
+          {
+            "sensation": "rotten_scent",
+            "when": [
+              "space:odor@=sulfur"
+            ],
+            "by": "space:smell"
+          },
+          {
+            "sensation": "rotten_scent",
+            "when": [
+              "space:odor@=putrid"
+            ],
+            "by": "space:smell"
+          }
+        ]
+      },
+      {
+        "id": "PLC000003",
+        "names": {
+          "ko": "거실",
+          "en": "living room"
+        },
+        "environment": {
+          "weather_effect": "high",
+          "temp_swing": "mid",
+          "ventilation": "low",
+          "humidity": "mid"
+        },
+        "passages": [
+          {
+            "to": "PLC000005",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          },
+          {
+            "to": "PLC000006",
+            "kind": "door",
+            "medium_pass": {
+              "air": 100,
+              "self_move": 0
+            },
+            "tuned": false
+          }
+        ],
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "가장 큰 공간. 중문 너머 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "PLC000004",
+        "names": {
+          "ko": "욕실",
+          "en": "bathroom"
+        },
+        "aliases": [
+          "화장실"
+        ],
+        "environment": {
+          "weather_effect": "low",
+          "temp_swing": "low",
+          "ventilation": "very_low",
+          "humidity": "high"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "화장실 겸용, 약 1.5평, 부엌 옆. 문은 주방에서 (작가 2026-11-07). 환풍기가 작다 (세계-설정 2장)"
+        ]
+      },
+      {
+        "id": "PLC000005",
+        "names": {
+          "ko": "베란다",
+          "en": "veranda"
+        },
+        "environment": {
+          "weather_effect": "high",
+          "temp_swing": "high",
+          "ventilation": "mid",
+          "humidity": "high"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "거실에 붙어 있다. 외벽이라 온도 변화가 크다 (세계-설정 2·3장)"
+        ]
+      },
+      {
+        "id": "PLC000006",
+        "names": {
+          "ko": "작은 방",
+          "en": "small room"
+        },
+        "environment": {
+          "weather_effect": "low",
+          "temp_swing": "low",
+          "ventilation": "low",
+          "humidity": "low"
+        },
+        "slots": {
+          "space": {
+            "features": [
+              "smell",
+              "bug"
+            ]
+          }
+        },
+        "desc": [
+          "거실에 달린 방. 문을 닫으면 고립된다 (세계-설정 2·3장)"
+        ]
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {},
+  "mapped": [],
+  "report": {
+    "why": "바깥·현관문·환기 (작가 2026-11-09: 현관문만 드나들 때 잠깐 열림, 바깥과 환기부터): 현관에 현관문, 주방에 창문을 두고, 열려 있는 동안 주방 냄새가 바깥으로 빨리 빠진다. 현관문은 드나들 때 열리고 10분 뒤, 창은 환기하면 열리고 30분 뒤 닫힌다. 환기는 상한 냄새(시큼함 이상)가 뚜렷할 때 하는 집안일이다. 시간은 임시값.",
+    "scope": {
+      "added": {},
+      "updated": {
+        "place": [
+          {
+            "id": "PLC000001",
+            "fields": [
+              "names",
+              "environment",
+              "passages",
+              "slots",
+              "desc",
+              "rules"
+            ]
+          },
+          {
+            "id": "PLC000002",
+            "fields": [
+              "names",
+              "aliases",
+              "environment",
+              "passages",
+              "slots",
+              "rules",
+              "offers",
+              "desc",
+              "supplies",
+              "feels"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {
+        "PLC000002": [
+          "OBJ000018",
+          "OBJ000021",
+          "OBJ000022",
+          "OBJ000023",
+          "OBJ000024",
+          "OBJ000031"
+        ]
+      },
+      "chainEdges": [
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/air_out_window_clear"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_clear"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/kind_sulfur"
+        },
+        {
+          "from": "OBJ000018/rule/vent",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "OBJ000031/rule/simmer",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "OBJ000031/rule/simmer",
+          "to": "PLC000002/rule/air_out_door"
+        },
+        {
+          "from": "OBJ000031/rule/simmer",
+          "to": "PLC000002/rule/air_out_window"
+        },
+        {
+          "from": "OBJ000031/rule/simmer",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "OBJ000031/rule/simmer",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "OBJ000031/rule/simmer",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "OBJ000031/rule/simmer",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "OBJ000031/rule/simmer",
+          "to": "PLC000002/rule/kind_sulfur"
+        },
+        {
+          "from": "PLC000002/rule/air_out",
+          "to": "PLC000002/rule/kind_clear"
+        },
+        {
+          "from": "PLC000002/rule/air_out_door",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/air_out_door",
+          "to": "PLC000002/rule/air_out_window_clear"
+        },
+        {
+          "from": "PLC000002/rule/air_out_door",
+          "to": "PLC000002/rule/kind_clear"
+        },
+        {
+          "from": "PLC000002/rule/air_out_door",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "PLC000002/rule/air_out_door",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "PLC000002/rule/air_out_door",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "PLC000002/rule/air_out_door",
+          "to": "PLC000002/rule/kind_sulfur"
+        },
+        {
+          "from": "PLC000002/rule/air_out_door",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "PLC000002/rule/air_out_window",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/air_out_window",
+          "to": "PLC000002/rule/air_out_window_clear"
+        },
+        {
+          "from": "PLC000002/rule/air_out_window",
+          "to": "PLC000002/rule/kind_clear"
+        },
+        {
+          "from": "PLC000002/rule/air_out_window",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "PLC000002/rule/air_out_window",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "PLC000002/rule/air_out_window",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "PLC000002/rule/air_out_window",
+          "to": "PLC000002/rule/kind_sulfur"
+        },
+        {
+          "from": "PLC000002/rule/air_out_window",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "PLC000002/rule/air_out_window_clear",
+          "to": "PLC000002/rule/kind_clear"
+        },
+        {
+          "from": "PLC000002/rule/kind_musty",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/kind_putrid",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/kind_sour",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/kind_sulfur",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "OBJ000018/rule/vent"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/air_out_door"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/air_out_window"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/air_out_window_clear"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/kind_sulfur"
+        },
+        {
+          "from": "PLC000002/rule/odor_reach",
+          "to": "PLC000002/rule/odor_thicken"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "OBJ000018/rule/vent"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/air_out"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/air_out_door"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/air_out_window"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/bugs"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_musty"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_putrid"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_sour"
+        },
+        {
+          "from": "PLC000002/rule/odor_thicken",
+          "to": "PLC000002/rule/kind_sulfur"
+        },
+        {
+          "from": "PLC000002/rule/restore_electric",
+          "to": "OBJ000021/rule/back_on"
+        }
+      ],
+      "newChainEdges": 25
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

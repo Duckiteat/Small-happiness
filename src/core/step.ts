@@ -87,26 +87,60 @@ export function runSteps(layers: readonly Layer[], times: readonly number[], rng
 }
 
 /**
- * 시작부터 끝까지 하루를 돌린다. 다음 단계 시각은 시계(0층)가 직전 단계의 일정을 읽어 정한다 (F5, schedule.ts).
- * 끝 시각에도 한 단계를 돈다.
+ * 멈췄다 이어 갈 수 있는 하루 (엔진 입구 · session.ts). 다음 단계 시각은 시계(0층)가 직전 단계의 일정을 읽어 정한다 (F5, schedule.ts).
+ * 끝 시각에도 한 단계를 돈다. 한 번에 끝까지 돌리든 나눠 돌리든 단계 시각과 결과가 같다.
  */
+export class DayRunner {
+  readonly #layers: readonly Layer[];
+  readonly #end: number;
+  readonly #rng: Rng;
+  readonly #vocab: Vocab;
+  readonly #stepMin: number | undefined;
+  #prev: Board | null = null;
+  #next: number | null;
+
+  constructor(layers: readonly Layer[], start: number, end: number, rng: Rng, vocab: Vocab, stepMin?: number) {
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start) {
+      throw new BoardError(`하루의 시작과 끝은 0 이상의 정수(분)이고 끝이 시작보다 앞서지 않아야 한다 (${start}, ${end})`);
+    }
+    this.#layers = layers;
+    this.#end = end;
+    this.#rng = rng;
+    this.#vocab = vocab;
+    this.#stepMin = stepMin;
+    this.#next = start;
+  }
+
+  /** 다음 단계의 시각. 하루가 끝났으면 null. */
+  get next(): number | null {
+    return this.#next;
+  }
+
+  /** 마지막으로 돈 단계의 판. 아직 돌지 않았으면 null. */
+  get last(): Board | null {
+    return this.#prev;
+  }
+
+  /** 시각 until까지(포함) 차례가 된 단계를 모두 돌린다. */
+  runUntil(until: number): StepResult[] {
+    const results: StepResult[] = [];
+    while (this.#next !== null && this.#next <= until) {
+      const t: number = this.#next;
+      const r = runStep(this.#layers, t, this.#prev, this.#rng);
+      results.push(r);
+      this.#prev = r.board;
+      const ends = parseRecent(Board.readPrev(this.#prev, '0', 'recent')).map((a) => a.ends);
+      // F7: 집에 있을 때는 세계가 스스로 바뀌는 시각에도 깨어난다 (외출·잠 중이면 schedule이 거른다)
+      const source = Board.readPrev(this.#prev, '0', 'world.stimulus_source');
+      const nextChange = typeof source === 'object' && !Array.isArray(source) ? (source as { readonly next_change?: BoardValue }).next_change : undefined;
+      if (typeof nextChange === 'number') ends.push(nextChange);
+      this.#next = nextStepTime(parsePlan(Board.readPrev(this.#prev, '0', 'plan'), this.#vocab), t, this.#end, ends, this.#stepMin, (p) => isObserved(this.#vocab, p));
+    }
+    return results;
+  }
+}
+
+/** 시작부터 끝까지 하루를 한 번에 돌린다 (DayRunner를 끝까지). */
 export function runDay(layers: readonly Layer[], start: number, end: number, rng: Rng, vocab: Vocab, stepMin?: number): StepResult[] {
-  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start) {
-    throw new BoardError(`하루의 시작과 끝은 0 이상의 정수(분)이고 끝이 시작보다 앞서지 않아야 한다 (${start}, ${end})`);
-  }
-  const results: StepResult[] = [];
-  let prev: Board | null = null;
-  let t: number | null = start;
-  while (t !== null) {
-    const r = runStep(layers, t, prev, rng);
-    results.push(r);
-    prev = r.board;
-    const ends = parseRecent(Board.readPrev(prev, '0', 'recent')).map((a) => a.ends);
-    // F7: 집에 있을 때는 세계가 스스로 바뀌는 시각에도 깨어난다 (외출·잠 중이면 schedule이 거른다)
-    const source = Board.readPrev(prev, '0', 'world.stimulus_source');
-    const nextChange = typeof source === 'object' && !Array.isArray(source) ? (source as { readonly next_change?: BoardValue }).next_change : undefined;
-    if (typeof nextChange === 'number') ends.push(nextChange);
-    t = nextStepTime(parsePlan(Board.readPrev(prev, '0', 'plan'), vocab), t, end, ends, stepMin, (p) => isObserved(vocab, p));
-  }
-  return results;
+  return new DayRunner(layers, start, end, rng, vocab, stepMin).runUntil(end);
 }

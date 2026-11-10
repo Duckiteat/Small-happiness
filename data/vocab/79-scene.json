@@ -1,0 +1,138 @@
+[
+  {
+    "category": "day_part",
+    "entries": [
+      {
+        "key": "morning",
+        "ko": "아침",
+        "en": "morning",
+        "desc": "하루 구간 (시계 기준, 작가 2026-11-09). 문장 조각이 고를 때 쓴다",
+        "attrs": {
+          "from": 300,
+          "to": 660,
+          "tuned": false
+        }
+      },
+      {
+        "key": "afternoon",
+        "ko": "낮",
+        "en": "afternoon",
+        "desc": "하루 구간 (시계 기준)",
+        "attrs": {
+          "from": 660,
+          "to": 1020,
+          "tuned": false
+        }
+      },
+      {
+        "key": "evening",
+        "ko": "저녁",
+        "en": "evening",
+        "desc": "하루 구간 (시계 기준)",
+        "attrs": {
+          "from": 1020,
+          "to": 1320,
+          "tuned": false
+        }
+      },
+      {
+        "key": "night",
+        "ko": "밤",
+        "en": "night",
+        "desc": "하루 구간 (시계 기준, 자정을 넘는다)",
+        "attrs": {
+          "from": 1320,
+          "to": 300,
+          "tuned": false
+        }
+      }
+    ]
+  },
+  {
+    "category": "attention",
+    "entries": [
+      {
+        "key": "sniff",
+        "ko": "킁킁",
+        "en": "sniff",
+        "aliases": [
+          "냄새 맡기"
+        ],
+        "desc": "주의를 냄새로 돌린다 (줄글의 앵커가 누르는 말, 상호작용-명세 2B)"
+      },
+      {
+        "key": "search",
+        "ko": "탐색",
+        "en": "search",
+        "aliases": [
+          "어디지"
+        ],
+        "desc": "주의를 냄새의 방향·위치로 돌린다"
+      },
+      {
+        "key": "peek",
+        "ko": "열어보기",
+        "en": "peek",
+        "desc": "주의를 닫힌 것의 안으로 돌린다"
+      }
+    ]
+  },
+  {
+    "category": "scene_cond",
+    "entries": [
+      {
+        "key": "came_home",
+        "ko": "귀가",
+        "en": "came home",
+        "desc": "방금 집에 들어왔다: 현관문을 지나 들어온 지 window_min분 안 (장면 조건)",
+        "attrs": {
+          "value": "none",
+          "window_min": 30,
+          "tuned": false
+        }
+      },
+      {
+        "key": "urgent",
+        "ko": "못 참음",
+        "en": "urgent",
+        "desc": "지금 못 참는 냄새 속에 있다 (urgency.ts, 장면 조건)",
+        "attrs": {
+          "value": "none"
+        }
+      },
+      {
+        "key": "card",
+        "ko": "카드",
+        "en": "card",
+        "desc": "오늘(마지막으로 깬 뒤) 밖의 하루에 이 카드가 있었다 (장면 조건, 값: 사전 outside_card)",
+        "attrs": {
+          "value": "outside_card"
+        }
+      },
+      {
+        "key": "concept",
+        "ko": "떠올림",
+        "en": "thought of",
+        "aliases": [
+          "개념"
+        ],
+        "desc": "심상 사다리에서 맨 앞에 떠올린 개념이 이것이다 (장면 조건, 값: 물건 정의 이름이나 냄새 원인)",
+        "attrs": {
+          "value": "concept"
+        }
+      },
+      {
+        "key": "kind",
+        "ko": "냄새 종류",
+        "en": "kind",
+        "aliases": [
+          "종류"
+        ],
+        "desc": "심상 사다리에서 믿는 종류가 이것이다 (장면 조건, 값: 핵심 특징의 단계)",
+        "attrs": {
+          "value": "kind"
+        }
+      }
+    ]
+  }
+]

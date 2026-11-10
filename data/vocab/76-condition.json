@@ -1,0 +1,129 @@
+[
+  {
+    "category": "feature",
+    "entries": [
+      {
+        "key": "reserve",
+        "ko": "여유",
+        "en": "reserve",
+        "desc": "컨디션 하나 (인물-명세 3장, 작가 2026-11-09: 여유·에너지·긴장 셋 다). 부정 방향 사건을 버티는 정도 — 보통보다 넉넉하면 싫은 감정이 긴장 대신 여유를 덜고(버팀), 보통보다 빠듯하면 긴장이 한 칸 더 오른다(취약). 좋은 감정이 채운다. 잠은 보통 쪽으로 한 칸",
+        "attrs": {
+          "inner": true,
+          "condition": "reserve",
+          "baseline": "usual",
+          "settles": 1,
+          "levels": [
+            {
+              "key": "collapsed",
+              "ko": "무너짐"
+            },
+            {
+              "key": "tight",
+              "ko": "빠듯함"
+            },
+            {
+              "key": "usual",
+              "ko": "보통"
+            },
+            {
+              "key": "ample",
+              "ko": "넉넉함"
+            },
+            {
+              "key": "relaxed",
+              "ko": "여유로움"
+            },
+            {
+              "key": "abundant",
+              "ko": "충만함"
+            }
+          ],
+          "tuned": false
+        }
+      },
+      {
+        "key": "energy",
+        "ko": "에너지",
+        "en": "energy",
+        "desc": "컨디션 하나. 행동할 수 있는 힘 — 쉼이 아닌 행동을 drain_min분 할 때마다 한 칸 쓰고, 쉼이 끝나면 on_rest칸 차고, 자고 나면 기준(충분)으로 돌아온다. 방출(터짐)에도 쓴다",
+        "attrs": {
+          "inner": true,
+          "condition": "energy",
+          "baseline": "full",
+          "sleep_to": "full",
+          "drain_min": 120,
+          "on_rest": 1,
+          "on_release": -1,
+          "levels": [
+            {
+              "key": "empty",
+              "ko": "바닥"
+            },
+            {
+              "key": "low",
+              "ko": "부족"
+            },
+            {
+              "key": "little",
+              "ko": "조금"
+            },
+            {
+              "key": "usual",
+              "ko": "보통"
+            },
+            {
+              "key": "full",
+              "ko": "충분"
+            },
+            {
+              "key": "brimming",
+              "ko": "넘침"
+            }
+          ],
+          "tuned": false
+        }
+      },
+      {
+        "key": "tension",
+        "ko": "긴장",
+        "en": "tension",
+        "desc": "컨디션 하나. 풀리지 않고 쌓인 것 — 싫은 감정이 여유로 버티지 못하면 쌓이고, 안심되지 않을수록(안정이 낮을수록) 한 칸 더 쌓인다. 여러 번 쌓여 임계를 넘으면 몸이 먼저 방출한다(터짐, on_release). 쉼과 잠이 덜어 낸다",
+        "attrs": {
+          "inner": true,
+          "condition": "tension",
+          "baseline": "none",
+          "settles": 1,
+          "on_rest": -1,
+          "on_release": -3,
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "slight",
+              "ko": "조금"
+            },
+            {
+              "key": "built",
+              "ko": "쌓임"
+            },
+            {
+              "key": "high",
+              "ko": "높음"
+            },
+            {
+              "key": "bursting",
+              "ko": "터질 듯"
+            },
+            {
+              "key": "limit",
+              "ko": "한계"
+            }
+          ],
+          "tuned": false
+        }
+      }
+    ]
+  }
+]

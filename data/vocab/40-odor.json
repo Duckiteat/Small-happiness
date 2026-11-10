@@ -9,6 +9,13 @@
         "desc": "냄새가 어떤 종류인가. 사다리 칸 번호가 곧 심각도(우선순위)다: 여러 종류가 섞이면 가장 심각한 종류가 이긴다 (>= 로 올리기만 한다). 냄새의 세기는 smell이 따로 정한다. 종류의 지식(원인 → 균주 → 유기화합물 → 냄새)은 odor_kind·compound·strain·odor_cause에 있다",
         "attrs": {
           "sense": "smell",
+          "ladder": {
+            "by": "smell",
+            "skill": "judging",
+            "kind_pct": 50,
+            "clear_pct": [100, 100, 67, 67, 34, 34],
+            "tuned": false
+          },
           "levels": [
             {
               "key": "none",
@@ -48,7 +55,9 @@
         "desc": "익히거나 볶을 때 나는 고소하고 구수한 냄새",
         "attrs": {
           "rank": 1,
-          "feature": "odor"
+          "feature": "odor",
+          "like": ["sour"],
+          "tuned": false
         }
       },
       {
@@ -57,7 +66,9 @@
         "desc": "식초나 젖산 같은 시큼한 냄새 (발효)",
         "attrs": {
           "rank": 2,
-          "feature": "odor"
+          "feature": "odor",
+          "like": ["savory"],
+          "tuned": false
         }
       },
       {
@@ -66,7 +77,9 @@
         "desc": "곰팡이와 젖은 흙 같은 퀴퀴한 냄새",
         "attrs": {
           "rank": 3,
-          "feature": "odor"
+          "feature": "odor",
+          "like": ["sour"],
+          "tuned": false
         }
       },
       {
@@ -75,7 +88,9 @@
         "desc": "썩은 달걀이나 익은 양배추 같은 황 화합물 냄새",
         "attrs": {
           "rank": 4,
-          "feature": "odor"
+          "feature": "odor",
+          "like": ["putrid"],
+          "tuned": false
         }
       },
       {
@@ -84,7 +99,9 @@
         "desc": "고기나 생선이 썩는 역한 냄새",
         "attrs": {
           "rank": 5,
-          "feature": "odor"
+          "feature": "odor",
+          "like": ["sulfur"],
+          "tuned": false
         }
       }
     ]

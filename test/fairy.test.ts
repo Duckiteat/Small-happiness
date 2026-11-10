@@ -64,14 +64,36 @@ test('요정의 조언: 권한 것이 선택지면 다음에 고를 때 그것�
   assert.equal(ignored?.data['reason'], 'not_option', '이미 닦은 바닥은 선택지가 아니다');
 });
 
-test('스트레스 임계: 생각이 멈춰 있으면 해석하지 못해 조언을 듣지 않는다', () => {
+test('스트레스 임계: 생각이 멈춰 있으면 해석하지 못해 조언을 듣지 않는다 — 에너지가 부족해 방출하지 못하고, 쉬면 불쾌가 가라앉아 다시 생각한다', () => {
   const r = raw();
-  r['set'] = [...(r['set'] as unknown[]), { t: 0, key: 'CHR000001#1|mood:displeasure', level: 'strong' }, { t: 0, key: 'CHR000001#1|mood:stability', level: 'uneasy' }];
+  // 에너지가 부족하면 터짐(방출)이 일어나지 않아 생각이 멈춘 채로 남는다 (condition.ts). 조언은 들어오자마자 한 번
+  r['set'] = [...(r['set'] as unknown[]), { t: 0, key: 'CHR000001#1|mood:displeasure', level: 'strong' }, { t: 0, key: 'CHR000001#1|mood:stability', level: 'uneasy' }, { t: 0, key: 'CHR000001#1|condition:energy', level: 'low' }];
+  r['advice'] = [{ t: 1140, offer: WIPE, at: 'PLC000002#1' }];
   const stuck = run(r);
   const ignored = stuck.events.filter((e) => e.type === 'advice_ignored').map((e) => e.data['reason']);
-  assert.deepEqual(ignored, ['overwhelmed', 'overwhelmed']);
+  assert.deepEqual(ignored, ['overwhelmed']);
   assert.equal(floor(stuck.events), 'dirty');
+  const ignoredAt = stuck.events.find((e) => e.type === 'advice_ignored')?.t ?? -1;
+  assert.equal(stuck.events.some((e) => e.type === 'released' && e.t <= ignoredAt), false, '에너지가 부족해 방출하지 못한다');
+  // 쉼이 끝나면 (condition.ts on_rest): 에너지가 차고 불쾌가 한 칸 가라앉아 스트레스 임계를 벗어난다
+  const firstRest = stuck.events.find((e) => e.type === 'action_done' && e.t > ignoredAt);
+  assert.ok(firstRest !== undefined);
+  const after = stuck.events.filter((e) => e.type === 'state_changed' && e.cause === firstRest.seq).map((e) => `${String(e.data['key']).split('|')[1]}=${String(e.data['to'])}`);
+  assert.deepEqual(after, ['condition:energy=little', 'mood:displeasure=clear']);
   assert.deepEqual(auditLog(stuck.events, db, vocab, { externalUntil: stuck.start }).findings, []);
+});
+
+test('터짐: 생각이 멈췄어도 에너지가 남아 있으면 몸이 먼저 방출하고, 그 뒤에는 요정의 조언을 듣는다', () => {
+  const r = raw();
+  r['set'] = [...(r['set'] as unknown[]), { t: 0, key: 'CHR000001#1|mood:displeasure', level: 'strong' }, { t: 0, key: 'CHR000001#1|mood:stability', level: 'uneasy' }];
+  const out = run(r);
+  const released = out.events.find((e) => e.type === 'released');
+  assert.ok(released !== undefined && released.t === 1140, '집에 들어온 첫 단계에 몸이 방출한다');
+  const given = out.events.find((e) => e.type === 'advice_given');
+  assert.ok(given !== undefined && given.t > released.t);
+  assert.equal(out.events.some((e) => e.type === 'advice_ignored' && e.data['reason'] === 'overwhelmed'), false, '방출로 불쾌가 줄어 해석할 수 있다');
+  assert.equal(floor(out.events), 'clean');
+  assert.deepEqual(auditLog(out.events, db, vocab, { externalUntil: out.start }).findings, []);
 });
 
 test('시나리오의 조언은 { t, offer, at } 목록이다', () => {

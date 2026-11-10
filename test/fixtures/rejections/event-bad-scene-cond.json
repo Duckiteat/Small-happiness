@@ -1,0 +1,40 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 사전에 없는 카드를 장면 조건으로",
+ "defs": [
+  {
+   "id": "EVT+1",
+   "names": {
+    "ko": "시험 이벤트"
+   },
+   "core": "PLC000001|space:odor",
+   "closes": [
+    "PLC000001|space:smell@<=none"
+   ],
+   "scenes": [
+    {
+     "name": "남",
+     "sense": "smell",
+     "rung": "feel",
+     "lines": [
+      "냄새가 난다."
+     ],
+     "anchors": []
+    },
+    {
+     "name": "남(카드)",
+     "sense": "smell",
+     "rung": "feel",
+     "conds": [
+      "card:lottery"
+     ],
+     "lines": [
+      "냄새."
+     ],
+     "anchors": []
+    }
+   ]
+  }
+ ]
+}

@@ -4,8 +4,8 @@
     "entries": [
       { "key": "home", "ko": "집에 있음", "en": "home", "desc": "하루씨가 집에 깨어 있다. 플레이어가 함께 본다. 단계는 행동·장면이 끝날 때마다 돈다", "attrs": { "observed": true } },
       { "key": "meal", "ko": "식사 준비", "en": "meal", "aliases": ["요리 시간"], "desc": "하루씨가 집에서 식사를 준비하는 시간. 집에 있는 것과 같이 본다. 요리하기는 이 시간에만 한다. 이 구간이 시작되면 하루씨가 아는 재료로 메뉴를 구상한다 (요리-설계 10장)", "attrs": { "observed": true, "plans_menu": true } },
-      { "key": "out", "ko": "외출", "en": "out", "aliases": ["출근", "부재"], "desc": "하루씨가 집에 없다. 플레이어도 보지 않는다. 일정한 간격으로 변화를 계산한다", "attrs": { "observed": false } },
-      { "key": "asleep", "ko": "잠", "en": "asleep", "aliases": ["수면"], "desc": "하루씨가 자고 있다. 플레이어가 보지 않는 시간으로 친다 (외출과 같은 간격)", "attrs": { "observed": false } }
+      { "key": "out", "ko": "외출", "en": "out", "aliases": ["출근", "부재"], "desc": "하루씨가 집에 없다. 플레이어도 보지 않는다. 일정한 간격으로 변화를 계산한다. 이 구간이 끝나 귀가하면 밖의 하루 카드를 cards만큼 뽑아 내면에 반영한다 (outside.ts)", "attrs": { "observed": false, "leaves_home": true, "cards": { "min": 1, "max": 2, "tuned": false } } },
+      { "key": "asleep", "ko": "잠", "en": "asleep", "aliases": ["수면"], "desc": "하루씨가 자고 있다. 플레이어가 보지 않는 시간으로 친다 (외출과 같은 간격). 깨면 컨디션이 돌아온다 (sleeps)", "attrs": { "observed": false, "sleeps": true } }
     ]
   },
   {
@@ -19,10 +19,10 @@
   {
     "category": "mode",
     "entries": [
-      { "key": "drained", "ko": "방전", "en": "drained", "desc": "거의 아무것도 못 하는 날" },
-      { "key": "release", "ko": "터짐", "en": "release", "desc": "쌓인 것이 방출되는 날 (울기 등)" },
-      { "key": "surge", "ko": "몰아침", "en": "surge", "desc": "한 가지를 긴 시간 몰아서 하는 날 (두 시간 청소 등)" },
-      { "key": "steady", "ko": "평온", "en": "steady", "desc": "평소의 자율 행동" }
+      { "key": "drained", "ko": "방전", "en": "drained", "desc": "거의 아무것도 못 하는 날. 에너지가 바닥이거나, 긴장이 높은데 에너지가 부족하면. 쉼만 할 수 있다", "attrs": {"rank": 1, "when_any": [["condition:energy@<=empty"], ["condition:tension@>=high", "condition:energy@<=low"]], "allows": ["pastime"], "tuned": false} },
+      { "key": "release", "ko": "터짐", "en": "release", "desc": "쌓인 것이 방출되는 날 (울기 등). 긴장이 터질 듯하거나, 불쾌가 크고 안정이 불안정한데 에너지가 남아 있으면 몸이 먼저 방출한다 (해석 전, 요정이 닿지 않음)", "attrs": {"rank": 2, "when_any": [["condition:tension@>=bursting", "condition:energy@>=little"], ["mood:displeasure@>=strong", "mood:stability@<=uneasy", "condition:energy@>=little"]], "releases": true, "tuned": false} },
+      { "key": "surge", "ko": "몰아침", "en": "surge", "desc": "한 가지를 긴 시간 몰아서 하는 날 (두 시간 청소 등). 긴장이 조금 이상이고 에너지가 충분한데 남은 집안일(미완)이 많으면, 집안일을 먼저 오래 한다", "attrs": {"rank": 3, "when_any": [["condition:tension@>=slight", "condition:energy@>=full"]], "unfinished_at_least": 2, "first": "upkeep", "minutes_pct": 300, "tuned": false} },
+      { "key": "steady", "ko": "평온", "en": "steady", "desc": "평소의 자율 행동 (위 어디에도 해당하지 않음)", "attrs": {"rank": 4, "tuned": false} }
     ]
   },
   {

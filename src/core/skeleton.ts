@@ -11,7 +11,10 @@
 import { practicedLevel, skillKey } from './skill.ts';
 import type { BoardValue } from './board.ts';
 import { MINUTES_PER_DAY } from './clock.ts';
-import { Agency, parseRecent } from './agency.ts';
+import { actionClass, Agency, parseRecent } from './agency.ts';
+import { afterDone } from './condition.ts';
+import { cardRange, drawCards, OUTSIDE_DAY_DONE } from './outside.ts';
+import { Stage } from './scene.ts';
 import type { RecentAction } from './agency.ts';
 import { applyLevel, Causal, stateMatches } from './causal.ts';
 import { parseAware, Perception } from './perception.ts';
@@ -24,9 +27,9 @@ import { HEAT_FEATURE, readTemperature, STORAGE_FEATURE } from './temperature.ts
 import type { Db } from './db.ts';
 import { EventLog } from './log.ts';
 import { Rng } from './rng.ts';
-import { mealAt, parsePlan, presenceAt } from './schedule.ts';
+import { isObserved, mealAt, parsePlan, presenceAt } from './schedule.ts';
 import type { PlanBlock } from './schedule.ts';
-import { runDay } from './step.ts';
+import { Session } from './session.ts';
 import type { Layer } from './step.ts';
 import type { Vocab } from './vocab.ts';
 import { World } from './world.ts';
@@ -126,13 +129,16 @@ export interface Engine {
 }
 
 /** 층 아홉 개. world·causal은 2층, perception은 5층, agency는 6층, routine(하루씨의 일정)은 4a층만 쓴다. */
-export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlock[], vocab: Vocab, scripted: readonly ScriptedChange[] = []): Layer[] {
+export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlock[], vocab: Vocab, scripted: readonly ScriptedChange[] = [], outside: readonly OutsideGiven[] = [], start = 0): Layer[] {
   const { world, causal, perception, agency, log } = engine;
   const pending: RecentAction[] = []; // 끝나기를 기다리는 행동의 효과 요청 (2층)
   let awayUntil = -1; // 집을 비우는 행동이 끝나는 시각
   const deliveries: Delivery[] = []; // 주문해 오는 중인 것 (온라인 장보기)
   const practice = new Map<string, number>(); // 숙련 상태 키 → 해 본 횟수 (기록의 행동 끝에서 다시 셀 수 있다)
+  const activeCarry = new Map<string, number>(); // 인물 → 에너지를 아직 덜지 않은 활동 분 (condition.ts)
   const script = [...scripted].sort((a, b) => a.t - b.t); // 아직 일어나지 않은 외부 사건 (정전·문 열림 같은, 시나리오가 정한 것)
+  const drawn = new Set<number>(); // 카드를 뽑은 밖의 구간 (시작 분)
+  const stage = new Stage(db, vocab, log); // 7층 장면 (scene.ts)
   return [
     {
       id: '0',
@@ -151,8 +157,12 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       id: '2',
       run: (c) => {
         // 끝난 행동의 효과 요청을 끝난 시각에 기록하고(F1), 그 사이 규칙이 만든 변화는 각자의 시각으로 기록한다
-        pending.push(...parseRecent(c.prev('recent')));
-        for (const a of parseRecent(c.prev('recent'))) if (a.away === true) awayUntil = Math.max(awayUntil, a.ends);
+        // 끝나기 전에 그만둔 행동은 버린다 (urgency.ts: 효과도 끝도 없다)
+        const recentNow = parseRecent(c.prev('recent'));
+        const stops = new Set(recentNow.filter((a) => a.stops === true).map((a) => a.event));
+        pending.splice(0, pending.length, ...pending.filter((a) => !stops.has(a.event)));
+        pending.push(...recentNow.filter((a) => a.stops !== true));
+        for (const a of recentNow) if (a.away === true && a.stops !== true) awayUntil = Math.max(awayUntil, a.ends);
         const due = pending.filter((a) => a.ends <= c.t).sort((a, b) => a.ends - b.ends || a.event.localeCompare(b.event));
         pending.splice(0, pending.length, ...pending.filter((a) => a.ends > c.t));
         const scriptDue = script.filter((x) => x.t <= c.t);
@@ -205,6 +215,11 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
             practice.set(key, count);
             world.set(key, practicedLevel(vocab, tr.feature, world.level(key), count), { t: a.ends, cause: done.seq });
           }
+          // 컨디션 (condition.ts): 쉼이 끝나면 차고 가라앉는다. 다른 행동은 활동한 분만큼 에너지를 쓴다. 원인은 행동의 끝
+          const startedAt = log.get(a.event)?.t ?? a.ends;
+          const cond = afterDone(db, vocab, a.who, defOf(a.who) ?? '', actionClass(vocab, a.verb) === 'pastime', a.ends - startedAt, activeCarry.get(a.who) ?? 0, (k) => world.level(k));
+          activeCarry.set(a.who, cond.carry);
+          for (const ch of cond.changes) world.set(ch.key, ch.to, { t: a.ends, cause: done.seq });
           // 만들고 옮기기 (요리-설계 8장): 결과를 기록한 뒤 새 개체를 만들어 놓고, 물건을 옮긴다. 원인은 모두 행동의 끝
           const made: string[] = [];
           for (const cr of a.creates ?? []) {
@@ -245,7 +260,19 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
     {
       id: '4a',
       run: (c) => {
-        c.write('ext', { cards: [] });
+        // 밖의 하루 (outside.ts): 카드를 뽑는 구간이 끝나 귀가하는 단계에 그날의 카드를 정한다 (개입: 시드 난수, 시나리오가 정했으면 그것)
+        const who = world.instances().find((i) => i.startsWith('CHR'));
+        const arrivals: BoardValue[] = [];
+        for (const b of routine) {
+          const range = cardRange(vocab, b.kind);
+          if (range === null || who === undefined || drawn.has(b.from) || b.to > c.t || b.to <= start) continue;
+          drawn.add(b.from);
+          const given = outside.find((o) => o.from === b.from);
+          const cards = given !== undefined ? [...given.cards] : c.rng === null ? [] : drawCards(vocab, range, c.rng);
+          const e = log.append({ t: c.t, type: OUTSIDE_DAY_DONE, src: 'outside', cause: null, data: { who, from: b.from, to: b.to, cards } });
+          arrivals.push({ event: e.seq, who, cards });
+        }
+        c.write('ext', { cards: arrivals });
         c.write('plan', { blocks: routine.map((b) => ({ kind: b.kind, from: b.from, to: b.to })) });
       },
     },
@@ -258,7 +285,7 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
       run: (c) => {
         // 집을 비우는 행동(장보러 나감) 중에는 외출이다: 집을 지각하지 않는다
         const where = awayUntil > c.t ? AWAY : presenceAt(parsePlan(c.read('plan'), vocab), c.t);
-        const r = perception.step(world, c.t, where, c.prev('recent'));
+        const r = perception.step(world, c.t, where, c.prev('recent'), parseArrivals(c.read('ext')));
         const perceived = r.perceived.map((p) => ({ who: p.who, key: p.key, level: p.level }));
         c.write('perceived', perceived);
         c.write('visible_to_player', perceived); // 지금은 하루씨가 느낀 만큼만 보인다 (넓히는 규칙은 미정)
@@ -282,7 +309,12 @@ export function skeletonLayers(db: Db, engine: Engine, routine: readonly PlanBlo
     },
     {
       id: '7',
-      run: (c) => c.write('scene', {}),
+      // 장면 (scene.ts): 열린 이벤트에서 지금의 칸·하루 구간·모드에 맞는 작가의 원문
+      // 하루씨가 집에 깨어 있을 때만 장면을 보고 이벤트를 열고 닫는다 (보지 않는 시간의 단계 간격에 기록이 매이지 않게)
+      run: (c) => {
+        const where = awayUntil > c.t ? AWAY : presenceAt(parsePlan(c.read('plan'), vocab), c.t);
+        c.write('scene', isObserved(vocab, where) ? stage.step(world, c.t, { ladder: (w, p, f) => perception.ladderOf(w, p, f), mode: (w) => perception.modeOf(w), context: (w) => perception.sceneContext(world, w), ladderMind: (w, p, f) => perception.ladderMind(w, p, f) }) : {});
+      },
     },
     {
       id: '8',
@@ -336,6 +368,25 @@ export interface Scenario {
   readonly memories: readonly { readonly who: string; readonly of: string; readonly emotion: string }[];
   /** 요정의 작은 조언 (내면-설계 12장): 시각 t에 하루씨의 선택지 중 하나(offer 근거 참조, at 개체)를 권한다. 플레이어의 입력 자리다. */
   readonly advice: readonly { readonly t: number; readonly offer: string; readonly at: string }[];
+  /** 밖의 하루 카드를 정해 둠 (outside.ts): 시작 분 from인 밖의 구간이 끝나면 뽑지 않고 이 카드들을 쓴다 (시험·연출용). */
+  readonly outside: readonly OutsideGiven[];
+}
+
+export interface OutsideGiven {
+  readonly from: number;
+  readonly cards: readonly string[];
+}
+
+/** 판의 ext에서 이 단계에 귀가하며 정해진 카드들을 읽는다. */
+export function parseArrivals(value: BoardValue | undefined): { event: string; who: string; cards: string[] }[] {
+  const cards = typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as { readonly [k: string]: BoardValue })['cards'] : undefined;
+  if (!Array.isArray(cards)) return [];
+  return cards.flatMap((x) => {
+    if (typeof x !== 'object' || x === null || Array.isArray(x)) return [];
+    const o = x as { readonly [k: string]: BoardValue };
+    const cs = o['cards'];
+    return typeof o['event'] === 'string' && typeof o['who'] === 'string' && Array.isArray(cs) ? [{ event: o['event'], who: o['who'], cards: cs.map(String) }] : [];
+  });
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
@@ -345,7 +396,7 @@ function isObj(v: unknown): v is Record<string, unknown> {
 /** 시나리오 파일을 해석한다. 모양이 틀리면 던진다. */
 export function parseScenario(raw: unknown): Scenario {
   if (!isObj(raw)) throw new TypeError('시나리오는 객체여야 한다');
-  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain, scripted, memories, advice } = raw;
+  const { why, patches, use_db, seed, spawn, set, start, end, routine, layout, contain, scripted, memories, advice, outside } = raw;
   if (typeof why !== 'string' || why.trim() === '') throw new TypeError('why(이 시나리오를 두는 이유)가 필요하다');
   if (use_db !== undefined && typeof use_db !== 'boolean') throw new TypeError('use_db는 true/false여야 한다');
   const fromDb = use_db === true;
@@ -385,7 +436,11 @@ export function parseScenario(raw: unknown): Scenario {
   if (advice !== undefined && (!Array.isArray(advice) || !advice.every((x) => isObj(x) && typeof x['t'] === 'number' && Number.isInteger(x['t']) && typeof x['offer'] === 'string' && typeof x['at'] === 'string'))) {
     throw new TypeError('advice는 { t(분), offer(근거 참조), at(개체) } 목록이어야 한다');
   }
+  if (outside !== undefined && (!Array.isArray(outside) || !outside.every((x) => isObj(x) && typeof x['from'] === 'number' && Array.isArray(x['cards']) && x['cards'].every((c) => typeof c === 'string')))) {
+    throw new TypeError('outside는 { from(밖의 구간 시작 분), cards(카드 키 목록) } 목록이어야 한다');
+  }
   return {
+    outside: ((outside as { from: number; cards: string[] }[] | undefined) ?? []).map((x) => ({ from: x.from, cards: [...x.cards] })),
     advice: ((advice as { t: number; offer: string; at: string }[] | undefined) ?? []).map((x) => ({ t: x.t, offer: x.offer, at: x.at })),
     memories: ((memories as { who: string; of: string; emotion: string }[] | undefined) ?? []).map((x) => ({ who: x.who, of: x.of, emotion: x.emotion })),
     scripted: scriptedChanges,
@@ -399,40 +454,11 @@ export interface DayTrace {
   readonly log: readonly unknown[];
 }
 
-/** 시나리오대로 세계를 세우고 뼈대 층으로 하루를 돌린다. 같은 입력이면 같은 기록이 나온다. */
+/** 시나리오대로 세계를 세우고 뼈대 층으로 하루를 돌린다. 같은 입력이면 같은 기록이 나온다. 엔진 입구(session.ts)를 지나 끝까지 진행한다. */
 export function runScenario(db: Db, vocab: Vocab, scenario: Scenario, stepMin?: number): DayTrace {
-  const log = new EventLog({ isKnownType: (type) => vocab.has('event_type', type), checkData: viaCheck(vocab) });
-  const world = new World(db, vocab, log);
-  for (const def of scenario.spawn) world.spawn(def, { t: 0 });
-  for (const line of scenario.layout) {
-    const ids = parseChain(line) ?? [];
-    for (const { below, above } of chainPairs(ids)) world.place(above, 'on', below, { t: 0 });
-  }
-  for (const c of scenario.contain) world.place(c.id, 'in', c.in, { t: 0 });
-  for (const s of scenario.set) world.set(s.key, s.level, { t: s.t });
-  const setupEnd = Math.max(0, ...scenario.set.map((s) => s.t));
-  const perception = new Perception(db, vocab, log);
-  for (const m of scenario.memories) {
-    if (!vocab.has('emotion', m.emotion)) throw new TypeError(`memories: 사전에 없는 감정 ${m.emotion}`);
-    if (db.defs[m.of] === undefined || !world.instances().includes(m.who)) throw new TypeError(`memories: 없는 정의나 인물 (${m.of}, ${m.who})`);
-    perception.remember(m.who, m.of, m.emotion, setupEnd);
-  }
-  const agency = new Agency(db, vocab, log);
-  agency.advise(scenario.advice);
-  const engine: Engine = {
-    world,
-    causal: new Causal(db, vocab, log, setupEnd),
-    perception,
-    agency,
-    log,
-  };
-  const routine = parsePlan(scenario.routine, vocab);
-  const layers = skeletonLayers(db, engine, routine, vocab, scenario.scripted);
-  const results = runDay(layers, scenario.start, scenario.end, Rng.fromSeed(scenario.seed), vocab, stepMin);
-  return {
-    steps: results.map((r) => ({ ...r.board.snapshot(), lines: r.lines })),
-    log: log.toJSON(),
-  };
+  const s = Session.start(db, vocab, scenario, stepMin);
+  s.advance(scenario.end);
+  return s.trace();
 }
 
 export function serializeTrace(trace: DayTrace): string {

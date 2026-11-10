@@ -1,0 +1,32 @@
+{
+ "format": "small-happiness-patch",
+ "version": 1,
+ "why": "거부 시험: 닫힘 조건이 없는 이벤트",
+ "defs": [
+  {
+   "id": "EVT+1",
+   "names": {
+    "ko": "시험 이벤트"
+   },
+   "core": "PLC000001|space:odor",
+   "closes": [],
+   "scenes": [
+    {
+     "name": "남",
+     "sense": "smell",
+     "rung": "feel",
+     "lines": [
+      "냄새가 {난다|sniff}."
+     ],
+     "anchors": [
+      {
+       "line": 0,
+       "text": "난다",
+       "verb": "sniff"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

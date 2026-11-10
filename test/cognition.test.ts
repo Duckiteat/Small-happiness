@@ -61,7 +61,7 @@ test('다시 알아챈다: 주방 냄새가 짙어지면, 없어지면, 다시 �
 test('없어진 냄새는 살필 이유가 아니다: 냄새가 없다고 알게 된 것만으로는 다시 살피지 않는다', () => {
   const h = home();
   const smell = `${h.kitchen}|space:smell`;
-  h.world.set(smell, 'faint', { t: 10 });
+  h.world.set(smell, 'foul', { t: 10 }); // 종류를 헷갈리지 않을 만큼 세게 (심상 사다리: 옅으면 종류를 모르거나 구수함과 헷갈린다)
   h.world.set(`${h.kitchen}|space:odor`, 'sour', { t: 10 }); // 살피기는 시큼함 이상의 냄새 종류를 알아챘을 때만 한다 (구수한 요리 냄새는 살피지 않는다)
   const a = h.perception.step(h.world, 10, 'home', []);
   assert.deepEqual(h.agency.step(h.world, 10, 'home', a.aware).map((x) => x.verb), ['inspect']);

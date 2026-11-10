@@ -1,0 +1,65 @@
+[
+  {
+    "category": "outside_card",
+    "entries": [
+      {
+        "key": "long_meetings",
+        "ko": "회의가 이어짐",
+        "desc": "회의가 줄줄이 이어진 하루. 지치고 답답하다 (밖의 하루 카드, 인물-명세 7장. 효과는 임시값)",
+        "attrs": {
+          "tone": "unpleasant",
+          "shifts": {
+            "energy": -1
+          },
+          "tuned": false
+        }
+      },
+      {
+        "key": "harsh_word",
+        "ko": "싫은 말 한마디",
+        "desc": "누군가의 말 한마디가 마음에 걸린다 (밖의 하루 카드, 인물-명세 7장. 효과는 임시값)",
+        "attrs": {
+          "tone": "unpleasant",
+          "shifts": {
+            "displeasure": 1
+          },
+          "tuned": false
+        }
+      },
+      {
+        "key": "praise",
+        "ko": "칭찬",
+        "desc": "일을 잘했다는 말을 들었다 (밖의 하루 카드, 인물-명세 7장. 효과는 임시값)",
+        "attrs": {
+          "tone": "pleasant",
+          "shifts": {
+            "pleasure": 1
+          },
+          "tuned": false
+        }
+      },
+      {
+        "key": "crowded_commute",
+        "ko": "혼잡한 퇴근길",
+        "desc": "붐비는 지하철로 돌아왔다. 몸이 지친다 (밖의 하루 카드, 인물-명세 7장. 효과는 임시값)",
+        "attrs": {
+          "tone": "neutral",
+          "shifts": {
+            "energy": -1
+          },
+          "tuned": false
+        }
+      },
+      {
+        "key": "quiet_day",
+        "ko": "조용한 하루",
+        "desc": "별일 없이 지나간 하루 (밖의 하루 카드, 인물-명세 7장. 효과는 임시값)",
+        "attrs": {
+          "tone": "neutral",
+          "shifts": {},
+          "tuned": false
+        }
+      }
+    ]
+  }
+]

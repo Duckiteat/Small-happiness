@@ -169,6 +169,19 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       // plans_menu: 이 구간이 시작되면 인물이 메뉴를 구상한다 (식사 준비)
       if (attrs['plans_menu'] !== undefined && attrs['plans_menu'] !== true) push(`${path}.attrs.plans_menu`, 'plans_menu는 true이거나 없어야 한다');
       if (attrs['plans_menu'] === true && attrs['observed'] !== true) push(`${path}.attrs.plans_menu`, '메뉴 구상은 플레이어가 함께 보는 구간에서만 한다');
+      // sleeps: 자는 시간 — 끝나면 컨디션이 돌아온다 (condition.ts). 보지 않는 시간이어야 한다
+      if (attrs['sleeps'] !== undefined && attrs['sleeps'] !== true) push(`${path}.attrs.sleeps`, 'sleeps는 true이거나 없어야 한다');
+      if (attrs['sleeps'] === true && attrs['observed'] !== false) push(`${path}.attrs.sleeps`, '자는 시간은 플레이어가 보지 않는 시간이다 (observed: false)');
+      // leaves_home: 이 상황이 되면 집을 나선 것이다 (현관문을 지난다, perception.ts)
+      if (attrs['leaves_home'] !== undefined && (attrs['leaves_home'] !== true || attrs['observed'] !== false)) push(`${path}.attrs.leaves_home`, 'leaves_home은 true이고 보지 않는 상황이어야 한다');
+      // cards: 이 구간이 끝나 귀가하면 밖의 하루 카드를 min~max장 뽑는다 (outside.ts). 보지 않는 시간이어야 한다
+      const cards = attrs['cards'];
+      if (cards !== undefined) {
+        if (typeof cards !== 'object' || cards === null || Array.isArray(cards) || !isInt(cards['min']) || !isInt(cards['max']) || (cards['min'] as number) < 1 || (cards['max'] as number) < (cards['min'] as number) || typeof cards['tuned'] !== 'boolean') {
+          push(`${path}.attrs.cards`, 'cards는 { min, max, tuned } (1 ≤ min ≤ max 정수)여야 한다');
+        }
+        if (attrs['observed'] !== false) push(`${path}.attrs.cards`, '밖의 하루 카드는 플레이어가 보지 않는 구간에서만 뽑는다 (observed: false)');
+      }
       break;
     }
     case 'sense': {
@@ -186,7 +199,9 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       // handles: 이 행동은 그 물건을 손으로 다룬다 (촉각), eats: 먹는다 (미각)
       // tidies: 치우는 일 — 남아 있으면 그 물건의 생각이 미완으로 더 오래 간다 (내면-설계 11장)
       // pastime: 쉼(할 일이 없을 때 스스로 고름), upkeep: 집안일(쉴 거리가 없을 때만 스스로, 요정이 권하는 것) — 내면-설계 12장
-      for (const k of ['handles', 'eats', 'tidies', 'pastime', 'upkeep']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
+      // against_odor: 냄새를 없애려는 행동 (살피기·버리기·환기) — 못 참는 냄새가 나면 먼저 한다 (urgency.ts)
+      for (const k of ['handles', 'eats', 'tidies', 'pastime', 'upkeep', 'against_odor']) if (attrs[k] !== undefined && attrs[k] !== true) push(`${path}.attrs.${k}`, `${k}는 true이거나 없어야 한다`);
+      if (attrs['against_odor'] === true && attrs['pastime'] === true) push(`${path}.attrs.against_odor`, '쉼은 냄새를 없애는 행동이 아니다');
       if (attrs['pastime'] === true && attrs['upkeep'] === true) push(`${path}.attrs`, '쉼(pastime)이면서 집안일(upkeep)일 수는 없다');
       break;
     }
@@ -226,6 +241,40 @@ function checkAttrs(category: string, entry: VocabEntryRaw, path: string, push: 
       const r = attrs['rank'];
       if (!isInt(r) || r < 1 || r > LADDER_SIZE - 1) push(`${path}.attrs.rank`, `냄새 종류의 순서(rank)는 1~${LADDER_SIZE - 1} 정수여야 한다 (사다리 칸 번호, 0은 없음)`);
       if (typeof attrs['feature'] !== 'string') push(`${path}.attrs.feature`, '이 종류가 들어가는 특징(feature 키)이 필요하다');
+      // like: 옅게 맡으면 헷갈리는 비슷한 종류 (심상 사다리의 짐작). 임시값 표시가 필요하다
+      const like = attrs['like'];
+      if (like !== undefined) {
+        if (!Array.isArray(like) || !like.every((x) => typeof x === 'string') || like.includes(entry.key)) push(`${path}.attrs.like`, 'like는 자기가 아닌 냄새 종류 키의 목록이어야 한다');
+        if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '헷갈리는 종류(like)가 조정된 값인지 tuned를 적어야 한다');
+      }
+      break;
+    }
+    case 'outside_card': {
+      // 밖의 하루 카드 (outside.ts): tone(좋음·싫음·그저 그럼, 싫으면 여유로 버티거나 긴장으로 쌓인다), shifts(내면 특징 → 칸 수)
+      if (!['pleasant', 'unpleasant', 'neutral'].includes(String(attrs['tone']))) push(`${path}.attrs.tone`, 'tone은 pleasant · unpleasant · neutral 중 하나여야 한다');
+      const sh = attrs['shifts'];
+      if (typeof sh !== 'object' || sh === null || Array.isArray(sh) || !Object.values(sh).every((x) => isInt(x) && x !== 0 && Math.abs(x) <= 2)) push(`${path}.attrs.shifts`, 'shifts는 { 내면 특징: 움직이는 칸 수(±1~2) } 객체여야 한다 (비어 있어도 된다)');
+      if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '카드의 효과가 조정된 값인지 tuned를 적어야 한다');
+      break;
+    }
+    case 'day_part': {
+      // 하루 구간 (시계 기준): from·to(그날의 분, 0~1440). to가 from보다 작으면 자정을 넘는다
+      const f = attrs['from'], t = attrs['to'];
+      if (!isInt(f) || !isInt(t) || f < 0 || f >= 1440 || t < 0 || t > 1440 || f === t) push(`${path}.attrs`, 'from·to는 그날의 분(0~1440) 정수이고 같지 않아야 한다');
+      if (typeof attrs['tuned'] !== 'boolean') push(`${path}.attrs.tuned`, '구간이 조정된 값인지 tuned를 적어야 한다');
+      break;
+    }
+    case 'scene_cond': {
+      // 장면 조건 (scene.ts): value — 값의 종류 (none · outside_card · concept · kind), window_min — 시간 창(분)
+      if (!['none', 'outside_card', 'concept', 'kind'].includes(String(attrs['value']))) push(`${path}.attrs.value`, 'value는 none · outside_card · concept · kind 중 하나여야 한다');
+      const w = attrs['window_min'];
+      if (w !== undefined && (!isInt(w) || w < 1 || typeof attrs['tuned'] !== 'boolean')) push(`${path}.attrs.window_min`, 'window_min은 1 이상 정수이고 tuned를 함께 적는다');
+      break;
+    }
+    case 'rung': {
+      // 심상 사다리의 칸 (ladder.ts): 순서(rank)로 올라가기만 한다
+      const r = attrs['rank'];
+      if (!isInt(r) || r < 0) push(`${path}.attrs.rank`, '사다리 칸의 순서(rank)는 0 이상의 정수여야 한다');
       break;
     }
     case 'compound':
@@ -291,6 +340,124 @@ const REFS: readonly (readonly [string, string, string])[] = [
   ['odor_cause', 'feature', 'feature'], // 냄새 원인의 단계를 가진 특징
   ['odor_cause', 'strength_feature', 'feature'], // 냄새의 세기를 가진 특징
 ];
+
+const LOCAL_COND_RE = /^([a-z][a-z0-9_]*):([a-z][a-z0-9_]*)@(=|>=|<=)([a-z][a-z0-9_]*)$/;
+const ACTION_CLASSES = ['task', 'pastime', 'upkeep'];
+
+/**
+ * 컨디션과 모드 (condition.ts, 인물-명세 3·6장):
+ *   - 내면 특징의 condition(사전 condition 키, 겹치지 않음), baseline·sleep_to(그 특징의 쓸 수 있는 단계), settles·on_rest·on_release(움직이는 칸 수), drain_min(분)
+ *   - 모드: rank(판정 순서, 겹치지 않음), when_any(인물 안의 조건 묶음 목록), allows·first(행동 갈래), minutes_pct, unfinished_at_least, releases. when_any가 없는 기본 모드는 하나
+ */
+function checkCondition(grouped: Map<string, VocabEntryRaw[]>, keysByCategory: Map<string, Set<string>>, push: Push): void {
+  const features = grouped.get('feature') ?? [];
+  const open = (f: VocabEntryRaw | undefined): string[] => {
+    const levels = f?.attrs?.['levels'];
+    return Array.isArray(levels) ? levels.flatMap((l) => (typeof l === 'object' && l !== null && !Array.isArray(l) && l['locked'] !== true && typeof l['key'] === 'string' ? [l['key']] : [])) : [];
+  };
+  const conditions = keysByCategory.get('condition') ?? new Set<string>();
+  const used = new Map<string, string>();
+  for (const e of features) {
+    const a = e.attrs ?? {};
+    const path = `feature.${e.key}.attrs`;
+    const c = a['condition'];
+    if (c !== undefined) {
+      if (a['inner'] !== true || typeof c !== 'string' || !conditions.has(c)) push(`${path}.condition`, 'condition은 내면 특징에만 있고 사전 condition 분류의 키여야 한다');
+      else if (used.has(c)) push(`${path}.condition`, `컨디션 ${c}가 이미 ${used.get(c)}에 있다`);
+      else used.set(c, e.key);
+    }
+    for (const k of ['baseline', 'sleep_to']) if (a[k] !== undefined && !open(e).includes(String(a[k]))) push(`${path}.${k}`, `${k}는 이 특징의 쓸 수 있는 단계 키여야 한다`);
+    for (const k of ['settles', 'on_rest', 'on_release']) {
+      const n = a[k];
+      if (n === undefined) continue;
+      if (a['inner'] !== true || !isInt(n) || n === 0 || Math.abs(n) > 5) push(`${path}.${k}`, `${k}는 내면 특징에만 있고 0이 아닌 -5~5 정수(움직이는 칸 수)여야 한다`);
+      if (k === 'settles' && isInt(n) && n < 0) push(`${path}.settles`, 'settles(잠이 기준 쪽으로 옮기는 칸 수)는 양수여야 한다');
+    }
+    // door: 드나들 때 지나는 문 (open: 지날 때 되는 단계)
+    if (a['door'] !== undefined && (a['door'] !== true || !open(e).includes(String(a['open'])))) push(`${path}.door`, 'door 특징은 door: true와 지날 때 되는 단계 open(쓸 수 있는 단계 키)이 함께 있어야 한다');
+    const dm = a['drain_min'];
+    if (dm !== undefined && (a['condition'] === undefined || !isInt(dm) || dm < 1)) push(`${path}.drain_min`, 'drain_min(한 칸을 쓰는 활동 분)은 컨디션 특징의 1 이상 정수여야 한다');
+  }
+  const modes = grouped.get('mode') ?? [];
+  if (!modes.some((m) => m.attrs?.['rank'] !== undefined)) return; // 모드를 아직 쓰지 않는 사전
+  const ranks = new Set<number>();
+  let defaults = 0;
+  for (const m of modes) {
+    const a = m.attrs ?? {};
+    const path = `mode.${m.key}.attrs`;
+    const r = a['rank'];
+    if (!isInt(r) || r < 1) push(`${path}.rank`, '모드의 판정 순서(rank)는 1 이상 정수여야 한다');
+    else if (ranks.has(r)) push(`${path}.rank`, `판정 순서 ${r}가 겹친다 (같은 상태에서 모드가 하나여야 한다)`);
+    else ranks.add(r);
+    if (typeof a['tuned'] !== 'boolean') push(`${path}.tuned`, '모드 조건이 조정된 값인지 tuned를 적어야 한다');
+    const w = a['when_any'];
+    if (w === undefined) defaults++;
+    else if (!Array.isArray(w) || w.length === 0 || !w.every((g) => Array.isArray(g) && g.length > 0)) push(`${path}.when_any`, 'when_any는 조건 묶음(비어 있지 않은 목록)의 목록이어야 한다');
+    else {
+      for (const g of w) {
+        for (const x of g as JsonValue[]) {
+          const mm = typeof x === 'string' ? LOCAL_COND_RE.exec(x) : null;
+          const f = mm === null ? undefined : features.find((ff) => ff.key === mm[2]);
+          if (mm === null || f === undefined || f.attrs?.['inner'] !== true || !open(f).includes(mm[4] ?? '')) push(`${path}.when_any`, `"${String(x)}"는 인물 안의 조건(부위:내면 특징@=|>=|<=단계)이 아니다`);
+        }
+      }
+    }
+    for (const k of ['allows']) {
+      const v = a[k];
+      if (v !== undefined && (!Array.isArray(v) || v.length === 0 || !v.every((x) => ACTION_CLASSES.includes(String(x))))) push(`${path}.${k}`, `allows는 ${ACTION_CLASSES.join(' · ')} 중에서 고른 목록이어야 한다`);
+    }
+    if (a['first'] !== undefined && !ACTION_CLASSES.includes(String(a['first']))) push(`${path}.first`, `first는 ${ACTION_CLASSES.join(' · ')} 중 하나여야 한다`);
+    const mp = a['minutes_pct'];
+    if (mp !== undefined && (a['first'] === undefined || !isInt(mp) || mp < 1 || mp > 1000)) push(`${path}.minutes_pct`, 'minutes_pct는 first와 함께, 1~1000 정수(%)여야 한다');
+    const ua = a['unfinished_at_least'];
+    if (ua !== undefined && (!isInt(ua) || ua < 1)) push(`${path}.unfinished_at_least`, 'unfinished_at_least는 1 이상 정수여야 한다');
+    if (a['releases'] !== undefined && a['releases'] !== true) push(`${path}.releases`, 'releases는 true이거나 없어야 한다');
+    if (a['releases'] === true && (a['allows'] !== undefined || a['first'] !== undefined)) push(`${path}.releases`, '방출하는 모드는 행동을 고르기 전에 몸이 먼저 방출한다 (allows·first를 쓰지 않는다)');
+  }
+  if (defaults !== 1) push('mode', `조건 없는 기본 모드(when_any 없음)는 하나여야 한다 (지금 ${defaults}개)`);
+  for (const c of grouped.get('outside_card') ?? []) {
+    const sh = c.attrs?.['shifts'];
+    if (typeof sh !== 'object' || sh === null || Array.isArray(sh)) continue;
+    for (const f of Object.keys(sh)) if (features.find((x) => x.key === f)?.attrs?.['inner'] !== true) push(`outside_card.${c.key}.attrs.shifts`, `"${f}"는 내면 특징이 아니다 (밖의 하루는 내면으로만 들어온다)`);
+  }
+}
+
+/** 심상 사다리 (ladder.ts): 사다리를 타는 종류 특징의 ladder 설정과 비슷한 종류(like), 칸 사전. */
+function checkLadders(grouped: Map<string, VocabEntryRaw[]>, keysByCategory: Map<string, Set<string>>, push: Push): void {
+  const features = grouped.get('feature') ?? [];
+  const featureOf = (k: unknown): VocabEntryRaw | undefined => features.find((x) => x.key === k);
+  let any = false;
+  for (const e of features) {
+    const l = e.attrs?.['ladder'];
+    if (l === undefined) continue;
+    any = true;
+    const path = `feature.${e.key}.attrs.ladder`;
+    if (typeof l !== 'object' || l === null || Array.isArray(l)) {
+      push(path, 'ladder는 { by, skill, kind_pct, clear_pct, tuned }여야 한다');
+      continue;
+    }
+    if (typeof e.attrs?.['sense'] !== 'string') push(path, '사다리를 타는 특징은 느끼는 감각(sense)이 있어야 한다');
+    if (featureOf(l['by']) === undefined || l['by'] === e.key) push(`${path}.by`, '세기를 가진 다른 특징(by, feature 키)이 필요하다');
+    const skill = featureOf(l['skill']);
+    if (skill === undefined || skill.attrs?.['inner'] !== true) push(`${path}.skill`, '가려 내는 숙련(skill)은 내면 특징이어야 한다');
+    const kp = l['kind_pct'];
+    if (!isInt(kp) || kp < 1 || kp > 100) push(`${path}.kind_pct`, 'kind_pct(종류를 아는 세기, 그 사람의 단계 중 %)는 1~100 정수여야 한다');
+    const cp = l['clear_pct'];
+    const skillLevels = skill?.attrs?.['levels'];
+    if (!Array.isArray(cp) || !cp.every((x) => isInt(x) && x >= 1 && x <= 100) || (Array.isArray(skillLevels) && cp.length !== skillLevels.length)) {
+      push(`${path}.clear_pct`, 'clear_pct는 숙련의 칸마다 하나씩, 1~100 정수(%)여야 한다');
+    } else if (cp.some((x, i) => i > 0 && (x as number) > (cp[i - 1] as number))) push(`${path}.clear_pct`, 'clear_pct는 숙련이 오를수록 같거나 낮아야 한다 (감별이 오르면 더 옅은 냄새도 가려 낸다)');
+    if (typeof l['tuned'] !== 'boolean') push(`${path}.tuned`, '문턱이 조정된 값인지 tuned를 적어야 한다');
+  }
+  const kinds = keysByCategory.get('odor_kind') ?? new Set<string>();
+  for (const e of grouped.get('odor_kind') ?? []) {
+    const like = e.attrs?.['like'];
+    if (Array.isArray(like)) for (const x of like) if (!kinds.has(String(x))) push(`odor_kind.${e.key}.attrs.like`, `"${String(x)}"는 odor_kind 분류에 없는 키다`);
+  }
+  if (!any) return;
+  const rungs = keysByCategory.get('rung') ?? new Set<string>();
+  for (const k of ['feel', 'guess', 'narrow', 'thing']) if (!rungs.has(k)) push('rung', `사다리가 있으면 칸 ${k}가 사전에 있어야 한다`);
+}
 
 function groupByCategory(raw: readonly VocabCategoryRaw[]): Map<string, VocabEntryRaw[]> {
   const grouped = new Map<string, VocabEntryRaw[]>();
@@ -368,6 +535,22 @@ export function validateVocab(raw: readonly VocabCategoryRaw[]): VocabIssue[] {
   }
 
   checkOdorKnowledge(grouped, keysByCategory, push);
+  checkLadders(grouped, keysByCategory, push);
+  checkCondition(grouped, keysByCategory, push);
+  // 하루 구간은 하루를 빈틈없이, 겹치지 않게 나눈다
+  const parts = (grouped.get('day_part') ?? []).flatMap((e) => (isInt(e.attrs?.['from']) && isInt(e.attrs?.['to']) ? [{ k: e.key, f: e.attrs?.['from'] as number, t: e.attrs?.['to'] as number }] : []));
+  if (parts.length > 0) {
+    const cover = new Array<number>(1440).fill(0);
+    for (const p of parts) {
+      const end = p.t % 1440;
+      let m = p.f;
+      do {
+        cover[m] = (cover[m] ?? 0) + 1;
+        m = (m + 1) % 1440;
+      } while (m !== end);
+    }
+    if (cover.some((c) => c !== 1)) push('day_part', '하루 구간은 하루(0~1440분)를 빈틈없이, 겹치지 않게 나눠야 한다');
+  }
   // 가열로 되돌리는 시계: 가열 특징과 두 단계가 실제 사다리의 쓸 수 있는 칸이어야 한다
   const featureLevels = (feature: unknown): string[] | undefined => {
     const levels = grouped.get('feature')?.find((x) => x.key === feature)?.attrs?.['levels'];

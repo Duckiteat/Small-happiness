@@ -1,7 +1,8 @@
 // ③ 감정 (내면-설계 10장, 작가 2026-11-09): "공감각 심상들 위에서 생각과 합쳐서 만들어지는 게 감정".
 //
 // 감정의 축은 셋이다: 쾌 · 불쾌 · 예측할 수 있음에 대한 안정 (사전 feature의 axis). 쾌와 불쾌는 따로 쌓인다.
-// 여유·긴장은 축이 아니라 안정에서 읽는다: 안심되지 않을수록(안정이 낮을수록) 불쾌가 더 크게 오른다.
+// 안심되지 않을수록(안정이 낮을수록) 불쾌가 더 크게 오른다. 여유·긴장은 컨디션으로 따로 둔다 (condition.ts, 작가 2026-11-09):
+// 감정이 생기면 축 뒤에 컨디션도 움직인다 (좋은 감정 → 여유, 싫은 감정 → 여유로 버티거나 긴장).
 //
 // 생각은 세 가지를 합친다.
 //   1. 무엇에서 왔는지: 심상의 감각질을 준 물건 하나 — 가장 가까이 느낀 것 (입 > 손 > 멀리서 보임, 같으면 심상의 재료 순).
@@ -19,6 +20,7 @@ import { ancestors, effectiveOffers } from './kinds.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import { levelMatches } from './causal.ts';
 import type { Vocab } from './vocab.ts';
+import { emotionCondition } from './condition.ts';
 
 export const EMOTION_FORMED = 'emotion_formed';
 export const MEMORY_FORMED = 'memory_formed';
@@ -132,6 +134,8 @@ export function isUnfinished(db: Db, vocab: Vocab, def: string, instances: reado
 export interface ThoughtContext {
   readonly unfinished: (def: string) => boolean;
   readonly surfacedAt: ReadonlyMap<string, number>;
+  /** 인물에게 그 상태 키가 있나 (컨디션 부위가 없으면 컨디션을 움직이지 않는다) */
+  readonly has?: (key: string) => boolean;
 }
 
 /**
@@ -211,7 +215,9 @@ export function appraise(vocab: Vocab, mind: MindDef, who: string, image: string
     const strong = [pleas, disp].some((f) => f !== undefined && (emotion?.shifts[f] ?? 0) > 0 && (after.get(f) ?? 0) >= mind.binds_at);
     if (strong) for (const d of of) memoryChanges.push({ of: d, emotion: emotion.key });
   }
-  const lvl = (key: string): string => changes.find((c) => c.key === key)?.to ?? level(key);
+  // 컨디션 (condition.ts): 축의 변화 뒤에. 여유로 버티거나 긴장이 쌓인다
+  for (const c of emotionCondition(vocab, who, tone, tense, ctx.has ?? (() => false), level)) changes.push(c);
+  const lvl = (key: string): string => [...changes].reverse().find((c) => c.key === key)?.to ?? level(key);
   const overwhelms = isOverwhelmed(vocab, mind, who, lvl);
   const surfaces = overwhelms ? undefined : surfacing(mind, episodes, t, of, ctx);
   return { emotion: emotion.key, thought, of: [...of], memories: memoryChanges, changes, overwhelms, ...(surfaces !== undefined ? { surfaces } : {}) };

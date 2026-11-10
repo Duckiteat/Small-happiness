@@ -3,6 +3,7 @@
 // 영수증(JSON)을 사람이 읽는 영수증 모양으로 찍는다. 표시만 한다: 해시에 들어가지 않고, 검증은 JSON으로 한다.
 // 이름은 정의 저장소(names.ko)와 사전(ko)에서 가져온다. 코드에 오브젝트·장소 이름을 박지 않는다.
 
+import { renderLine } from './script.ts';
 import type { JsonValue } from './events.ts';
 import type { Db } from './db.ts';
 import { instanceName } from './skeleton.ts';
@@ -125,6 +126,42 @@ export function itemText(it: ReceiptItem, n: ReceiptNames, day: number): string 
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('reflex', s(d['reflex']))}`;
     case 'image_formed':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('image', s(d['image']))} (${d['moment'] === true ? '그 순간' : d['on'] === true ? '생김' : '깨짐'})`;
+    case 'ladder_moved': {
+      // 심상 사다리: 어느 곳의 냄새를 어디까지 아는가 (맨 앞이 믿는 종류)
+      const where = n.thing(s(d['of']));
+      if (d['on'] !== true) return `${n.thing(s(d['who']))} · ${typeKo}: ${where} (닫힘)`;
+      const kinds = Array.isArray(d['kinds']) ? d['kinds'].map((x) => n.level(s(d['feature']), s(x))) : [];
+      const thing = d['thing'] === undefined ? '' : ` · ${n.thing(s(d['thing']))}`;
+      // 먼저 떠올린 개념 (정체 칸이 아니면 "~인가?"): 물건 정의는 이름, 냄새 원인은 사전의 말
+      const c = Array.isArray(d['concepts']) ? s(d['concepts'][0]) : '';
+      const concept = c === '' || d['thing'] !== undefined ? '' : ` · ${c.startsWith('OBJ') ? n.thing(c) : n.word('odor_cause', c)}인가?`;
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${where} ${n.word('rung', s(d['rung']))}${kinds.length > 0 ? ` (${kinds.join(' / ')})` : ''}${concept}${thing}${d['fresh'] === true ? ' · 새 냄새' : ''}`;
+    }
+    case 'outside_day_done': {
+      const cards = Array.isArray(d['cards']) ? d['cards'].map((x) => n.word('outside_card', s(x))) : [];
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${cards.length > 0 ? cards.join(' · ') : '카드 없음'}`;
+    }
+    case 'event_opened':
+    case 'event_closed':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.thing(s(d['event']))} (${n.thing(s(d['place']))})`;
+    case 'scene_shown': {
+      // 작가의 원문을 보이는 글로 (앵커는 보이는 말만)
+      const lines = Array.isArray(d['lines']) ? d['lines'].map((x) => renderLine(s(x))) : [];
+      return `${n.thing(s(d['who']))} · ${typeKo} "${s(d['scene'])}": ${lines.join(' ')}`;
+    }
+    case 'passed_door':
+      return `${n.thing(s(d['who']))} · ${typeKo} (${d['dir'] === 'out' ? '나섬' : '들어옴'})`;
+    case 'urgency_felt':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${n.key(s(d['key'])).what} (${d['on'] === true ? '시작' : d['reason'] === 'habituated' ? '둔해짐' : d['reason'] === 'away' ? '나감' : '그침'})`;
+    case 'urgency_endured':
+      return `${n.thing(s(d['who']))} · ${typeKo} ${String(d['bumps'])}번`;
+    case 'action_stopped':
+      return `${n.thing(s(d['who']))} · ${typeKo}`;
+    case 'mode_changed':
+      return `${n.thing(s(d['who']))} · ${typeKo}: ${d['from'] !== undefined ? `${n.word('mode', s(d['from']))} → ` : ''}${n.word('mode', s(d['mode']))}`;
+    case 'released':
+    case 'woke':
+      return `${n.thing(s(d['who']))} · ${typeKo}`;
     case 'body_response':
       return `${n.thing(s(d['who']))} · ${typeKo}: ${n.word('response', s(d['response']))} (${n.word('image', s(d['image']))})`;
     case 'emotion_formed': {

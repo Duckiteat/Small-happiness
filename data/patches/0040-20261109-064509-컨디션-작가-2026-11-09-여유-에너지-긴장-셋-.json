@@ -1,0 +1,133 @@
+{
+  "patch": {
+    "format": "small-happiness-patch",
+    "version": 1,
+    "why": "컨디션 (작가 2026-11-09: 여유·에너지·긴장 셋 다, 모드는 감정 축과 에너지로, 가라앉는 길은 잠·쉼·방출 — 여러 번 온 사건이 임계를 넘으면 몸이 먼저 방출해 터지기도 한다): 하루씨에게 컨디션 부위(condition)를 둔다. 여유는 보통, 에너지는 충분, 긴장은 없음에서 시작한다.",
+    "defs": [
+      {
+        "id": "CHR000001",
+        "names": {
+          "ko": "하루씨",
+          "en": "Haru"
+        },
+        "senses": {
+          "smell": {
+            "notice": 1,
+            "tuned": false,
+            "levels": 3
+          },
+          "sight": {
+            "notice": 1,
+            "tuned": false,
+            "levels": 3
+          },
+          "hearing": {
+            "notice": 1,
+            "tuned": false,
+            "levels": 3
+          },
+          "touch": {
+            "notice": 1,
+            "tuned": false,
+            "levels": 3
+          },
+          "taste": {
+            "notice": 1,
+            "tuned": false,
+            "levels": 3
+          }
+        },
+        "stays": "PLC000002",
+        "desc": [
+          "혼자 사는 직장인 (세계-설정 1장). 직업·출퇴근은 미정",
+          "숙련(요리 솜씨·손질 솜씨·감별)은 재료를 쓸 때마다 쌓인다 (요리-설계 11장)",
+          "감각 다섯(시각·청각·후각·촉각·미각). 멀리서 닿는 것(냄새·보기·소리)은 머무는 곳에서, 촉각은 손에 닿을 때, 미각은 먹을 때 느낀다",
+          "감정의 축 셋(쾌·불쾌·안정)을 갖고, 생각은 3~5일 기억한다. 감정과 이어진 일은 잊지 않는다 (내면-설계 10장)",
+          "컨디션 셋(여유·에너지·긴장)이 모드(방전·터짐·몰아침·평온)를 정한다. 쉼·잠·방출이 가라앉힌다 (내면-설계 13장)"
+        ],
+        "slots": {
+          "skill": {
+            "features": [
+              "cooking",
+              "handling",
+              "judging"
+            ]
+          },
+          "mood": {
+            "features": [
+              "pleasure",
+              "displeasure",
+              "stability"
+            ]
+          },
+          "condition": {
+            "features": [
+              "reserve",
+              "energy",
+              "tension"
+            ]
+          }
+        },
+        "initial": {
+          "mood:stability": "steady",
+          "condition:reserve": "usual",
+          "condition:energy": "full"
+        },
+        "mind": {
+          "thought_days": {
+            "min": 3,
+            "max": 5
+          },
+          "binds_at": 3,
+          "tense_at": 1,
+          "overwhelm": {
+            "displeasure_at_least": 4,
+            "stability_at_most": 1
+          },
+          "tuned": false
+        }
+      }
+    ],
+    "remove": []
+  },
+  "allowWarnings": false,
+  "idmap": {},
+  "mapped": [],
+  "report": {
+    "why": "컨디션 (작가 2026-11-09: 여유·에너지·긴장 셋 다, 모드는 감정 축과 에너지로, 가라앉는 길은 잠·쉼·방출 — 여러 번 온 사건이 임계를 넘으면 몸이 먼저 방출해 터지기도 한다): 하루씨에게 컨디션 부위(condition)를 둔다. 여유는 보통, 에너지는 충분, 긴장은 없음에서 시작한다.",
+    "scope": {
+      "added": {},
+      "updated": {
+        "character": [
+          {
+            "id": "CHR000001",
+            "fields": [
+              "names",
+              "senses",
+              "stays",
+              "desc",
+              "slots",
+              "initial",
+              "mind"
+            ]
+          }
+        ]
+      },
+      "removed": {},
+      "mapped": 0
+    },
+    "impact": {
+      "referencedBy": {},
+      "chainEdges": [],
+      "newChainEdges": 0
+    },
+    "verification": {
+      "pass": true,
+      "reason": "통과",
+      "errors": 0,
+      "warnings": 0,
+      "newErrors": 0,
+      "newWarnings": 0
+    }
+  }
+}

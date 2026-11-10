@@ -7,7 +7,7 @@
       "AWR": 1,
       "CHR": 2,
       "CMT": 1,
-      "EVT": 1,
+      "EVT": 2,
       "FRG": 1,
       "HAB": 1,
       "ITM": 1,
@@ -25,6 +25,13 @@
       },
       "aliases": [],
       "slots": {
+        "condition": {
+          "features": [
+            "reserve",
+            "energy",
+            "tension"
+          ]
+        },
         "mood": {
           "features": [
             "pleasure",
@@ -54,6 +61,9 @@
         "smell": {
           "notice": 1,
           "levels": 3,
+          "unbearable": 5,
+          "endure_min": 60,
+          "habituate_min": 180,
           "tuned": false
         },
         "taste": {
@@ -82,13 +92,258 @@
       },
       "stays": "PLC000002",
       "initial": {
+        "condition:energy": "full",
+        "condition:reserve": "usual",
         "mood:stability": "steady"
       },
       "desc": [
         "혼자 사는 직장인 (세계-설정 1장). 직업·출퇴근은 미정",
         "숙련(요리 솜씨·손질 솜씨·감별)은 재료를 쓸 때마다 쌓인다 (요리-설계 11장)",
         "감각 다섯(시각·청각·후각·촉각·미각). 멀리서 닿는 것(냄새·보기·소리)은 머무는 곳에서, 촉각은 손에 닿을 때, 미각은 먹을 때 느낀다",
-        "감정의 축 셋(쾌·불쾌·안정)을 갖고, 생각은 3~5일 기억한다. 감정과 이어진 일은 잊지 않는다 (내면-설계 10장)"
+        "감정의 축 셋(쾌·불쾌·안정)을 갖고, 생각은 3~5일 기억한다. 감정과 이어진 일은 잊지 않는다 (내면-설계 10장)",
+        "컨디션 셋(여유·에너지·긴장)이 모드(방전·터짐·몰아침·평온)를 정한다. 쉼·잠·방출이 가라앉힌다 (내면-설계 13장)"
+      ]
+    },
+    "EVT000001": {
+      "id": "EVT000001",
+      "names": {
+        "ko": "냉장고 냄새"
+      },
+      "aliases": [],
+      "core": "PLC000002|space:odor",
+      "closes": [
+        "PLC000002|space:smell@<=none"
+      ],
+      "scenes": [
+        {
+          "name": "냄새가 남",
+          "sense": "smell",
+          "rung": "feel",
+          "lines": [
+            "어디선가 {꼬릿한 냄새?|킁킁}가 난다."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "꼬릿한 냄새?",
+              "verb": "sniff"
+            }
+          ]
+        },
+        {
+          "name": "현관을 열자",
+          "sense": "smell",
+          "rung": "feel",
+          "day_part": "evening",
+          "lines": [
+            "현관을 열자 {꼬릿한 냄새?|킁킁}가 훅 끼쳤다."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "꼬릿한 냄새?",
+              "verb": "sniff"
+            }
+          ]
+        },
+        {
+          "name": "무슨 냄새지",
+          "sense": "smell",
+          "rung": "guess",
+          "lines": [
+            "킁킁. 이게 무슨 냄새지. {어디지.|탐색}",
+            "아는 냄새 같은데, 딱 이거라고는 못 하겠다."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "어디지.",
+              "verb": "search"
+            }
+          ]
+        },
+        {
+          "name": "무슨 냄새지 (지침)",
+          "sense": "smell",
+          "rung": "guess",
+          "mode": "drained",
+          "lines": [
+            "냄새가 나는데, 지금은 아무것도 하기 싫다."
+          ],
+          "anchors": []
+        },
+        {
+          "name": "이 냄새다",
+          "sense": "smell",
+          "rung": "narrow",
+          "lines": [
+            "이 냄새는 안다. 문제는 어디서 나느냐다.",
+            "주방 쪽이다. {냉장고|열어보기} 쪽인가."
+          ],
+          "anchors": [
+            {
+              "line": 1,
+              "text": "냉장고",
+              "verb": "peek"
+            }
+          ]
+        },
+        {
+          "name": "찾았다",
+          "sense": "smell",
+          "rung": "thing",
+          "lines": [
+            "찾았다. 이거였구나."
+          ],
+          "anchors": []
+        },
+        {
+          "name": "지친 퇴근길 끝에",
+          "sense": "smell",
+          "rung": "feel",
+          "conds": [
+            "came_home"
+          ],
+          "lines": [
+            "지친 몸으로 현관을 열었는데, {꼬릿한 냄새?|킁킁}."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "꼬릿한 냄새?",
+              "verb": "sniff"
+            }
+          ]
+        },
+        {
+          "name": "요리 냄새인가",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "concept:cooking"
+          ],
+          "lines": [
+            "킁킁. 뭘 해 먹은 냄새 같은데. {어디서 나지|탐색}"
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "어디서 나지",
+              "verb": "search"
+            }
+          ]
+        },
+        {
+          "name": "상한 건가",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "concept:decay"
+          ],
+          "lines": [
+            "이건 상한 냄새다. 어딘가에서 뭔가 {썩고 있다|탐색}."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "썩고 있다",
+              "verb": "search"
+            }
+          ]
+        },
+        {
+          "name": "김치인가",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "concept:OBJ000005"
+          ],
+          "lines": [
+            "김치 냄새 같다. {냉장고|열어보기} 문이 덜 닫혔나."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "냉장고",
+              "verb": "peek"
+            }
+          ]
+        },
+        {
+          "name": "칭찬 받은 날",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "card:praise"
+          ],
+          "lines": [
+            "기분 좋은 날인데, 이 냄새는 {뭐지|탐색}."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "뭐지",
+              "verb": "search"
+            }
+          ]
+        },
+        {
+          "name": "예민한 날",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "inner:tension@>=built"
+          ],
+          "lines": [
+            "오늘따라 냄새가 더 거슬린다. {어디야|탐색}"
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "어디야",
+              "verb": "search"
+            }
+          ]
+        },
+        {
+          "name": "못 견디겠다",
+          "sense": "smell",
+          "rung": "guess",
+          "conds": [
+            "urgent"
+          ],
+          "lines": [
+            "도저히 못 참겠다. 창문부터 {열자|환기}."
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "열자",
+              "verb": "ventilate"
+            }
+          ]
+        },
+        {
+          "name": "썩는 냄새",
+          "sense": "smell",
+          "rung": "narrow",
+          "conds": [
+            "kind:putrid"
+          ],
+          "lines": [
+            "썩는 냄새다. 틀림없다. {어디서|탐색}"
+          ],
+          "anchors": [
+            {
+              "line": 0,
+              "text": "어디서",
+              "verb": "search"
+            }
+          ]
+        }
+      ],
+      "desc": [
+        "주방에 냄새가 나기 시작해 정체를 알 때까지. 심상 사다리의 칸(느낌 → 짐작 → 좁힘 → 정체)마다 장면이 바뀐다"
       ]
     },
     "OBJ000001": {
@@ -3877,10 +4132,28 @@
       },
       "aliases": [],
       "slots": {
+        "door": {
+          "features": [
+            "door_state"
+          ]
+        },
         "space": {
           "features": [
             "smell"
           ]
+        }
+      },
+      "rules": {
+        "door_close": {
+          "label": "열린 현관문은 10분 뒤 저절로 닫힌다",
+          "on": [
+            "PLC000001|door:door_state@=open"
+          ],
+          "emits": [
+            "PLC000001|door:door_state@=closed"
+          ],
+          "delay_s": 600,
+          "tuned": false
         }
       },
       "environment": {
@@ -3901,7 +4174,8 @@
         }
       ],
       "desc": [
-        "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)"
+        "하루의 시작과 끝. 복도에 면한다 (세계-설정 2장)",
+        "현관문은 드나들 때 열리고 잠시 뒤 닫힌다. 열려 있는 동안 주방 공기가 바깥으로 빠진다"
       ]
     },
     "PLC000002": {
@@ -3936,6 +4210,11 @@
             "smell",
             "odor",
             "bug"
+          ]
+        },
+        "window": {
+          "features": [
+            "window"
           ]
         }
       },
@@ -3989,6 +4268,42 @@
             "PLC000002|space:smell@<=none"
           ],
           "delay_s": 10800,
+          "tuned": false
+        },
+        "air_out_door": {
+          "label": "현관문이 열려 있으면 뚜렷한 냄새가 5분 만에 은은해진다 (바깥으로 빠짐)",
+          "on": [
+            "PLC000001|door:door_state@=open",
+            "PLC000002|space:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC000002|space:smell@<=faint"
+          ],
+          "delay_s": 300,
+          "tuned": false
+        },
+        "air_out_window": {
+          "label": "창이 열려 있으면 뚜렷한 냄새가 10분 만에 은은해진다 (바깥으로 빠짐)",
+          "on": [
+            "PLC000002|window:window@=open",
+            "PLC000002|space:smell@>=distinct"
+          ],
+          "emits": [
+            "PLC000002|space:smell@<=faint"
+          ],
+          "delay_s": 600,
+          "tuned": false
+        },
+        "air_out_window_clear": {
+          "label": "창이 열려 있으면 은은한 냄새가 15분 만에 가신다",
+          "on": [
+            "PLC000002|window:window@=open",
+            "PLC000002|space:smell@=faint"
+          ],
+          "emits": [
+            "PLC000002|space:smell@<=none"
+          ],
+          "delay_s": 900,
           "tuned": false
         },
         "bugs": {
@@ -4117,6 +4432,17 @@
           ],
           "delay_s": 7200,
           "tuned": false
+        },
+        "window_close": {
+          "label": "환기로 연 창은 30분 뒤 닫는다",
+          "on": [
+            "PLC000002|window:window@=open"
+          ],
+          "emits": [
+            "PLC000002|window:window@=closed"
+          ],
+          "delay_s": 1800,
+          "tuned": false
         }
       },
       "offers": {
@@ -4135,6 +4461,26 @@
           "effect": [],
           "reveals": true,
           "minutes": 5,
+          "tuned": false
+        },
+        "ventilate": {
+          "label": "상한 냄새가 뚜렷하면 주방 창을 열어 환기한다 (집안일)",
+          "verb": "ventilate",
+          "needs": [
+            {
+              "aware": "PLC000002|space:smell",
+              "at_least": "noticed"
+            }
+          ],
+          "when": [
+            "PLC000002|window:window@=closed",
+            "PLC000002|space:smell@>=distinct",
+            "PLC000002|space:odor@>=sour"
+          ],
+          "effect": [
+            "PLC000002|window:window@=open"
+          ],
+          "minutes": 2,
           "tuned": false
         },
         "wipe_floor": {

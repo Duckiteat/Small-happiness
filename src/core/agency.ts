@@ -37,6 +37,8 @@ import { practiceGain, skilledMinutes, skillKey } from './skill.ts';
 import { formatStateKey, parsePattern } from './statekey.ts';
 import type { StatePattern } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
+import { hasCondition, modeMinutes, modeOf, unfinishedCount } from './condition.ts';
+import { ACTION_STOPPED, againstOdor } from './urgency.ts';
 import { isOverwhelmed, MOOD_SLOT } from './emotion.ts';
 import type { World } from './world.ts';
 
@@ -86,6 +88,8 @@ export interface RecentAction {
   readonly moves?: readonly PointerChange[];
   /** 끝나면 쌓이는 숙련과 그 양 (skill.ts). */
   readonly trains?: readonly { readonly feature: string; readonly gain: number }[];
+  /** 끝나기 전에 그만둔 행동 (urgency.ts): event의 행동을 2층이 끝내지 않고 버린다. 효과가 없다 */
+  readonly stops?: boolean;
 }
 
 function isObj(v: unknown): v is { readonly [key: string]: unknown } {
@@ -108,6 +112,7 @@ export function parseRecent(value: BoardValue | undefined): RecentAction[] {
       ? { creates: r['creates'].filter(isObj).map((c) => ({ def: String(c['def']), ...(isRelation(c['rel']) && typeof c['to'] === 'string' ? { rel: c['rel'], to: c['to'] } : {}), ...(typeof c['at'] === 'number' ? { at: c['at'] } : {}) })) }
       : {}),
     ...(r['away'] === true ? { away: true } : {}),
+    ...(r['stops'] === true ? { stops: true } : {}),
     ...(Array.isArray(r['trains']) ? { trains: r['trains'].filter(isObj).map((x) => ({ feature: String(x['feature']), gain: Number(x['gain']) })) } : {}),
     ...(Array.isArray(r['moves'])
       ? { moves: r['moves'].filter(isObj).flatMap((m) => (isRelation(m['rel']) ? [{ id: String(m['id']), rel: m['rel'], to: typeof m['to'] === 'string' ? m['to'] : null }] : [])) }
@@ -127,6 +132,8 @@ export class Agency {
   readonly #log: EventLog;
   readonly #tried = new Set<string>();
   #busyUntil = -1;
+  /** 지금 하고 있는 행동 (못 참는 냄새가 쉼을 끊을 때). */
+  #current: { readonly event: string; readonly who: string; readonly verb: string; readonly via: string; readonly at: string } | null = null;
   /** 끼니(구간 시작 시각) → 구상한 메뉴. 한 끼에 한 번 정하면 그 끼니 동안 바꾸지 않는다. */
   readonly #menus = new Map<number, string>();
   /** 주문해 오는 중인 재료 → 오는 시각 (그때까지 다시 사지 않는다). */
@@ -152,7 +159,19 @@ export class Agency {
 
   /** 한 단계의 행동 선택. 고르지 않으면 빈 목록. */
   step(world: World, t: number, presence: string, aware: AwareMap, meal?: Meal): RecentAction[] {
-    if (!isObserved(this.#vocab, presence) || t < this.#busyUntil) return [];
+    if (!isObserved(this.#vocab, presence)) return [];
+    // 못 참는 냄새 (urgency.ts): 하던 쉼을 끊는다. 쉼이 아닌 일은 끝까지 한다
+    const whoNow = world.instances().find((i) => i.startsWith('CHR'));
+    const urgentSeq = whoNow === undefined ? undefined : Object.values(aware[whoNow] ?? {}).map((k) => k.urgent).filter((x): x is string => x !== undefined).sort().at(-1);
+    const stopped: RecentAction[] = [];
+    if (t < this.#busyUntil) {
+      const cur = this.#current;
+      if (urgentSeq === undefined || cur === null || actionClass(this.#vocab, cur.verb) !== 'pastime') return [];
+      this.#log.append({ t, type: ACTION_STOPPED, src: AGENCY_SRC, cause: urgentSeq, data: { who: cur.who, stopped: cur.event } });
+      stopped.push({ event: cur.event, who: cur.who, verb: cur.verb, via: cur.via, at: cur.at, ends: t, effects: [], stops: true });
+      this.#busyUntil = t;
+      this.#current = null;
+    }
     const instances = world.instances();
     const who = instances.find((i) => i.startsWith('CHR'));
     if (who === undefined) return [];
@@ -184,6 +203,11 @@ export class Agency {
     };
     /** 자기 숙련 단계 (자기 솜씨는 안다). 숙련 부위가 없는 인물은 빈 값. */
     const skillOf = (f: string): string => (world.keysOf(who).includes(skillKey(who, f)) ? world.level(skillKey(who, f)) : '');
+    // 모드 (condition.ts): 지각 층이 남긴 것과 같은 계산. 고를 수 있는 갈래(allows)와 먼저 하는 갈래·걸리는 시간(first·minutes_pct)을 바꾼다
+    const whoKeys = new Set(world.keysOf(who));
+    const mode = hasCondition(this.#db, world.defOfInstance(who) ?? '')
+      ? modeOf(this.#vocab, who, unfinishedCount(this.#db, this.#vocab, instances, (i) => world.defOfInstance(i), (k) => knows[k]?.level), (k) => whoKeys.has(k), (k) => world.level(k))?.mode
+      : undefined;
     const lastPlanned = (m: string): number => Math.max(-1, ...[...this.#menus].filter(([, x]) => x === m).map(([from]) => from));
     const knownIds = new Set(Object.keys(knows).map((k) => k.slice(0, k.indexOf('|'))));
     const known = (d: string): string[] => instancesOfKind(world, this.#db, d).filter((i) => knownIds.has(i)).sort();
@@ -271,15 +295,20 @@ export class Agency {
           const bought = offer.buys === undefined || shop === null || shelf === null ? [] : shop.items.map((d) => ({ def: d, rel: 'on' as const, to: shelf, at: bestBuy?.ready ?? t }));
           // 이미 이루어졌으면 하지 않는다: 결과가 다 맞고, 옮길 것이 이미 그곳에 있고, 만들 것이 없을 때
           if (creates.length === 0 && moveSpecs.length > 0 && moves.length === 0 && (effects.length === 0 || effects.every((e) => stateMatches(world, this.#vocab, e.key, e.feature, e.cond)))) continue;
-          // 같은 앎에서는 되풀이하지 않는다: 필요한 앎과 그 물건에 대한 앎(본 단계)이 바뀌면 다시 할 수 있다
-          const knowing = (k: string): string => `${knows[k]?.aw ?? 'unknown'}:${knows[k]?.level ?? ''}`;
+          // 같은 앎에서는 되풀이하지 않는다: 필요한 앎과 조건(when)에 걸린 앎(본 단계)이 바뀌면 다시 할 수 있다.
+          // 상태 의미(when_meaning)로 고르는 행동은 그 물건의 모든 앎을 본다. 조건과 상관없는 상태(주방의 창문)가 바뀐 것은 새 앎이 아니다
+          const sigKeys = offer.when_meaning !== undefined ? world.keysOf(at) : [...new Set(when.flatMap((p) => targets(p)))].sort();
+          // 심상 사다리로 아는 종류는 단계 대신 그 사다리가 열린 사건으로 본다: 살펴서 정체를 알아 믿음이 바뀐 것은 새 냄새가 아니다
+          const knowing = (k: string): string => `${knows[k]?.aw ?? 'unknown'}:${knows[k]?.since ?? knows[k]?.level ?? ''}`;
           // 요리법의 단계는 한 끼(일정 구간)에 한 번: 끝나고 시간이 남아도 같은 메뉴를 다시 만들지 않는다
           const cls = actionClass(this.#vocab, offer.verb);
+          // 방전: 쉼만. 못 참는 냄새면 냄새를 없애려는 행동은 한다
+          if (mode?.allows !== undefined && !mode.allows.includes(cls) && !(urgentSeq !== undefined && againstOdor(this.#vocab, offer.verb))) continue;
           const signature = offer.buys !== undefined || cls === 'pastime' // 장보기와 쉼은 되풀이할 수 있다
             ? `${owner}/${key}@${at}|again@${t}`
             : offer.menu !== undefined
             ? `${owner}/${key}@${at}|meal@${meal?.from ?? ''}`
-            : `${owner}/${key}@${at}|${JSON.stringify([needs.map((n) => n.keys.map(knowing)), world.keysOf(at).map(knowing)])}`;
+            : `${owner}/${key}@${at}|${JSON.stringify([needs.map((n) => n.keys.map(knowing)), sigKeys.map(knowing)])}`;
           if (this.#tried.has(signature)) continue;
           // 원인: 이 행동의 조건을 채운 앎들 중 가장 최근에 생긴 것 (needs · when · 상태 의미를 만든 앎)
           const why = latestSeq([
@@ -289,7 +318,7 @@ export class Agency {
           ]);
           const commit = (advised: string | null): RecentAction[] => {
           this.#tried.add(signature);
-          const ends = t + skilledMinutes(this.#vocab, offer, skillOf);
+          const ends = t + modeMinutes(skilledMinutes(this.#vocab, offer, skillOf), mode, cls);
           for (const b of bought) if (b.at > ends) this.#ordered.set(b.def, b.at);
           this.#busyUntil = ends;
           if (cls === 'pastime') this.#lastPastime.set(`${formatVia(owner, 'offer', key)}@${at}`, t);
@@ -323,7 +352,10 @@ export class Agency {
         }
       }
     }
-    return this.#choose(world, t, who, cands);
+    const picked = this.#choose(world, t, who, cands, urgentSeq !== undefined ? 'against_odor' : mode?.first);
+    const first = picked[0];
+    if (first !== undefined) this.#current = { event: first.event, who: first.who, verb: first.verb, via: first.via, at: first.at };
+    return [...stopped, ...picked];
   }
 
   /**
@@ -334,7 +366,7 @@ export class Agency {
    *   - 요정의 조언: 그 시각이 지난 조언 하나가 다음에 고를 때 닿는다. 선택지 중 하나면 그것을 고르고, 아니면 듣지 않는다.
    *     스트레스 임계(생각이 멈춤)에 있으면 해석하지 못해 듣지 않는다.
    */
-  #choose(world: World, t: number, who: string, cands: readonly { readonly id: string; readonly offer: string; readonly at: string; readonly verb: string; readonly cls: 'task' | 'pastime' | 'upkeep'; readonly cause: string | null; readonly commit: (advised: string | null) => RecentAction[] }[]): RecentAction[] {
+  #choose(world: World, t: number, who: string, cands: readonly { readonly id: string; readonly offer: string; readonly at: string; readonly verb: string; readonly cls: 'task' | 'pastime' | 'upkeep'; readonly cause: string | null; readonly commit: (advised: string | null) => RecentAction[] }[], firstCls?: string): RecentAction[] {
     const tasks = cands.filter((c) => c.cls === 'task');
     const free = cands.filter((c) => c.cls !== 'task');
     if (tasks.length === 0 && free.length >= 2) {
@@ -358,7 +390,9 @@ export class Agency {
     }
     const last = (c: { readonly id: string }): number => this.#lastPastime.get(c.id) ?? -1;
     const rest = cands.filter((c) => c.cls === 'pastime').sort((a, b) => last(a) - last(b))[0];
-    const first = tasks[0] ?? rest ?? cands.find((c) => c.cls === 'upkeep');
+    // 몰아침: 그 갈래(집안일)를 먼저 한다. 못 참는 냄새면 냄새를 없애려는 행동을 먼저 (firstCls = against_odor)
+    const lead = firstCls === 'against_odor' ? cands.find((c) => againstOdor(this.#vocab, c.verb)) : firstCls !== undefined ? cands.find((c) => c.cls === firstCls) : undefined;
+    const first = lead ?? tasks[0] ?? rest ?? cands.find((c) => c.cls === 'upkeep');
     return first === undefined ? [] : first.commit(null);
   }
 }

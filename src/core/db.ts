@@ -37,6 +37,7 @@ const FIELDS_BY_PREFIX: Partial<Record<DefPrefix, readonly string[]>> = {
   OBJ: [...COMMON_FIELDS, 'is_a', 'mobility', 'role', 'utility', 'holds', 'slots', 'meanings', 'feels', 'rules', 'offers', 'progress', 'initial'],
   PLC: [...COMMON_FIELDS, 'environment', 'passages', 'supplies', 'slots', 'meanings', 'feels', 'rules', 'offers'],
   CHR: [...COMMON_FIELDS, 'senses', 'stays', 'slots', 'initial', 'mind'],
+  EVT: [...COMMON_FIELDS, 'core', 'closes', 'scenes'],
 };
 
 /** 이 종류의 정의가 가질 수 있는 최상위 필드. 아직 설계되지 않은 종류는 공통 필드만 쓴다. */
@@ -201,6 +202,13 @@ export interface SenseDef {
   readonly notice: number;
   /** 이 감각으로 세기를 몇 단계로 구분해 느끼나 (2~5, 신체 능력). 없으면 3 (내면-설계 8장). */
   readonly levels?: number;
+  /**
+   * 긴박함 (urgency.ts, 작가 2026-11-09 "하루라는 사람 세팅"): 이 사다리 칸 이상으로 머무는 곳의 공기를 느끼면 못 참는다.
+   * 참는 동안 endure_min분마다 긴장 +1, habituate_min분 계속 맡으면 둔해진다. 셋이 함께 있다.
+   */
+  readonly unbearable?: number;
+  readonly endure_min?: number;
+  readonly habituate_min?: number;
   readonly tuned: boolean;
 }
 
@@ -254,6 +262,28 @@ export interface Definition {
   readonly progress?: { readonly [feature: string]: ProgressDef };
   /** 들여놓을 때(살 때)의 상태: `부위:특징` → 단계 키 (음식-변화-모델 8장: 처음 조건은 구매와 붙어 있다). */
   readonly initial?: { readonly [slotFeature: string]: string };
+  /** 이벤트 (S7, script.ts): 핵심 — 심상 사다리를 타는 장소의 종류 키 (예: 주방의 냄새 종류). 그 사다리가 열리면 이벤트가 열린다 */
+  readonly core?: string;
+  /** 이벤트의 닫힘 조건 (세계의 패턴, 모두 맞으면 닫힌다). 비어 있으면 관문이 거부한다 */
+  readonly closes?: readonly string[];
+  /** 장면들: 감각 · 사다리 칸 · (하루 구간 · 모드)에 맞는 것이 뽑히고, 작가의 원문 줄을 그대로 보인다 */
+  readonly scenes?: readonly SceneDef[];
+}
+
+/** 장면 하나 (script.ts). lines는 작가의 원문 줄 그대로(앵커 표기 포함), anchors는 그 안의 {말|동사|라벨?}. */
+export interface SceneDef {
+  readonly name: string;
+  readonly sense: string;
+  readonly rung: string;
+  readonly day_part?: string;
+  readonly mode?: string;
+  /**
+   * 그 밖의 조건 (scene.ts, 모두 맞아야 한다): `came_home` · `urgent` · `card:카드` · `concept:개념` · `kind:종류` · `inner:특징@조건`.
+   * 맞는 조건이 많을수록 구체적이다.
+   */
+  readonly conds?: readonly string[];
+  readonly lines: readonly string[];
+  readonly anchors: readonly { readonly line: number; readonly text: string; readonly verb: string; readonly label?: string }[];
 }
 
 export interface Db {
@@ -522,6 +552,24 @@ function fieldOffers(v: unknown, where: string, push: Push): Record<string, Offe
   return ok ? out : undefined;
 }
 
+/** 장면 목록의 모양 (뜻은 관문이 사전·이벤트로 본다). */
+function fieldScenes(v: unknown, where: string, push: Push): SceneDef[] | undefined {
+  if (!Array.isArray(v)) return void push(where, 'scenes는 장면 목록이어야 한다');
+  const out: SceneDef[] = [];
+  for (const [i, sc] of v.entries()) {
+    const at = `${where}[${i}]`;
+    const anchorsOk = (x: unknown): boolean => Array.isArray(x) && x.every((a) => isObj(a) && typeof a['line'] === 'number' && Number.isInteger(a['line']) && typeof a['text'] === 'string' && a['text'] !== '' && typeof a['verb'] === 'string' && (a['label'] === undefined || typeof a['label'] === 'string') && Object.keys(a).every((k) => ['line', 'text', 'verb', 'label'].includes(k)));
+    if (!isObj(sc) || typeof sc['name'] !== 'string' || sc['name'].trim() === '' || typeof sc['sense'] !== 'string' || typeof sc['rung'] !== 'string' || !isStrArr(sc['lines']) || sc['lines'].length === 0 || !anchorsOk(sc['anchors']) || (sc['day_part'] !== undefined && typeof sc['day_part'] !== 'string') || (sc['mode'] !== undefined && typeof sc['mode'] !== 'string') || (sc['conds'] !== undefined && !isStrArr(sc['conds']))) {
+      push(at, '장면은 { name, sense, rung, day_part?, mode?, conds?: 조건 목록, lines: 원문 줄(하나 이상), anchors: [{ line, text, verb, label? }] }이어야 한다');
+      continue;
+    }
+    onlyKeys(sc, ['name', 'sense', 'rung', 'day_part', 'mode', 'conds', 'lines', 'anchors'], at, push);
+    const anchors = (sc['anchors'] as Record<string, unknown>[]).map((a) => ({ line: a['line'] as number, text: String(a['text']), verb: String(a['verb']), ...(typeof a['label'] === 'string' ? { label: a['label'] } : {}) }));
+    out.push({ name: sc['name'].trim(), sense: sc['sense'], rung: sc['rung'], ...(typeof sc['day_part'] === 'string' ? { day_part: sc['day_part'] } : {}), ...(typeof sc['mode'] === 'string' ? { mode: sc['mode'] } : {}), ...(isStrArr(sc['conds']) && sc['conds'].length > 0 ? { conds: [...sc['conds']] } : {}), lines: [...(sc['lines'] as string[])], anchors });
+  }
+  return out;
+}
+
 function fieldMind(v: unknown, where: string, push: Push): MindDef | undefined {
   const rung = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= 5;
   if (!isObj(v)) return void push(where, 'mind는 객체여야 한다');
@@ -549,14 +597,26 @@ function fieldSenses(v: unknown, where: string, push: Push): Record<string, Sens
       ok = false;
       continue;
     }
-    onlyKeys(s, ['notice', 'levels', 'tuned'], at, push);
+    onlyKeys(s, ['notice', 'levels', 'unbearable', 'endure_min', 'habituate_min', 'tuned'], at, push);
+    // 긴박함: 못 참는 칸(알아채는 칸 이상, 5 이하)과 긴장이 쌓이는 분·둔해지는 분(양의 정수, 둔해지는 것이 쌓이는 것보다 늦다)
+    const urg = ['unbearable', 'endure_min', 'habituate_min'].filter((k) => s[k] !== undefined);
+    if (urg.length > 0) {
+      const u = s['unbearable'], en = s['endure_min'], ha = s['habituate_min'];
+      const int = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x);
+      if (urg.length !== 3 || !int(u) || !int(en) || !int(ha) || u < s['notice'] || u > 5 || en < 1 || ha < en) {
+        push(`${at}.unbearable`, '긴박함은 unbearable(알아채는 칸 이상 5 이하) · endure_min(1 이상) · habituate_min(endure_min 이상)을 함께 적는다');
+        ok = false;
+        continue;
+      }
+    }
     const lv = s['levels'];
     if (lv !== undefined && (typeof lv !== 'number' || !Number.isInteger(lv) || lv < 2 || lv > 5)) {
       push(`${at}.levels`, 'levels(세기를 구분하는 단계 수)는 2~5 정수여야 한다');
       ok = false;
       continue;
     }
-    out[key] = { notice: s['notice'], ...(typeof lv === 'number' ? { levels: lv } : {}), tuned: s['tuned'] };
+    const urgent = typeof s['unbearable'] === 'number' && typeof s['endure_min'] === 'number' && typeof s['habituate_min'] === 'number' ? { unbearable: s['unbearable'], endure_min: s['endure_min'], habituate_min: s['habituate_min'] } : {};
+    out[key] = { notice: s['notice'], ...(typeof lv === 'number' ? { levels: lv } : {}), ...urgent, tuned: s['tuned'] };
   }
   return ok ? out : undefined;
 }
@@ -674,6 +734,9 @@ export type Fields = Partial<{
   passages: PassageDef[];
   progress: Record<string, ProgressDef>;
   initial: Record<string, string>;
+  core: string;
+  closes: string[];
+  scenes: SceneDef[];
 }>;
 
 /**
@@ -795,6 +858,20 @@ export function parseFields(raw: Record<string, unknown>, prefix: DefPrefix, whe
         if (v !== undefined) out.initial = v;
         break;
       }
+      case 'core':
+        if (typeof value !== 'string' || value.trim() === '') push(at, 'core는 상태 키 문자열(정의|부위:특징)이어야 한다');
+        else out.core = value.trim();
+        break;
+      case 'closes': {
+        const v = fieldStringList(value, 'closes', at, push);
+        if (v !== undefined) out.closes = v;
+        break;
+      }
+      case 'scenes': {
+        const v = fieldScenes(value, at, push);
+        if (v !== undefined) out.scenes = v;
+        break;
+      }
       default:
         break;
     }
@@ -837,6 +914,9 @@ export function buildDefinition(id: string, f: Fields): Definition | undefined {
     ...(f.passages !== undefined ? { passages: f.passages } : {}),
     ...(f.progress !== undefined ? { progress: f.progress } : {}),
     ...(f.initial !== undefined ? { initial: f.initial } : {}),
+    ...(f.core !== undefined ? { core: f.core } : {}),
+    ...(f.closes !== undefined ? { closes: f.closes } : {}),
+    ...(f.scenes !== undefined ? { scenes: f.scenes } : {}),
     desc: f.desc ?? [],
   };
 }

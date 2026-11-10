@@ -30,6 +30,13 @@ import { parseStateKey } from './statekey.ts';
 import type { Vocab } from './vocab.ts';
 import type { World } from './world.ts';
 import { parseRecent } from './agency.ts';
+import { believed, causesOf, climb, discern, kindStrengths, knownKinds, LADDER_MOVED, ladderCause, ladderOfKey, ladderSpecs, newlySettled, conceptCause, conceptPool, knownConcepts, strengthKeyOf } from './ladder.ts';
+import type { LadderState, LadderView } from './ladder.ts';
+import { skillKey } from './skill.ts';
+import { cardChanges, doorKey, PASSED_DOOR } from './outside.ts';
+import type { SceneContext } from './scene.ts';
+import { enduredTotal, isHabituated, URGENCY_ENDURED, URGENCY_FELT, urgencySense } from './urgency.ts';
+import { conditionFeature, hasCondition, MODE_CHANGED, stepped, modeCause, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 
 export const PERCEPTION_SRC = 'perception';
 export const AWARENESS_UP = 'awareness_up';
@@ -51,6 +58,10 @@ export interface Knowing {
   readonly t: number;
   /** 이 앎을 만든 awareness 사건 번호. 행동을 고른 이유(cause)를 적을 때 쓴다 */
   readonly seq: string;
+  /** 심상 사다리로 아는 종류면 그 사다리가 열린 사건 (같은 냄새를 다시 짐작한 것은 새 앎이 아니다) */
+  readonly since?: string;
+  /** 못 참는 냄새면 그 시작 사건 (urgency.ts). 행동 층이 쉼을 끊고 냄새 처리를 먼저 한다 */
+  readonly urgent?: string;
 }
 
 /** 인물 인스턴스 → 상태 키 → 앎. */
@@ -71,7 +82,7 @@ export function parseAware(value: BoardValue | undefined): AwareMap {
     for (const [key, k] of Object.entries(m)) {
       if (typeof k !== 'object' || Array.isArray(k)) continue;
       const o = k as { readonly [f: string]: BoardValue };
-      if (typeof o['aw'] === 'string' && typeof o['level'] === 'string' && typeof o['t'] === 'number' && typeof o['seq'] === 'string') inner[key] = { aw: o['aw'], level: o['level'], t: o['t'], seq: o['seq'] };
+      if (typeof o['aw'] === 'string' && typeof o['level'] === 'string' && typeof o['t'] === 'number' && typeof o['seq'] === 'string') inner[key] = { aw: o['aw'], level: o['level'], t: o['t'], seq: o['seq'], ...(typeof o['since'] === 'string' ? { since: o['since'] } : {}), ...(typeof o['urgent'] === 'string' ? { urgent: o['urgent'] } : {}) };
     }
     out[who] = inner;
   }
@@ -94,6 +105,16 @@ export class Perception {
   readonly #memories = new Map<string, Map<string, string>>(); // 인물 → 정의 → 감정이 붙은 기억
   readonly #surfaced = new Map<string, Map<string, number>>(); // 인물 → 정의 → 마지막으로 갑자기 떠오른 때
   readonly #paired = new Map<string, number>(); // `${인물}|${반사}` → 짝지어 겪은 횟수 // 고른 행동 사건 → 끝난 사건 (살펴서 안 것의 원인)
+  readonly #ladders = new Map<string, { readonly state: LadderState; readonly seq: string; readonly since: string }>(); // `${인물}|${장소}|${종류 특징}` → 심상 사다리의 자리, 그 사건, 열린 사건
+  readonly #familiar = new Map<string, Map<string, number>>(); // 인물 → 좁히거나 정체를 안 개념 → 횟수 (자주 겪음)
+  readonly #memorySeq = new Map<string, string>(); // 인물 → 마지막으로 감정이 붙은 기억 사건 (떠올리는 개념이 바뀐 원인)
+  readonly #seenDefs = new Map<string, Map<string, string>>(); // 인물 → 본 적 있는 정의 → 처음 안 사건 (아는 개념)
+  readonly #modes = new Map<string, { readonly mode: string; readonly seq: string }>(); // 인물 → 지금의 모드와 그 사건
+  #lastPresence: string | null = null; // 직전 단계의 상황 (잠에서 깼는지)
+  readonly #cameHome = new Map<string, { t: number; seq: string }>(); // 인물 → 마지막으로 들어온 때 (장면 조건)
+  readonly #cards = new Map<string, { cards: string[]; seq: string }>(); // 인물 → 오늘(마지막으로 깬 뒤)의 밖의 하루 카드
+  readonly #urgent = new Map<string, { readonly since: number; readonly seq: string; bumps: number }>(); // `${인물}|${상태 키}` → 못 참는 중
+  readonly #dulled = new Set<string>(); // `${인물}|${상태 키}`: 오래 맡아 둔해진 것 (못 참는 칸 아래로 내려가면 풀린다)
 
   constructor(db: Db, vocab: Vocab, log: EventLog) {
     this.#db = db;
@@ -102,9 +123,32 @@ export class Perception {
   }
 
   /** 한 단계의 지각. prevRecent는 직전 단계의 행동(F6). */
-  step(world: World, t: number, presence: string, prevRecent: BoardValue | undefined): { perceived: Percept[]; aware: AwareMap } {
+  step(world: World, t: number, presence: string, prevRecent: BoardValue | undefined, arrivals: readonly { readonly event: string; readonly who: string; readonly cards: readonly string[] }[] = []): { perceived: Percept[]; aware: AwareMap } {
     for (const r of parseRecent(prevRecent)) if (r.reveals !== undefined) this.#reveals.push({ place: r.reveals, ends: r.ends, via: r.via, event: r.event });
     const perceived: Percept[] = [];
+    // 밖의 하루 (outside.ts): 귀가하며 그날의 카드가 내면에 들어온다 (원인: 카드가 정해진 사건). 영향은 내면으로만
+    for (const a of arrivals) {
+      if (!world.instances().includes(a.who)) continue;
+      this.#cards.set(a.who, { cards: [...a.cards], seq: a.event });
+      const keys = world.keysOf(a.who);
+      for (const c of cardChanges(this.#vocab, this.#db.defs[defOf(a.who) ?? '']?.mind, a.who, a.cards, keys, (k) => world.level(k))) world.set(c.key, c.to, { t, cause: a.event });
+    }
+    // 잠에서 깸 (condition.ts): 자는 상황이 끝나면 컨디션이 돌아온다. 일정에서 오는 원천이라 원인이 없다
+    const sleeps = (p: string | null): boolean => p !== null && this.#vocab.entry('presence', p)?.attrs['sleeps'] === true;
+    if (sleeps(this.#lastPresence) && !sleeps(presence)) {
+      for (const who of world.instances().filter((i) => i.startsWith('CHR'))) {
+        const changes = wakeChanges(this.#db, this.#vocab, who, defOf(who) ?? '', (k) => world.level(k));
+        if (changes.length === 0) continue;
+        this.#cards.delete(who);
+        const e = this.#log.append({ t, type: WOKE, src: PERCEPTION_SRC, cause: null, data: { who } });
+        for (const c of changes) world.set(c.key, c.to, { t, cause: e.seq });
+      }
+    }
+    // 현관문 (사전 feature의 door): 집을 나서거나 들어오면 지난다 — 문이 열린다. 일정·집을 비우는 행동이 정한 일이라 원인이 없다
+    const leaves = (p: string | null): boolean => p !== null && this.#vocab.entry('presence', p)?.attrs['leaves_home'] === true;
+    if (this.#lastPresence !== null && leaves(this.#lastPresence) !== leaves(presence)) this.#passDoor(world, t, leaves(presence) ? 'out' : 'in');
+    this.#lastPresence = presence;
+    if (!isObserved(this.#vocab, presence)) this.#leave(world, t);
     if (isObserved(this.#vocab, presence)) {
       const revealed = this.#reveals.filter((r) => r.ends <= t);
       this.#reveals.splice(0, this.#reveals.length, ...this.#reveals.filter((r) => r.ends > t));
@@ -136,7 +180,10 @@ export class Perception {
         // 그 장소에 놓여 눈에 보이는 물건(받치는 것을 따라 닿는 곳. 냉장고 안에 든 것처럼 어딘가의 안에 있으면 보이지 않는다)의 눈에 보이는 상태도 저절로 안다: 켜진 불, 담긴 물.
         // 놓임이 없는 물건(냉장고 속 음식처럼 어디에 있는지 모르는 것)은 살펴야만 안다.
         const here = instances.filter((i) => i.startsWith('OBJ') && places.includes(world.visiblePlace(i)));
+        const specs = ladderSpecs(this.#vocab);
+        const view = ladderView(world);
         for (const key of [...places, ...here].flatMap((p) => world.keysOf(p))) {
+          if (ladderOfKey(specs, view, key) !== null) continue; // 장소 공기의 종류는 심상 사다리로 안다 (아래)
           if (felt(key)) {
             perceived.push({ who, key, level: world.level(key) });
             this.#observe(who, key, NOTICED, world.level(key), t, senseVia(key), world.lastChange(key));
@@ -157,6 +204,12 @@ export class Perception {
           if (felt(key)) perceived.push({ who, key, level: world.level(key) });
           this.#observe(who, key, UNDERSTOOD, world.level(key), t, inspectVia, inspectDone);
         }
+        // 심상 사다리 (ladder.ts): 머무는 곳의 냄새가 무엇인지. 살펴서 안 것까지 본 뒤에 오른다
+        this.#climb(world, t, who, [...places].sort(), senseVia);
+        // 긴박함 (urgency.ts): 못 참는 냄새의 시작·참음(긴장)·둔해짐·그침
+        this.#urge(world, t, who, [...places].sort());
+        // 모드 (condition.ts): 이 단계의 감정·컨디션·남은 집안일로. 방출하는 모드면 몸이 먼저 방출하고 다시 판정한다
+        this.#settle(world, t, who);
       }
     }
     return { perceived, aware: this.snapshot() };
@@ -223,12 +276,13 @@ export class Perception {
     this.#surfaced.set(who, surfacedAt);
     const knows = this.#aware.get(who);
     const unfinished = (d: string): boolean => isUnfinished(this.#db, this.#vocab, d, world.instances().filter((i) => world.defOfInstance(i) === d), (k) => knows?.get(k)?.level);
-    const a = appraise(this.#vocab, mind, who, image, of, t, episodes, memories, level, { unfinished, surfacedAt });
+    const a = appraise(this.#vocab, mind, who, image, of, t, episodes, memories, level, { unfinished, surfacedAt, has: (k) => world.keysOf(who).includes(k) });
     if (a === null) return;
     const em = this.#log.append({ t, type: EMOTION_FORMED, src: PERCEPTION_SRC, cause: e.seq, data: { who, emotion: a.emotion, image, thought: a.thought, of: [...a.of] } });
     for (const m of a.memories) {
-      this.#log.append({ t, type: MEMORY_FORMED, src: PERCEPTION_SRC, cause: em.seq, data: { who, of: m.of, emotion: m.emotion, ...(m.replaces !== undefined ? { replaces: m.replaces } : {}) } });
+      const mem = this.#log.append({ t, type: MEMORY_FORMED, src: PERCEPTION_SRC, cause: em.seq, data: { who, of: m.of, emotion: m.emotion, ...(m.replaces !== undefined ? { replaces: m.replaces } : {}) } });
       memories.set(m.of, m.emotion);
+      this.#memorySeq.set(who, mem.seq);
     }
     if (a.overwhelms) this.#log.append({ t, type: OVERWHELMED, src: PERCEPTION_SRC, cause: em.seq, data: { who, on: true } });
     if (a.surfaces !== undefined) {
@@ -250,8 +304,9 @@ export class Perception {
   remember(who: string, of: string, emotion: string, t: number): void {
     const memories = this.#memories.get(who) ?? new Map<string, string>();
     this.#memories.set(who, memories);
-    this.#log.append({ t, type: MEMORY_FORMED, src: PERCEPTION_SRC, cause: null, data: { who, of, emotion, given: true } });
+    const e = this.#log.append({ t, type: MEMORY_FORMED, src: PERCEPTION_SRC, cause: null, data: { who, of, emotion, given: true } });
     memories.set(of, emotion);
+    this.#memorySeq.set(who, e.seq);
   }
 
   /**
@@ -324,6 +379,223 @@ export class Perception {
     }
   }
 
+  /**
+   * 장소마다 사다리를 연다·옮긴다·닫는다. 하루씨가 믿는 종류(짐작 이상이면 후보의 맨 앞)가 그 장소의 종류에 대한 앎이 된다.
+   * 세기를 못 느끼게 되면 사다리를 닫고, 알던 종류는 없어졌다고 안다.
+   */
+  #climb(world: World, t: number, who: string, places: readonly string[], senseVia: (key: string) => string): void {
+    const def = defOf(who) ?? '';
+    const senses = this.#db.defs[def]?.senses ?? {};
+    const view = ladderView(world);
+    const knows = this.#aware.get(who) ?? new Map<string, Knowing>();
+    for (const spec of ladderSpecs(this.#vocab)) {
+      const notice = reachOf(this.#vocab, spec.sense) === 'distance' ? senses[spec.sense]?.notice : undefined;
+      for (const place of places) {
+        const at = strengthKeyOf(view, spec, place);
+        if (at === null) continue;
+        const id = `${who}|${place}|${spec.feature}`;
+        const prev = this.#ladders.get(id);
+        const idx = world.levelIndex(at.strength);
+        if (notice === undefined || idx === null || idx < notice) {
+          if (prev !== undefined) {
+            this.#log.append({ t, type: LADDER_MOVED, src: PERCEPTION_SRC, cause: world.lastChange(at.strength), data: { who, of: place, feature: spec.feature, on: false } });
+            this.#ladders.delete(id);
+          }
+          const known = knows.get(at.kind);
+          const zero = this.#vocab.levelOrder(spec.feature)?.at(0);
+          if (notice !== undefined && known !== undefined && zero !== undefined && known.level !== zero) this.#observe(who, at.kind, known.aw, zero, t, senseVia(at.kind), world.lastChange(at.kind));
+          continue;
+        }
+        const { strengths, read } = kindStrengths(this.#vocab, view, spec, place);
+        const sk = skillKey(who, spec.skill);
+        const hasSkill = world.keysOf(who).includes(sk);
+        const skillIndex = hasSkill ? (this.#vocab.levelOrder(spec.skill) ?? []).indexOf(world.level(sk)) : 0;
+        const discerned = discern(this.#vocab, spec, strengths, scaleOf(this.#db, def, spec.sense), Math.max(0, skillIndex));
+        const known = knownKinds(this.#vocab, spec, knows, UNDERSTOOD);
+        const familiar = this.#familiar.get(who) ?? new Map<string, number>();
+        this.#familiar.set(who, familiar);
+        const remembered = new Set(this.#memories.get(who)?.keys() ?? []);
+        const seen = this.#seenDefs.get(who) ?? new Map<string, string>();
+        const concepts = knownConcepts(conceptPool(this.#db, this.#vocab, spec), new Set(seen.keys()), remembered);
+        const r = climb(this.#vocab, spec, prev?.state, { discerned, known, familiar, remembered, concepts, defOf: (i) => world.defOfInstance(i) });
+        if (r !== null) {
+          const thing = r.state.thing;
+          const thingSeq = thing === undefined ? undefined : [...knows].find(([k]) => k.startsWith(`${thing}|`) && k.endsWith(`:${spec.feature}`))?.[1].seq;
+          const cause = ladderCause(read, (k) => world.lastChange(k), [hasSkill ? world.lastChange(sk) : null, thingSeq, this.#memorySeq.get(who), conceptCause(r.state.concepts, seen)]);
+          const e = this.#log.append({
+            t,
+            type: LADDER_MOVED,
+            src: PERCEPTION_SRC,
+            cause,
+            data: { who, of: place, feature: spec.feature, on: true, rung: r.state.rung, kinds: [...r.state.kinds], concepts: [...r.state.concepts], causes: causesOf(this.#vocab, r.state.kinds), ...(thing !== undefined ? { thing } : {}), ...(r.fresh ? { fresh: true } : {}) },
+          });
+          const settled = newlySettled(prev?.state, r.fresh, r.state);
+          if (settled !== null) familiar.set(settled, (familiar.get(settled) ?? 0) + 1);
+          this.#ladders.set(id, { state: r.state, seq: e.seq, since: prev === undefined || r.fresh ? e.seq : prev.since });
+        }
+        const now = this.#ladders.get(id);
+        const b = believed(now?.state);
+        if (b !== null && now !== undefined) this.#observe(who, at.kind, NOTICED, b, t, senseVia(at.kind), now.seq, now.since);
+      }
+    }
+  }
+
+  /**
+   * 못 참는 냄새 (urgency.ts): 머무는 곳 공기의 세기가 그 사람의 못 참는 칸 이상이면 시작(앎에 표시), 참는 동안 긴장을 쌓고,
+   * 오래 맡으면 둔해지고, 세기가 내려가면 그친다. 그치기 전에 그때까지의 참음을 먼저 셈한다.
+   */
+  #urge(world: World, t: number, who: string, places: readonly string[]): void {
+    const def = defOf(who) ?? '';
+    const m = this.#aware.get(who);
+    const tensionF = conditionFeature(this.#vocab, 'tension');
+    const tk = tensionF === undefined ? undefined : world.keysOf(who).find((k) => k.endsWith(`:${tensionF}`));
+    const mark = (key: string, seq: string | undefined): void => {
+      const kn = m?.get(key);
+      if (kn === undefined) return;
+      const { urgent: _drop, ...rest } = kn;
+      m?.set(key, seq === undefined ? rest : { ...rest, urgent: seq });
+    };
+    for (const key of places.flatMap((p) => world.keysOf(p)).sort()) {
+      const k = parseStateKey(key);
+      const s = k === null ? null : urgencySense(this.#db, this.#vocab, def, k.feature);
+      if (s === null) continue;
+      const id = `${who}|${key}`;
+      const idx = world.levelIndex(key) ?? 0;
+      const felt = idx >= s.unbearable;
+      const active = this.#urgent.get(id);
+      const endure = (cause: string, a: { since: number; bumps: number }): void => {
+        const n = enduredTotal(s, a.since, t) - a.bumps;
+        if (n <= 0 || tk === undefined) return;
+        const e = this.#log.append({ t, type: URGENCY_ENDURED, src: PERCEPTION_SRC, cause, data: { who, key, bumps: n } });
+        a.bumps += n;
+        world.set(tk, stepped(this.#vocab, tensionF as string, world.level(tk), n), { t, cause: e.seq });
+      };
+      if (!felt) {
+        this.#dulled.delete(id);
+        if (active === undefined) continue;
+        endure(active.seq, active);
+        this.#log.append({ t, type: URGENCY_FELT, src: PERCEPTION_SRC, cause: world.lastChange(key), data: { who, key, on: false, reason: 'gone' } });
+        this.#urgent.delete(id);
+        mark(key, undefined);
+        continue;
+      }
+      if (this.#dulled.has(id)) continue;
+      if (active === undefined) {
+        const e = this.#log.append({ t, type: URGENCY_FELT, src: PERCEPTION_SRC, cause: world.lastChange(key), data: { who, key, on: true } });
+        this.#urgent.set(id, { since: t, seq: e.seq, bumps: 0 });
+        mark(key, e.seq);
+        continue;
+      }
+      endure(active.seq, active);
+      if (isHabituated(s, active.since, t)) {
+        this.#log.append({ t, type: URGENCY_FELT, src: PERCEPTION_SRC, cause: active.seq, data: { who, key, on: false, reason: 'habituated' } });
+        this.#urgent.delete(id);
+        this.#dulled.add(id);
+        mark(key, undefined);
+      }
+    }
+  }
+
+  /** 인물마다 현관문을 지난다: 집의 장소 중 door 특징을 가진 첫 장소의 문이 열린다 (이미 열려 있으면 사건만). */
+  #passDoor(world: World, t: number, dir: 'out' | 'in'): void {
+    const door = doorKey(this.#vocab, world.instances().filter((i) => i.startsWith('PLC')), (i) => world.keysOf(i));
+    if (door === null) return;
+    for (const who of world.instances().filter((i) => i.startsWith('CHR'))) {
+      const e = this.#log.append({ t, type: PASSED_DOOR, src: PERCEPTION_SRC, cause: null, data: { who, dir, door: door.key } });
+      if (dir === 'in') this.#cameHome.set(who, { t, seq: e.seq });
+      if (world.level(door.key) !== door.open) world.set(door.key, door.open, { t, cause: e.seq });
+    }
+  }
+
+  /** 집을 나서거나 잠들면 못 참는 냄새는 그친다 (그때까지의 참음을 먼저 셈한다). 둔해진 것도 풀린다. */
+  #leave(world: World, t: number): void {
+    for (const [id, a] of [...this.#urgent].sort(([x], [y]) => x.localeCompare(y))) {
+      const bar = id.indexOf('|');
+      const who = id.slice(0, bar), key = id.slice(bar + 1);
+      const k = parseStateKey(key);
+      const s = k === null ? null : urgencySense(this.#db, this.#vocab, defOf(who) ?? '', k.feature);
+      const tensionF = conditionFeature(this.#vocab, 'tension');
+      const tk = tensionF === undefined ? undefined : world.keysOf(who).find((x) => x.endsWith(`:${tensionF}`));
+      const n = s === null ? 0 : enduredTotal(s, a.since, t) - a.bumps;
+      if (n > 0 && tk !== undefined && tensionF !== undefined) {
+        const e = this.#log.append({ t, type: URGENCY_ENDURED, src: PERCEPTION_SRC, cause: a.seq, data: { who, key, bumps: n } });
+        a.bumps += n;
+        world.set(tk, stepped(this.#vocab, tensionF, world.level(tk), n), { t, cause: e.seq });
+      }
+      this.#log.append({ t, type: URGENCY_FELT, src: PERCEPTION_SRC, cause: a.seq, data: { who, key, on: false, reason: 'away' } });
+      this.#urgent.delete(id);
+      const kn = this.#aware.get(who)?.get(key);
+      if (kn !== undefined) {
+        const { urgent: _drop, ...rest } = kn;
+        this.#aware.get(who)?.set(key, rest);
+      }
+    }
+    this.#dulled.clear();
+  }
+
+  /**
+   * 모드를 판정해 바뀌면 남긴다. 방출하는 모드(터짐)면 몸이 먼저 방출한다 (해석 전, 요정이 닿지 않음):
+   * 방출 사건(원인: 그 모드) → 컨디션·축의 변화(원인: 방출) → 다시 판정.
+   */
+  #settle(world: World, t: number, who: string): void {
+    const def = defOf(who) ?? '';
+    if (!hasCondition(this.#db, def)) return;
+    const keys = new Set(world.keysOf(who));
+    const knows = this.#aware.get(who);
+    const judge = (): ReturnType<typeof modeOf> =>
+      modeOf(this.#vocab, who, unfinishedCount(this.#db, this.#vocab, world.instances(), (i) => world.defOfInstance(i), (k) => knows?.get(k)?.level), (k) => keys.has(k), (k) => world.level(k));
+    for (let guard = 0; guard < 4; guard++) {
+      const m = judge();
+      if (m === null) return;
+      const prev = this.#modes.get(who);
+      if (prev?.mode !== m.mode.key) {
+        const e = this.#log.append({ t, type: MODE_CHANGED, src: PERCEPTION_SRC, cause: modeCause(m.read, (k) => world.lastChange(k)), data: { who, mode: m.mode.key, ...(prev !== undefined ? { from: prev.mode } : {}) } });
+        this.#modes.set(who, { mode: m.mode.key, seq: e.seq });
+      }
+      if (!m.mode.releases) return;
+      const changes = releaseChanges(this.#db, this.#vocab, who, def, (k) => world.level(k));
+      if (changes.length === 0) return;
+      const r = this.#log.append({ t, type: RELEASED, src: PERCEPTION_SRC, cause: this.#modes.get(who)?.seq ?? null, data: { who } });
+      for (const c of changes) world.set(c.key, c.to, { t, cause: r.seq });
+    }
+  }
+
+  /** 7층이 읽는 심상 사다리의 지금 자리와 그 사건 (scene.ts). 닫혔거나 없으면 undefined. */
+  ladderOf(who: string, place: string, feature: string): { readonly rung: string; readonly seq: string } | undefined {
+    const l = this.#ladders.get(`${who}|${place}|${feature}`);
+    return l === undefined ? undefined : { rung: l.state.rung, seq: l.seq };
+  }
+
+  /** 7층이 읽는 장면 조건의 맥락 (scene.ts): 내면 특징, 방금 들어온 때, 오늘의 카드, 못 참는 냄새. */
+  sceneContext(world: World, who: string): Omit<SceneContext, 'concept' | 'kind'> {
+    const keys = world.instances().includes(who) ? world.keysOf(who) : [];
+    const cameHome = this.#cameHome.get(who);
+    const cards = this.#cards.get(who);
+    const urgent = [...this.#urgent].filter(([id]) => id.startsWith(`${who}|`)).map(([, a]) => a.seq).sort().at(-1);
+    return {
+      inner: (f) => {
+        const k = keys.find((x) => x.endsWith(`:${f}`));
+        return k === undefined ? undefined : { level: world.level(k), seq: world.lastChange(k) };
+      },
+      ...(cameHome !== undefined ? { cameHome } : {}),
+      ...(cards !== undefined ? { cards } : {}),
+      ...(urgent !== undefined ? { urgent } : {}),
+    };
+  }
+
+  /** 7층이 읽는 사다리의 떠올린 개념과 믿는 종류 (scene.ts). */
+  ladderMind(who: string, place: string, feature: string): { concept?: string; kind?: string } {
+    const l = this.#ladders.get(`${who}|${place}|${feature}`)?.state;
+    const concept = l?.concepts[0];
+    const kind = believed(l) ?? undefined;
+    return { ...(concept !== undefined ? { concept } : {}), ...(kind !== undefined ? { kind } : {}) };
+  }
+
+  /** 7층이 읽는 지금의 모드와 그 사건 (scene.ts). */
+  modeOf(who: string): { readonly mode: string; readonly seq: string } | undefined {
+    return this.#modes.get(who);
+  }
+
   /** 고른 행동이 끝났음을 알려 준다 (2층이 끝난 사건을 기록한 직후). 살펴서 안 것의 원인이 된다. */
   recordDone(chosen: string, done: string): void {
     this.#done.set(chosen, done);
@@ -339,7 +611,7 @@ export class Perception {
   }
 
   /** 본 것을 앎에 남긴다. 인지 단계는 오르기만 하고, 본 단계가 바뀌면 앎이 바뀐다. 바뀐 것이 있을 때만 사건을 남긴다. */
-  #observe(who: string, key: string, aw: string, level: string, t: number, via: string, cause: string | null): void {
+  #observe(who: string, key: string, aw: string, level: string, t: number, via: string, cause: string | null, since?: string): void {
     const m = this.#aware.get(who) ?? new Map<string, Knowing>();
     this.#aware.set(who, m);
     const prev = m.get(key);
@@ -348,8 +620,17 @@ export class Perception {
     const to = rose ? aw : prevAw;
     if (!rose && prev !== undefined && prev.level === level) return;
     const e = this.#log.append({ t, type: rose ? AWARENESS_UP : AWARENESS_CHANGED, src: PERCEPTION_SRC, cause, data: { who, key, to, level, via } });
-    m.set(key, { aw: to, level, t, seq: e.seq });
+    m.set(key, { aw: to, level, t, seq: e.seq, ...(since !== undefined ? { since } : {}) });
+    const seen = this.#seenDefs.get(who) ?? new Map<string, string>();
+    this.#seenDefs.set(who, seen);
+    const d = defOf(parseStateKey(key)?.subject ?? '');
+    if (d !== null && !seen.has(d)) seen.set(d, e.seq);
   }
+}
+
+/** 사다리가 세계를 읽는 창 (ladder.ts). */
+function ladderView(world: World): LadderView {
+  return { instances: () => world.instances(), keysOf: (i) => world.keysOf(i), level: (k) => world.level(k), whereIs: (i) => world.whereIs(i) };
 }
 
 /** 지각 층이 세계를 읽는 창 (sensation.ts). */
