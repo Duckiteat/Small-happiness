@@ -15,6 +15,7 @@ import { REFLEX, REFLEX_LEARNED, reflexDefs, triggers } from './reflex.ts';
 import { appraise, cueOf, EMOTION_FORMED, isOverwhelmed, isUnfinished, MEMORY_FORMED, MOOD_SLOT, OVERWHELMED, THOUGHT_SURFACED } from './emotion.ts';
 import type { Appraisal, Episode } from './emotion.ts';
 import { actionClass, ADVICE_GIVEN, ADVICE_IGNORED, OPTIONS_FORMED } from './agency.ts';
+import { ATTENTION_DRAWN, attentionVerbs } from './screen.ts';
 import { afterDone, conditionFeature, stepped, hasCondition, MODE_CHANGED, modeCause, modeDefs, modeMinutes, modeOf, RELEASED, releaseChanges, unfinishedCount, wakeChanges, WOKE } from './condition.ts';
 import type { ModeDef } from './condition.ts';
 import { cardChanges, doorKey, OUTSIDE_DAY_DONE, PASSED_DOOR } from './outside.ts';
@@ -182,7 +183,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   const emotionSeqs = new Set<string>(); // 감정 사건 (축의 변화의 원인)
   const surfacedA = new Map<string, Map<string, number>>(); // 인물 → 정의 → 마지막으로 갑자기 떠오른 때
   // ⓒ 요정의 조언 (agency.ts #choose): 조언은 바로 다음 사건에서 닿거나(그것을 고름) 듣지 않는다
-  let adviceOpen: { seq: string; who: string; offer: string; at: string; t: number } | null = null;
+  let adviceOpen: { seq: string; who: string; offer: string; at: string; verbs: string[] | null; t: number } | null = null;
   let optionsA: { t: number; ids: Set<string> } | null = null; // 마지막으로 남긴 선택지
   const stuckNow = (who: string): boolean => {
     const def = db.defs[instances.get(who) ?? ''];
@@ -341,7 +342,7 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
   for (const e of events) {
     bySeq.set(e.seq, e);
     if (adviceOpen !== null) {
-      const a: { seq: string; who: string; offer: string; at: string; t: number } = adviceOpen;
+      const a: { seq: string; who: string; offer: string; at: string; verbs: string[] | null; t: number } = adviceOpen;
       adviceOpen = null;
       const stuck = stuckNow(a.who);
       if (e.type === ADVICE_IGNORED && e.cause === a.seq) {
@@ -352,13 +353,19 @@ export function auditLog(events: readonly GameEvent[], db: Db, vocab: Vocab, opt
       }
       if (e.type === 'action_chosen' && e.data['advised'] === a.seq) {
         if (stuck) bad(e.seq, 'action', '생각이 멈춰 있었는데 요정의 조언을 들었다');
-        if (str(e.data['via']) !== a.offer || str(e.data['at']) !== a.at || str(e.data['who']) !== a.who || e.t !== a.t) bad(e.seq, 'action', `요정이 권한 것(${a.offer}@${a.at})과 다른 것을 골랐다`);
+        if (a.verbs !== null) {
+          if (!a.verbs.includes(str(e.data['verb'])) || str(e.data['who']) !== a.who || e.t !== a.t) bad(e.seq, 'action', `주의를 돌린 말이 이끄는 행동(${a.verbs.join('·')})이 아닌 것을 골랐다`);
+        } else if (str(e.data['via']) !== a.offer || str(e.data['at']) !== a.at || str(e.data['who']) !== a.who || e.t !== a.t) bad(e.seq, 'action', `요정이 권한 것(${a.offer}@${a.at})과 다른 것을 골랐다`);
       } else bad(a.seq, 'action', '요정의 조언 바로 뒤에 그것을 고르거나 듣지 않은 기록이 없다');
     }
     if (e.type === ADVICE_GIVEN) {
       bump('action');
-      if (e.cause !== null || !str(e.data['who']).startsWith('CHR') || !instances.has(str(e.data['who'])) || num(e.data['asked']) > e.t) bad(e.seq, 'action', '요정의 조언은 원인 없이, 있는 인물에게, 권한 시각 뒤에 닿는다');
-      adviceOpen = { seq: e.seq, who: str(e.data['who']), offer: str(e.data['offer']), at: str(e.data['at']), t: e.t };
+      const verbs = Array.isArray(e.data['verbs']) ? e.data['verbs'].map((v) => str(v)) : null;
+      // 조언은 원인이 없고(플레이어의 입력), 주의 돌리기의 조언은 그 누름(attention_drawn)이 원인이다
+      const drawn = e.cause === null ? undefined : bySeq.get(e.cause);
+      const causeOk = verbs === null ? e.cause === null : drawn?.type === ATTENTION_DRAWN && drawn.data['who'] === e.data['who'] && drawn.t === num(e.data['asked']) && JSON.stringify(attentionVerbs(vocab, str(drawn.data['verb']))) === JSON.stringify(verbs);
+      if (!causeOk || !str(e.data['who']).startsWith('CHR') || !instances.has(str(e.data['who'])) || num(e.data['asked']) > e.t) bad(e.seq, 'action', '요정의 조언은 원인 없이(주의 돌리기는 그 누름이 원인), 있는 인물에게, 권한 시각 뒤에 닿는다');
+      adviceOpen = { seq: e.seq, who: str(e.data['who']), offer: str(e.data['offer']), at: str(e.data['at']), verbs, t: e.t };
       continue;
     }
     if (e.type === ADVICE_IGNORED) {

@@ -1,6 +1,6 @@
 // 엔진 입구 (게임화-방향 10장): 화면이 엔진을 부르는 좁은 문 하나.
 //
-//   들어가는 것: 진행하기(advance) · 요정의 조언(advise) · 불러오기(load)
+//   들어가는 것: 진행하기(advance) · 요정의 조언(advise) · 줄글 속 말 누르기(attend) · 불러오기(load)
 //   나오는 것: 지금 보이는 것(view) · 새 사건 · 저장(save)
 //
 // 시나리오 실행(runScenario)도 이 문을 지난다. 그래서 지금까지의 시험이 모두 이 문을 시험한다.
@@ -13,6 +13,7 @@
 // 순수 모듈이다: 파일을 읽거나 쓰지 않는다. 콘텐츠 해시는 바깥(node 어댑터)이 계산해 넘긴다.
 
 import { ADVICE_GIVEN, Agency, OPTIONS_FORMED } from './agency.ts';
+import type { Nudge } from './agency.ts';
 import type { BoardValue } from './board.ts';
 import { Causal } from './causal.ts';
 import type { Db } from './db.ts';
@@ -23,7 +24,7 @@ import { chainPairs, parseChain } from './placement.ts';
 import { Rng } from './rng.ts';
 import { canonicalJson } from './save.ts';
 import { parsePlan } from './schedule.ts';
-import { screenView } from './screen.ts';
+import { ATTENTION_DRAWN, attentionVerbs, FAIRY_ATTENTION_SRC, screenAnchors, screenView } from './screen.ts';
 import type { View } from './viewmodel.ts';
 import { parseScenario, skeletonLayers } from './skeleton.ts';
 import type { DayTrace, Engine, Scenario } from './skeleton.ts';
@@ -39,7 +40,8 @@ export const SESSION_VERSION = 1;
 /** 플레이어(화면)가 넣는 입력. 저장 파일에 이 순서 그대로 남는다. */
 export type SessionInput =
   | { readonly type: 'advance'; readonly until: number }
-  | { readonly type: 'advise'; readonly t: number; readonly offer: string; readonly at: string };
+  | { readonly type: 'advise'; readonly t: number; readonly offer: string; readonly at: string }
+  | { readonly type: 'attend'; readonly t: number; readonly who: string; readonly anchor: string };
 
 export class SessionError extends Error {
   constructor(message: string) {
@@ -60,7 +62,7 @@ export interface SessionView {
   /** 인물마다 마지막으로 떠올린 선택지 (요정이 조언할 수 있는 것) */
   readonly options: readonly { readonly who: string; readonly seq: string; readonly options: readonly { readonly offer: string; readonly at: string; readonly verb: string }[] }[];
   /** 아직 닿지 않은 조언 */
-  readonly pendingAdvice: readonly { readonly t: number; readonly offer: string; readonly at: string }[];
+  readonly pendingAdvice: readonly { readonly t: number; readonly offer?: string; readonly at?: string; readonly verbs?: readonly string[] }[];
 }
 
 /** 저장 파일 (정규 JSON). */
@@ -101,7 +103,7 @@ export class Session {
   readonly #runner: DayRunner;
   readonly #inputs: SessionInput[] = [];
   readonly #steps: StepResult[] = [];
-  readonly #live: { t: number; offer: string; at: string }[] = [];
+  readonly #live: Nudge[] = [];
   #t: number;
   #seen = 0;
   #lastAdvanceCount = 0;
@@ -185,6 +187,20 @@ export class Session {
     this.#apply({ type: 'advise', t: this.#t, offer, at });
   }
 
+  /**
+   * 줄글 속 말 누르기 (주의 돌리기, 작가 2026-11-10): 인물 who의 화면(screen)에 있는 앵커 번호를 누른다.
+   * 누름이 사건으로 남고(동그라미가 그려진다), 그 말이 이끄는 행동 쪽으로 다음 선택에 조언처럼 닿는다. 들을지는 하루씨가 정한다.
+   * 닫힌 장면의 말, 이끄는 행동이 없는 말은 누를 수 없다.
+   */
+  attend(who: string, anchor: string): void {
+    this.#apply({ type: 'attend', t: this.#t, who, anchor });
+  }
+
+  /** 지금 누를 수 있는 앵커 (화면의 번호와 같다) */
+  anchors(who: string): ReturnType<typeof screenAnchors> {
+    return screenAnchors(this.#log.list(), who);
+  }
+
   /** 지난번에 꺼낸 뒤로 새로 생긴 사건. */
   drain(): GameEvent[] {
     const all = this.#log.list();
@@ -216,7 +232,7 @@ export class Session {
       ended: this.ended,
       step: last === null ? null : last.snapshot(),
       options,
-      pendingAdvice: all.slice(given).map((a) => ({ t: a.t, offer: a.offer, at: a.at })),
+      pendingAdvice: all.slice(given).map((a) => ('verbs' in a ? { t: a.t, verbs: [...a.verbs] } : { t: a.t, offer: a.offer, at: a.at })),
     };
   }
 
@@ -251,6 +267,18 @@ export class Session {
       this.#steps.push(...r);
       this.#lastAdvanceCount = r.length;
       this.#t = input.until;
+    } else if (input.type === 'attend') {
+      if (input.t !== this.#t) throw new SessionError(`누르기는 지금(${this.#t})만 할 수 있다 (${input.t})`);
+      if (this.ended) throw new SessionError('하루가 끝나 누를 수 없다');
+      const a = screenAnchors(this.#log.list(), input.who).find((x) => x.id === input.anchor);
+      if (a === undefined) throw new SessionError(`누를 수 있는 말이 아니다: ${input.anchor}`);
+      if (a.closed) throw new SessionError(`닫힌 장면의 말은 누를 수 없다: ${a.text}`);
+      const verbs = attentionVerbs(this.#vocab, a.verb);
+      if (verbs.length === 0) throw new SessionError(`"${a.text}"(${a.verb})이 이끄는 행동이 사전에 없다`);
+      const drawn = this.#log.append({ t: input.t, type: ATTENTION_DRAWN, src: FAIRY_ATTENTION_SRC, cause: null, data: { who: input.who, event: a.event, place: a.place, opened: a.opened, anchor: a.id, text: a.text, verb: a.verb } });
+      const n: Nudge = { t: input.t, verbs, drawn: drawn.seq };
+      this.#agency.advise([n]);
+      this.#live.push(n);
     } else {
       if (input.t !== this.#t) throw new SessionError(`조언은 지금(${this.#t})만 할 수 있다 (${input.t})`);
       if (this.ended) throw new SessionError('하루가 끝나 조언이 닿지 않는다');
@@ -291,7 +319,8 @@ export function parseSessionSave(text: string): SessionSave {
   const parsed = inputs.map((x, i): SessionInput => {
     if (isObj(x) && x['type'] === 'advance' && typeof x['until'] === 'number') return { type: 'advance', until: x['until'] };
     if (isObj(x) && x['type'] === 'advise' && typeof x['t'] === 'number' && typeof x['offer'] === 'string' && typeof x['at'] === 'string') return { type: 'advise', t: x['t'], offer: x['offer'], at: x['at'] };
-    throw new SessionError(`inputs[${i}]는 { type: advance, until } 또는 { type: advise, t, offer, at }이다`);
+    if (isObj(x) && x['type'] === 'attend' && typeof x['t'] === 'number' && typeof x['who'] === 'string' && typeof x['anchor'] === 'string') return { type: 'attend', t: x['t'], who: x['who'], anchor: x['anchor'] };
+    throw new SessionError(`inputs[${i}]는 { type: advance, until } · { type: advise, t, offer, at } · { type: attend, t, who, anchor }이다`);
   });
   return { format: SESSION_FORMAT, version: SESSION_VERSION, content: raw['content'], scenario: raw['scenario'] as JsonValue, inputs: parsed, log: { events: log['events'], digest: log['digest'] } };
 }

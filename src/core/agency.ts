@@ -57,6 +57,19 @@ export interface Advice {
   readonly at: string;
 }
 
+/**
+ * 주의 돌리기 (구현-계획 N2-2, 작가 2026-11-10): 플레이어가 줄글 속 말을 눌렀다. 조언처럼 다음에 고를 때 닿고,
+ * 선택지 중 그 말이 이끄는 행동(verbs)이 있으면 그것을 고른다 (후보 순서의 첫 것). drawn은 누름 사건(attention_drawn).
+ */
+export interface Attention {
+  readonly t: number;
+  readonly verbs: readonly string[];
+  readonly drawn: string;
+}
+
+/** 아직 닿지 않은 요정의 입력: 조언 또는 주의 돌리기 */
+export type Nudge = Advice | Attention;
+
 /** 행동의 갈래 (사전 action): pastime 쉼 · upkeep 집안일 · 나머지는 할 일. */
 export function actionClass(vocab: Vocab, verb: string): 'task' | 'pastime' | 'upkeep' {
   const a = vocab.entry('action', verb)?.attrs ?? {};
@@ -139,7 +152,7 @@ export class Agency {
   /** 주문해 오는 중인 재료 → 오는 시각 (그때까지 다시 사지 않는다). */
   readonly #ordered = new Map<string, number>();
   /** 요정의 조언 (아직 닿지 않은 것, 시각 순). */
-  readonly #advice: Advice[] = [];
+  readonly #advice: Nudge[] = [];
   /** 쉼 → 마지막으로 한 시각 (덜 한 것부터 고른다). */
   readonly #lastPastime = new Map<string, number>();
   /** 마지막으로 기록한 선택지 (같으면 다시 적지 않는다). */
@@ -152,7 +165,7 @@ export class Agency {
   }
 
   /** 요정의 조언을 받아 둔다 (시나리오의 advice). 하루씨가 다음에 고를 때 닿는다. */
-  advise(list: readonly Advice[]): void {
+  advise(list: readonly Nudge[]): void {
     this.#advice.push(...list);
     this.#advice.sort((a, b) => a.t - b.t);
   }
@@ -365,6 +378,7 @@ export class Agency {
    *   - 할 일이 없는 때의 선택지가 둘 이상이면 선택지를 남긴다 (요정이 보는 것, 바뀔 때만).
    *   - 요정의 조언: 그 시각이 지난 조언 하나가 다음에 고를 때 닿는다. 선택지 중 하나면 그것을 고르고, 아니면 듣지 않는다.
    *     스트레스 임계(생각이 멈춤)에 있으면 해석하지 못해 듣지 않는다.
+   *   - 주의 돌리기(줄글 속 말을 누름)도 조언처럼 닿는다: 후보 중 그 말이 이끄는 행동의 첫 것을 고른다.
    */
   #choose(world: World, t: number, who: string, cands: readonly { readonly id: string; readonly offer: string; readonly at: string; readonly verb: string; readonly cls: 'task' | 'pastime' | 'upkeep'; readonly cause: string | null; readonly commit: (advised: string | null) => RecentAction[] }[], firstCls?: string): RecentAction[] {
     const tasks = cands.filter((c) => c.cls === 'task');
@@ -380,11 +394,14 @@ export class Agency {
     const adv = this.#advice[0];
     if (adv !== undefined && adv.t <= t) {
       this.#advice.shift();
-      const given = this.#log.append({ t, type: ADVICE_GIVEN, src: FAIRY_SRC, cause: null, data: { who, offer: adv.offer, at: adv.at, asked: adv.t } });
+      const given =
+        'verbs' in adv
+          ? this.#log.append({ t, type: ADVICE_GIVEN, src: FAIRY_SRC, cause: adv.drawn, data: { who, verbs: [...adv.verbs], asked: adv.t } })
+          : this.#log.append({ t, type: ADVICE_GIVEN, src: FAIRY_SRC, cause: null, data: { who, offer: adv.offer, at: adv.at, asked: adv.t } });
       const def = this.#db.defs[world.defOfInstance(who) ?? ''];
       const mind = def?.mind;
       const stuck = mind !== undefined && def?.slots?.[MOOD_SLOT] !== undefined && isOverwhelmed(this.#vocab, mind, who, (k) => world.level(k));
-      const pick = cands.find((c) => c.id === `${adv.offer}@${adv.at}`);
+      const pick = 'verbs' in adv ? cands.find((c) => adv.verbs.includes(c.verb)) : cands.find((c) => c.id === `${adv.offer}@${adv.at}`);
       if (stuck || pick === undefined) this.#log.append({ t, type: ADVICE_IGNORED, src: AGENCY_SRC, cause: given.seq, data: { who, reason: stuck ? 'overwhelmed' : 'not_option' } });
       else return pick.commit(given.seq);
     }

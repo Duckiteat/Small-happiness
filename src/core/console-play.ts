@@ -6,6 +6,7 @@
 //   (빈 줄) · n    보여 줄 것(행동·선택지·장면)이 생길 때까지 진행
 //   +분           그만큼 진행 (하루의 끝에서 멈춘다)
 //   a 번호        요정의 조언: 마지막으로 떠올린 선택지 중 하나를 권한다
+//   p 번호        줄글 속 말 누르기 (주의 돌리기): [번호 말]의 번호
 //   v            지금 화면을 다시 본다
 //   ?            도움말
 //   q            그만
@@ -21,7 +22,7 @@ import type { Session } from './session.ts';
 import type { View } from './viewmodel.ts';
 import type { Vocab } from './vocab.ts';
 
-export const PLAY_HELP = '(빈 줄) 다음 일까지 · +분 그만큼 · a 번호 조언 · v 다시 보기 · ? 도움말 · q 그만';
+export const PLAY_HELP = '(빈 줄) 다음 일까지 · +분 그만큼 · a 번호 조언 · p 번호 말 누르기 · v 다시 보기 · ? 도움말 · q 그만';
 
 const RUNG_KO: { readonly [k: string]: string } = { feel: '느낌', guess: '짐작', narrow: '좁힘', thing: '정체' };
 const STATUS_KO: { readonly [k: string]: string } = { open: '열림', reopened: '다시 열림', closed: '닫힘', none: '없음' };
@@ -33,9 +34,15 @@ export function clockText(t: number): string {
   return `${day}일차 ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }
 
-/** 줄글 문단 하나를 글로: 눌리는 말은 [말] */
-function paraText(para: View['prose'][number]): string {
-  return para.map((s) => (s.anchor === undefined ? s.text : `[${s.text}]`)).join('');
+/** 줄글 문단 하나를 글로: 눌리는 말은 [번호 말], 누른 말은 (번호 말) */
+function paraText(view: View, para: View['prose'][number]): string {
+  return para
+    .map((s) => {
+      if (s.anchor === undefined) return s.text;
+      const n = s.anchor.replace(/^a/, '');
+      return view.anchors.find((a) => a.id === s.anchor)?.circle === 'none' ? `[${n} ${s.text}]` : `(${n} ${s.text})`;
+    })
+    .join('');
 }
 
 export class ConsolePlay {
@@ -94,6 +101,16 @@ export class ConsolePlay {
       this.#s.advise(o.offer, o.at);
       return { lines: [`요정: "${this.#ko('action', o.verb)}, 어때?" (${this.#name(o.at)})`], quit: false };
     }
+    const press = /^p\s+(\d+)$/.exec(cmd);
+    if (press !== null) {
+      const a = this.#s.anchors(this.#who).find((x) => x.id === `a${press[1]}`);
+      if (a === undefined) return { lines: ['누를 수 있는 말이 아니다.'], quit: false };
+      if (a.closed) return { lines: ['닫힌 장면의 말은 누를 수 없다.'], quit: false };
+      if (this.#s.ended) return { lines: ['하루가 끝나 누를 수 없다.'], quit: false };
+      this.#s.attend(this.#who, a.id);
+      this.#shown = this.#s.screen(this.#who);
+      return { lines: [`요정이 "${a.text}"에 동그라미를 그렸다.`], quit: false };
+    }
     return { lines: [`모르는 입력이다. ${PLAY_HELP}`], quit: false };
   }
 
@@ -141,7 +158,7 @@ export class ConsolePlay {
     const out: string[] = [];
     if (!sameEvent) out.push(`  【${v.scene} · ${v.place}】`);
     const from = sameEvent ? prev.prose.length : 0;
-    for (const p of v.prose.slice(from)) out.push(`  ${paraText(p)}`);
+    for (const p of v.prose.slice(from)) out.push(`  ${paraText(v, p)}`);
     const core = v.nodes.find((n) => n.id === CORE_NODE);
     const prevCore = prev?.nodes.find((n) => n.id === CORE_NODE);
     if (core !== undefined && (!sameEvent || core.label !== prevCore?.label || core.rung !== prevCore?.rung)) out.push(`  ○ ${RUNG_KO[core.rung ?? ''] ?? ''}: ${core.label}`);
@@ -158,7 +175,7 @@ export class ConsolePlay {
     return [
       head,
       `  【${v.scene} · ${v.place}】 ${STATUS_KO[v.event.status] ?? v.event.status}`,
-      ...v.prose.map((p) => `  ${paraText(p)}`),
+      ...v.prose.map((p) => `  ${paraText(v, p)}`),
       ...(core === undefined ? [] : [`  ○ ${RUNG_KO[core.rung ?? ''] ?? ''}: ${core.label}`]),
       ...(this.#options.length === 0 ? [] : [`  선택지: ${this.#options.map((o, i) => `${i + 1}) ${this.#ko('action', o.verb)} — ${this.#name(o.at)}`).join(' · ')}`]),
     ];
