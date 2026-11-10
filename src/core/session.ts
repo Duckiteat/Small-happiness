@@ -162,6 +162,11 @@ export class Session {
     return this.#t;
   }
 
+  /** 하루의 끝 (시나리오의 end). 그 너머로는 진행할 수 없다 */
+  get endTime(): number {
+    return this.#scenario.end;
+  }
+
   get ended(): boolean {
     return this.#runner.next === null;
   }

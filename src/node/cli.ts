@@ -14,6 +14,7 @@
 //   옵션: --root <폴더>  (기본: 현재 폴더)
 
 import { readFileSync } from 'node:fs';
+import { createInterface } from 'node:readline';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEdges, chainRoots, chainsFrom, collectRules, ruleNodes } from '../core/chains.ts';
@@ -21,13 +22,16 @@ import { generatedRules } from '../core/generated.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
 import { parseScript } from '../core/script.ts';
-import { appendix, auditEvents, auditScenario, commitPatch, gaps, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
+import { scenarioDb, appendix, auditEvents, auditScenario, commitPatch, gaps, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
 import { verifyReceipts } from '../core/receipt.ts';
 import { auditSummary } from '../core/audit.ts';
 import { viaKindsLookup } from '../core/via.ts';
 import { receiptText } from '../core/receipt-text.ts';
 import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
+import { ConsolePlay } from '../core/console-play.ts';
+import { Session } from '../core/session.ts';
+import { parseScenario } from '../core/skeleton.ts';
 
 const HERE = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -108,6 +112,22 @@ function main(): void {
       const r = syncWeb(root, mode);
       if (!r.ok) die('시제품 HTML의 장면 JSON이 examples/view와 다름 — npm run web');
       console.log(mode === 'write' ? `저장: web/prototype/index.html (장면 ${r.count}개)` : '시제품이 최신이다');
+      return;
+    }
+    case 'play': {
+      // 텍스트 러너 (N2-1): 입력을 한 줄씩 읽어 하루를 진행한다. 파이프로 넣은 입력도 같은 결과
+      const file = arg ?? SKELETON_SCENARIO;
+      const scenario = parseScenario(JSON.parse(readFileSync(join(root, file), 'utf8')));
+      const db = scenarioDb(root, vocab, scenario);
+      const who = [...flags].find((f) => f.startsWith('--who='))?.slice(6) ?? 'CHR000001#1';
+      const play = new ConsolePlay(Session.start(db, vocab, scenario), db, vocab, who);
+      for (const l of play.intro()) console.log(l);
+      const rl = createInterface({ input: process.stdin, terminal: false });
+      rl.on('line', (line) => {
+        const r = play.run(line);
+        for (const l of r.lines) console.log(l);
+        if (r.quit) rl.close();
+      });
       return;
     }
     case 'day': {
@@ -216,7 +236,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | day [시나리오] | golden [--write|--check] | receipt [시나리오] [--write|--check] | audit [시나리오] | gaps [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | play [시나리오] [--who=인물] | day [시나리오] | golden [--write|--check] | receipt [시나리오] [--write|--check] | audit [시나리오] | gaps [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 
