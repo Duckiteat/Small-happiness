@@ -22,7 +22,7 @@ import { generatedRules } from '../core/generated.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
 import { parseScript } from '../core/script.ts';
-import { scenarioDb, appendix, auditEvents, auditScenario, commitPatch, gaps, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
+import { buildGame, scenarioDb, appendix, auditEvents, auditScenario, commitPatch, gaps, golden, loadDb, readReceipts, readRecordReport, receiptNames, receiptsFor, replay, scenarioRun, sha256, SKELETON_SCENARIO, syncWeb, writeReceipts } from './clerk.ts';
 import { verifyReceipts } from '../core/receipt.ts';
 import { auditSummary } from '../core/audit.ts';
 import { viaKindsLookup } from '../core/via.ts';
@@ -128,6 +128,13 @@ function main(): void {
         for (const l of r.lines) console.log(l);
         if (r.quit) rl.close();
       });
+      return;
+    }
+    case 'game': {
+      const mode = flags.has('--check') ? 'check' : 'write';
+      const r = buildGame(root, mode);
+      if (!r.ok) die('게임 한 장(web/game/index.html)이 지금 엔진·자료와 다름 — npm run game');
+      console.log(mode === 'write' ? `저장: web/game/index.html (시나리오 ${r.scenarios}개, ${Math.round(r.bytes / 1024)}KB)` : '게임 한 장이 최신이다');
       return;
     }
     case 'day': {
@@ -236,7 +243,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | play [시나리오] [--who=인물] | day [시나리오] | golden [--write|--check] | receipt [시나리오] [--write|--check] | audit [시나리오] | gaps [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | game [--write|--check] | play [시나리오] [--who=인물] | day [시나리오] | golden [--write|--check] | receipt [시나리오] [--write|--check] | audit [시나리오] | gaps [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 

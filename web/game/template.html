@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>작은 행복</title>
+<!-- 회색 상자 화면 (구현-계획 N2-3). 이 파일은 틀이다: npm run game 이 엔진과 자료를 넣어 web/game/index.html 을 만든다 -->
+<style>
+:root {
+  --bg: #f6f4ef; --panel: #ffffff; --ink: #24221e; --muted: #77716a; --line: #d9d4ca;
+  --box: #e7e3db; --box-near: #d8d2c6; --accent: #b4573a; --accent-ink: #ffffff; --ring: #b4573a; --done: #5f7f5a;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1a18; --panel: #24221f; --ink: #ece7de; --muted: #a39b90; --line: #3b3833;
+    --box: #2d2b27; --box-near: #383530; --accent: #e08a6a; --accent-ink: #1b1a18; --ring: #e08a6a; --done: #9cc293;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1a18; --panel: #24221f; --ink: #ece7de; --muted: #a39b90; --line: #3b3833;
+  --box: #2d2b27; --box-near: #383530; --accent: #e08a6a; --accent-ink: #1b1a18; --ring: #e08a6a; --done: #9cc293;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+main { max-width: 720px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+h1 { font-size: 1.1rem; margin: 0; }
+#clock { font-variant-numeric: tabular-nums; font-weight: 600; }
+#condition { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: .8rem; padding: 1px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+select, button { font: inherit; }
+select { max-width: 100%; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+
+/* 무대: 방 전체 ↔ 하루씨 곁 */
+#stage { background: var(--box); border-radius: 14px; padding: 16px; min-height: 120px; transition: background .4s, padding .4s; display: grid; gap: 10px; }
+#stage[data-view="near"] { background: var(--box-near); }
+#stage[data-view="near"][data-rung="guess"] { padding: 14px; }
+#stage[data-view="near"][data-rung="narrow"] { padding: 12px; }
+#stage[data-view="near"][data-rung="thing"] { padding: 10px; }
+#room { display: flex; align-items: center; gap: 12px; }
+.person { width: 36px; height: 36px; flex: none; border-radius: 50%; background: var(--panel); border: 2px solid var(--line); }
+#stage[data-view="near"] .person { width: 44px; height: 44px; border-color: var(--accent); }
+#doing { color: var(--muted); }
+
+#scene { background: var(--panel); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
+#stage[data-view="room"] #scene { opacity: .8; }
+.scene-head { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.place { color: var(--muted); }
+.status { margin-left: auto; font-size: .8rem; color: var(--muted); }
+.s-closed { color: var(--done); }
+.ladder { display: flex; gap: 4px; list-style: none; padding: 0; margin: 0; font-size: .8rem; }
+.ladder li { flex: 1; text-align: center; padding: 2px 0; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); }
+.ladder li.past { border-color: transparent; }
+.ladder li.now { border-color: var(--accent); color: var(--ink); font-weight: 600; }
+.node { justify-self: center; padding: 10px 18px; border-radius: 999px; border: 2px dashed var(--ring); text-align: center; }
+.node.done { border-style: solid; border-color: var(--done); }
+.node-label { font-weight: 600; }
+.prose p { margin: 0 0 6px; }
+.anchor { background: none; border: none; padding: 0 2px; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; border-radius: 999px; }
+.anchor:disabled { cursor: default; }
+.anchor.c-none:disabled { color: inherit; text-decoration: none; }
+.anchor.c-open { text-decoration: none; outline: 2px dashed var(--ring); outline-offset: 2px; color: var(--ink); }
+.anchor.c-closed { text-decoration: none; outline: 2px solid var(--done); outline-offset: 2px; color: var(--ink); }
+.quiet { color: var(--muted); margin: 0; }
+
+#fairy { background: var(--panel); border-radius: 12px; padding: 10px 14px; display: grid; gap: 8px; }
+.options { display: flex; flex-wrap: wrap; gap: 6px; }
+.option { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--accent); background: none; color: var(--ink); cursor: pointer; }
+
+.controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.controls button { padding: 10px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.controls button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.controls button:disabled { opacity: .45; cursor: default; }
+.sub { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sub button { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: none; color: var(--muted); cursor: pointer; }
+
+#log { list-style: none; padding: 0; margin: 0; font-size: .9rem; display: grid; gap: 2px; max-height: 40vh; overflow-y: auto; }
+#log time { color: var(--muted); font-variant-numeric: tabular-nums; }
+#log .k-system { color: var(--muted); }
+#log .k-advice { color: var(--accent); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>작은 행복</h1>
+    <span id="clock"></span>
+    <span id="condition" aria-label="하루씨의 컨디션"></span>
+  </header>
+
+  <section id="stage" data-view="room" aria-live="polite">
+    <div id="room"><div class="person" aria-hidden="true"></div><span id="doing"></span></div>
+    <div id="scene"></div>
+  </section>
+
+  <section id="fairy" aria-label="요정"></section>
+
+  <div class="controls">
+    <button id="next" type="button" class="primary">다음 일 ▸</button>
+    <button id="plus" type="button">+30분</button>
+    <button id="auto" type="button" aria-pressed="false">저절로 ▶</button>
+  </div>
+  <div class="sub">
+    <select id="scenario" aria-label="시나리오"></select>
+    <button id="save" type="button">저장</button>
+    <button id="load" type="button">불러오기</button>
+    <button id="restart" type="button">처음부터</button>
+  </div>
+
+  <ol id="log" aria-label="지난 일"></ol>
+</main>
+<script id="game-data" type="application/json"><!--GAME-DATA--></script>
+<script><!--GAME-SCRIPT--></script>
+</body>
+</html>

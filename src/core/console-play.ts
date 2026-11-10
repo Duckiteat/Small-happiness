@@ -45,6 +45,35 @@ function paraText(view: View, para: View['prose'][number]): string {
     .join('');
 }
 
+/** 사람이 읽을 사건 하나 (텍스트 러너와 화면이 같이 쓴다) */
+export type Narration =
+  | { readonly kind: 'action'; readonly t: number; readonly verb: string; readonly text: string; readonly at: string | null }
+  | { readonly kind: 'options'; readonly t: number; readonly options: readonly { readonly offer: string; readonly at: string; readonly verb: string; readonly label: string }[] }
+  | { readonly kind: 'advice'; readonly t: number; readonly outcome: 'reached' | 'ignored' };
+
+/** 새 사건 중 인물 who에 관해 사람이 읽을 것: 행동, 떠올린 선택지, 조언이 닿음·듣지 않음. 이름은 정의와 사전에서. */
+export function narrate(db: Db, vocab: Vocab, who: string, events: readonly GameEvent[]): Narration[] {
+  const name = (id: string): string => db.defs[id.split('#')[0] ?? id]?.names.ko ?? id;
+  const ko = (key: string): string => vocab.entry('action', key)?.ko ?? key;
+  const out: Narration[] = [];
+  for (const e of events) {
+    if (e.data['who'] !== who) continue;
+    const at = typeof e.data['at'] === 'string' ? e.data['at'] : null;
+    if (e.type === ACTION_CHOSEN && typeof e.data['verb'] === 'string') {
+      out.push({ kind: 'action', t: e.t, verb: e.data['verb'], at, text: `${name(who)}: ${ko(e.data['verb'])}${at === null ? '' : ` — ${name(at)}`}` });
+    } else if (e.type === OPTIONS_FORMED && Array.isArray(e.data['options'])) {
+      const options = e.data['options'].flatMap((o) =>
+        typeof o === 'object' && o !== null && !Array.isArray(o) && typeof o['offer'] === 'string' && typeof o['at'] === 'string' && typeof o['verb'] === 'string'
+          ? [{ offer: o['offer'], at: o['at'], verb: o['verb'], label: `${ko(o['verb'])} — ${name(o['at'])}` }]
+          : [],
+      );
+      out.push({ kind: 'options', t: e.t, options });
+    } else if (e.type === ADVICE_GIVEN) out.push({ kind: 'advice', t: e.t, outcome: 'reached' });
+    else if (e.type === ADVICE_IGNORED) out.push({ kind: 'advice', t: e.t, outcome: 'ignored' });
+  }
+  return out;
+}
+
 export class ConsolePlay {
   readonly #s: Session;
   readonly #db: Db;
@@ -129,21 +158,12 @@ export class ConsolePlay {
   /** 사람이 읽을 사건: 행동, 선택지, 조언의 결과 */
   #events(events: readonly GameEvent[]): string[] {
     const out: string[] = [];
-    for (const e of events) {
-      if (e.data['who'] !== this.#who) continue;
-      const at = typeof e.data['at'] === 'string' ? e.data['at'] : null;
-      if (e.type === ACTION_CHOSEN && typeof e.data['verb'] === 'string') {
-        out.push(`  ${clockText(e.t).slice(-5)} ${this.#name(this.#who)}: ${this.#ko('action', e.data['verb'])}${at === null ? '' : ` — ${this.#name(at)}`}`);
-      } else if (e.type === OPTIONS_FORMED && Array.isArray(e.data['options'])) {
-        this.#options = e.data['options'].flatMap((o) =>
-          typeof o === 'object' && o !== null && !Array.isArray(o) && typeof o['offer'] === 'string' && typeof o['at'] === 'string' && typeof o['verb'] === 'string' ? [{ offer: o['offer'], at: o['at'], verb: o['verb'] }] : [],
-        );
-        out.push(`  떠올린 선택지: ${this.#options.map((o, i) => `${i + 1}) ${this.#ko('action', o.verb)} — ${this.#name(o.at)}`).join(' · ')}`);
-      } else if (e.type === ADVICE_GIVEN) {
-        out.push('  (조언이 닿았다)');
-      } else if (e.type === ADVICE_IGNORED) {
-        out.push('  (조언을 듣지 않았다)');
-      }
+    for (const n of narrate(this.#db, this.#vocab, this.#who, events)) {
+      if (n.kind === 'action') out.push(`  ${clockText(n.t).slice(-5)} ${n.text}`);
+      else if (n.kind === 'options') {
+        this.#options = n.options.map((o) => ({ offer: o.offer, at: o.at, verb: o.verb }));
+        out.push(`  떠올린 선택지: ${n.options.map((o, i) => `${i + 1}) ${o.label}`).join(' · ')}`);
+      } else out.push(n.outcome === 'reached' ? '  (조언이 닿았다)' : '  (조언을 듣지 않았다)');
     }
     return out;
   }

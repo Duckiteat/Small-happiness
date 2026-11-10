@@ -25,7 +25,8 @@ node src/node/cli.ts chains [규칙 번호]                       # 자동으로
 node src/node/cli.ts appendix [--write | --check]              # 자동 생성 부록
 node src/node/cli.ts verify                                    # data/db.json이 기록된 패치의 결과와 같은지
 node src/node/cli.ts day                                       # 뼈대 하루를 돌려 단계마다 한 줄씩 (npm run day)
-node src/node/cli.ts play content/scenarios/first-week.json    # 텍스트 러너: 빈 줄 = 다음 일까지, +분, a 번호 = 요정의 조언, v, q
+node src/node/cli.ts play content/scenarios/first-week.json    # 텍스트 러너: 빈 줄 = 다음 일까지, +분, a 번호 = 요정의 조언, p 번호 = 말 누르기, v, q
+npm run game                                                   # 게임 한 장(web/game/index.html)을 묶는다 — 브라우저로 바로 연다 (npm run game:check)
 node src/node/cli.ts golden [--write | --check]                # 뼈대 하루의 골든 트레이스
 node src/node/cli.ts receipt [시나리오] [--write | --check]     # 하루 영수증 (docs/영수증-명세.md)
 node src/node/cli.ts audit [시나리오]                            # 기록이 정의대로인지 다시 계산 (docs/영수증-명세.md 8장)

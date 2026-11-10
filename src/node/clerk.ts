@@ -9,6 +9,7 @@
 // 순수 코어(src/core)는 병합·검사·보고를 계산하고, 파일 쓰기는 여기서만 한다. 현재 시각은 인자로 받는다.
 
 import { createHash } from 'node:crypto';
+import { buildSync } from 'esbuild';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { appendixMarkdown, APPENDIX_PATH } from '../core/appendix.ts';
@@ -189,6 +190,48 @@ export function syncWeb(root: string, mode: 'write' | 'check'): { ok: boolean; c
     return { ok: true, count: names.length };
   }
   return { ok: next === html, count: names.length };
+}
+
+// ── 회색 상자 화면 (구현-계획 N2-3) ─────────────────────────────────────────
+
+export const GAME_TEMPLATE = 'web/game/template.html';
+export const GAME_PAGE = 'web/game/index.html';
+const GAME_ENTRY = 'src/web/entry.ts';
+const SCENARIO_DIR = 'content/scenarios';
+
+/**
+ * 게임 한 장(web/game/index.html)을 만들거나(write) 지금 것과 같은지 본다(check).
+ * 엔진과 화면(src/web)을 esbuild로 한 스크립트로 묶고, 정의 저장소·사전·시나리오를 자료로 넣는다.
+ * 한 파일이라 링크로도, 내려받은 파일로도 열린다 (서버 없이).
+ */
+export function buildGame(root: string, mode: 'write' | 'check'): { ok: boolean; bytes: number; scenarios: number } {
+  const bundle = buildSync({ entryPoints: [join(root, GAME_ENTRY)], bundle: true, format: 'iife', target: 'es2022', minify: true, write: false, legalComments: 'none', charset: 'utf8', logLevel: 'silent' });
+  const js = bundle.outputFiles[0]?.text ?? '';
+  if (js === '') throw new Error('게임 스크립트를 묶지 못했다');
+  const vocabDir = join(root, 'data', 'vocab');
+  const vocab: unknown[] = [];
+  for (const f of readdirSync(vocabDir).filter((x) => x.endsWith('.json')).sort()) vocab.push(...(JSON.parse(readFileSync(join(vocabDir, f), 'utf8')) as unknown[]));
+  const files = readdirSync(join(root, SCENARIO_DIR)).filter((f) => f.endsWith('.json')).sort();
+  const scenarios = files.map((f) => {
+    const raw = JSON.parse(readFileSync(join(root, SCENARIO_DIR, f), 'utf8')) as { why?: unknown; spawn?: unknown };
+    const why = typeof raw.why === 'string' ? raw.why : f;
+    return { file: f, title: (why.split(/[:(]/)[0] ?? f).trim(), raw };
+  });
+  const spawn = scenarios[0]?.raw.spawn;
+  const person = Array.isArray(spawn) ? spawn.find((d): d is string => typeof d === 'string' && d.startsWith('CHR')) : undefined;
+  if (person === undefined) throw new Error('첫 시나리오에 인물이 없다');
+  const data = { content: contentHash(root), who: `${person}#1`, db: loadDb(root), vocab, scenarios };
+  const template = readFileSync(join(root, GAME_TEMPLATE), 'utf8');
+  if (!template.includes('<!--GAME-DATA-->') || !template.includes('<!--GAME-SCRIPT-->')) throw new Error(`${GAME_TEMPLATE}에 자리 표시가 없다`);
+  const html = template
+    .replace('<!--GAME-DATA-->', () => JSON.stringify(data).replace(/</g, '\\u003c'))
+    .replace('<!--GAME-SCRIPT-->', () => js.replace(/<\/script/gi, '<\\/script'));
+  const file = join(root, GAME_PAGE);
+  if (mode === 'write') {
+    atomicWrite(file, html);
+    return { ok: true, bytes: Buffer.byteLength(html), scenarios: scenarios.length };
+  }
+  return { ok: existsSync(file) && readFileSync(file, 'utf8') === html, bytes: Buffer.byteLength(html), scenarios: scenarios.length };
 }
 
 // ── 저장 (docs/기반층-명세.md 4장) ──────────────────────────────────────────
