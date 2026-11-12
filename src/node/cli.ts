@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { buildEdges, chainRoots, chainsFrom, collectRules } from '../core/chains.ts';
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
+import { checkSlotFile, slotReportText } from '../core/slots.ts';
 import { appendix, commitPatch, loadDb, readRecordReport, replay, syncWeb } from './clerk.ts';
 import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
@@ -126,6 +127,22 @@ function main(): void {
       console.log(patchReportMarkdown(report, loadDb(root)));
       return;
     }
+    case 'slots': {
+      // 문장 자리 파일 검사 (읽기만). --strict: 비어 있는 필수 기본 문장도 오류로 본다.
+      const files = positional.slice(1);
+      if (files.length === 0) die('자리 파일을 하나 이상 지정하세요');
+      let failed = false;
+      for (const f of files) {
+        const raw: unknown = JSON.parse(readFileSync(resolve(f), 'utf8'));
+        const r = checkSlotFile(raw, vocab, { strict: flags.has('--strict') });
+        console.log(`# ${f}`);
+        for (const i of r.issues) console.log(`  ${i.level === 'error' ? '오류' : '경고'} ${i.where}: ${i.msg}`);
+        console.log(slotReportText(r.report));
+        if (r.issues.some((i) => i.level === 'error')) failed = true;
+      }
+      if (failed) process.exit(1);
+      return;
+    }
     case 'compile': {
       // 원본 파일들 → 패치 JSON (표준 출력). 형식·사전·펼치기 검사 후 기존 패치 형식으로 낸다. 파일은 쓰지 않는다.
       const files = positional.slice(1);
@@ -140,7 +157,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | compile <원본...> | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | compile <원본...> | slots <자리 파일...> [--strict] | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 

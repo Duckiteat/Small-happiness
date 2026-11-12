@@ -21,6 +21,7 @@ node src/node/cli.ts status                                   # 정의 수, 다�
 node src/node/cli.ts validate examples/patches/fridge-chain.json   # 병합·관문만 확인 (쓰지 않음)
 node src/node/cli.ts merge <패치.json> [--dry] [--allow-warnings] # 관문 통과 시 저장소와 기록에 씀
 node src/node/cli.ts report <패치 기록>                              # 저장된 패치 보고서 다시 보기 (파일 이름 또는 번호)
+node src/node/cli.ts slots <자리 파일> [--strict]                 # 문장 자리 파일 검사 (기본 문장 빈 곳, 충돌, 켜질 수 없는 변형)
 node src/node/cli.ts chains [규칙 번호]                       # 자동으로 이어진 규칙 사슬
 node src/node/cli.ts appendix [--write | --check]              # 자동 생성 부록
 node src/node/cli.ts verify                                    # data/db.json이 기록된 패치의 결과와 같은지

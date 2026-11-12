@@ -1,0 +1,108 @@
+{
+  "format_version": 1,
+  "context": "냉장고",
+  "why": "냉장고 맥락의 문장 자리 8개. 작가가 text만 채운다. 조건은 사전 키. 필수(기본 문장)를 먼저, 변형은 그다음.",
+  "slots": [
+    {
+      "id": "S-냉-01",
+      "about": "사과에 곰팡이가 피기 시작한다",
+      "when": ["mold@>=spot"],
+      "reactions": ["곰팡이 표시", "약한 냄새"],
+      "need": "required",
+      "hint": "발견의 첫 순간. 감각이 먼저 오고 속마음은 짧게. 1~3문장.",
+      "default": { "text": "" },
+      "variants": [
+        { "id": "S-냉-01-a", "label": "후각이 예민함", "when": ["sense:smell=high"], "text": "" },
+        { "id": "S-냉-01-b", "label": "후각이 둔함", "when": ["sense:smell=low"], "text": "" }
+      ]
+    },
+    {
+      "id": "S-냉-02",
+      "about": "사과가 터져 진물이 흘러나온다",
+      "when": ["damage@=burst"],
+      "reactions": ["진물(잔류, 젖음) 생김"],
+      "need": "required",
+      "hint": "놀람. 손에 묻는 느낌. 허둥대는 속마음이 코미디가 될 수 있다.",
+      "default": { "text": "" },
+      "variants": [
+        { "id": "S-냉-02-a", "label": "눈으로 바로 알아챔 (시각 민감도로 근사)", "when": ["sense:sight=high"], "text": "" },
+        { "id": "S-냉-02-b", "label": "바로는 알아채지 못함 (시각 민감도로 근사)", "when": ["sense:sight=low"], "text": "" }
+      ]
+    },
+    {
+      "id": "S-냉-03",
+      "about": "방치된 진물이 마른다",
+      "when": ["residue@=dried"],
+      "reactions": [],
+      "need": "optional",
+      "hint": "방치의 시간이 느껴지는 한 줄. 무시하는 독백도 좋다.",
+      "default": { "text": "" },
+      "variants": []
+    },
+    {
+      "id": "S-냉-04",
+      "about": "마른 진물이 굳어 붙는다",
+      "when": ["residue@=set"],
+      "reactions": ["냄새가 이어짐", "자국이 생길 수 있음"],
+      "need": "required",
+      "hint": "물티슈로는 안 지워진다는 느낌. 냄새가 눌러앉는다.",
+      "default": { "text": "" },
+      "variants": [
+        { "id": "S-냉-04-a", "label": "자국이 남는 재질", "when": ["stain@>=faint"], "text": "" },
+        { "id": "S-냉-04-b", "label": "자국이 남지 않는 재질", "when": ["stain@=none"], "text": "" }
+      ]
+    },
+    {
+      "id": "S-냉-05",
+      "about": "물티슈로 닦는다",
+      "action": "wipe",
+      "when": ["residue@>=moist"],
+      "reactions": ["잔류가 줄지만 고착은 안 지워짐"],
+      "need": "required",
+      "hint": "닦였지만 끈적임이 남는다. 성공이 아니다.",
+      "default": { "text": "" },
+      "variants": [
+        { "id": "S-냉-05-a", "label": "아직 젖어 있을 때 닦음", "when": ["residue@=moist"], "text": "" },
+        { "id": "S-냉-05-b", "label": "굳은 뒤에 닦음", "when": ["residue@=set"], "text": "" }
+      ]
+    },
+    {
+      "id": "S-냉-06",
+      "about": "세제로 닦는다",
+      "action": "wipe",
+      "when": ["residue@>=moist"],
+      "reactions": ["잔류 제거", "재질에 따라 자국"],
+      "need": "required",
+      "hint": "해결의 순간. 끝은 꺼지는 비트로 (\"…그런데 내 하루는..?\").",
+      "default": { "text": "" },
+      "variants": [
+        { "id": "S-냉-06-a", "label": "깨끗해짐", "when": ["stain@=none"], "text": "" },
+        { "id": "S-냉-06-b", "label": "누런 자국이 남음", "when": ["stain@>=faint"], "text": "" }
+      ]
+    },
+    {
+      "id": "S-냉-07",
+      "about": "선반을 빼서 두거나 물에 담근다",
+      "action": "move",
+      "when": ["residue@>=moist"],
+      "reactions": ["잔류가 새 면으로 옮겨감"],
+      "need": "optional",
+      "hint": "진물이 옮겨 간다. 합판이면 물을 먹어 부푼다 (재질 조건은 아직 없어 변형 없음).",
+      "default": { "text": "" },
+      "variants": []
+    },
+    {
+      "id": "S-냉-08",
+      "about": "초파리가 날아든다",
+      "when": ["bug@>=few"],
+      "reactions": ["초파리"],
+      "need": "optional",
+      "hint": "꼬이는 것을 처음 본 느낌.",
+      "default": { "text": "" },
+      "variants": [
+        { "id": "S-냉-08-a", "label": "눈으로 바로 알아챔 (시각 민감도로 근사)", "when": ["sense:sight=high"], "text": "" },
+        { "id": "S-냉-08-b", "label": "알아채지 못함 (시각 민감도로 근사)", "when": ["sense:sight=low"], "text": "" }
+      ]
+    }
+  ]
+}

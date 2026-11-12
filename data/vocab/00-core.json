@@ -259,6 +259,151 @@
             }
           ]
         }
+      },
+      {
+        "key": "mold",
+        "ko": "곰팡이",
+        "en": "mold",
+        "desc": "곰팡이가 핀 정도 (상함과는 다른 축)",
+        "attrs": {
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "spot",
+              "ko": "점"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "spread",
+              "ko": "번짐"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "covered",
+              "ko": "뒤덮임"
+            }
+          ]
+        }
+      },
+      {
+        "key": "damage",
+        "ko": "손상",
+        "en": "damage",
+        "aliases": [
+          "파손"
+        ],
+        "desc": "표면이 망가진 정도",
+        "attrs": {
+          "levels": [
+            {
+              "key": "intact",
+              "ko": "온전"
+            },
+            {
+              "key": "bruise",
+              "ko": "멍"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "crack",
+              "ko": "갈라짐"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "burst",
+              "ko": "터짐"
+            }
+          ]
+        }
+      },
+      {
+        "key": "residue",
+        "ko": "잔류",
+        "en": "residue",
+        "aliases": [
+          "진물"
+        ],
+        "desc": "흘러나온 것이 남아 마르고 붙는 정도",
+        "attrs": {
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "moist",
+              "ko": "젖음"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "dried",
+              "ko": "마름"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "set",
+              "ko": "고착"
+            }
+          ]
+        }
+      },
+      {
+        "key": "stain",
+        "ko": "자국",
+        "en": "stain",
+        "aliases": [
+          "얼룩"
+        ],
+        "desc": "재질에 남은 흔적의 짙기 (시간으로는 사라지지 않고 행동으로만 지워짐)",
+        "attrs": {
+          "levels": [
+            {
+              "key": "none",
+              "ko": "없음"
+            },
+            {
+              "key": "faint",
+              "ko": "희미"
+            },
+            {
+              "key": "s2",
+              "locked": true
+            },
+            {
+              "key": "clear",
+              "ko": "뚜렷"
+            },
+            {
+              "key": "s4",
+              "locked": true
+            },
+            {
+              "key": "deep",
+              "ko": "깊음"
+            }
+          ]
+        }
       }
     ]
   },
