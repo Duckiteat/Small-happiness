@@ -51,8 +51,11 @@ test('머리가 틀리면 거부한다: 버전, why, 종류, 알 수 없는 최�
 test('명세 단계 필드는 조용히 버리지 않고 거부한다', () => {
   const material = compileSource(base({ defs: [{ id: 'OBJ+1', names: { ko: '음식' }, material: '합판' }] }));
   assert.match(JSON.stringify(material.issues), /아직 받지 않는 필드/);
-  const delay = compileSource(base({ defs: [{ id: 'OBJ+1', names: { ko: '음식' }, rules: { r: { on: [], emits: [], delay_s: 60 } } }] }));
-  assert.match(JSON.stringify(delay.issues), /delay_s/);
+  const warn = compileSource(base({ defs: [{ id: 'OBJ+1', names: { ko: '음식' }, rules: { r: { on: [], emits: [], warn_before_s: 60 } } }] }));
+  assert.match(JSON.stringify(warn.issues), /warn_before_s.*아직 받지 않는 필드/);
+  // delay_s 와 tuned 는 받는다 (형식은 패치 단계가 검사한다)
+  const delay = compileSource(base({ defs: [{ id: 'OBJ+1', names: { ko: '음식' }, rules: { r: { on: [], emits: [], delay_s: 60, tuned: false } } }] }));
+  assert.deepEqual(delay.issues, []);
 });
 
 test('번호는 종류와 맞아야 하고, 같은 파일 안에서 겹치면 안 된다', () => {

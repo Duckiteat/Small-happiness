@@ -67,6 +67,10 @@ export interface RuleDef {
   readonly on: readonly string[];
   readonly emits: readonly string[];
   readonly note?: string;
+  /** 조건이 이어진 채로 이 시간(초)이 지나야 일어난다. 없으면 바로. */
+  readonly delay_s?: number;
+  /** delay_s 가 보정된 값인가. 임시값은 false 로 밝힌다 (delay_s 와 함께 쓴다). */
+  readonly tuned?: boolean;
 }
 
 export interface Definition {
@@ -208,7 +212,7 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ok = false;
       continue;
     }
-    onlyKeys(rule, ['label', 'on', 'emits', 'note'], at, push);
+    onlyKeys(rule, ['label', 'on', 'emits', 'note', 'delay_s', 'tuned'], at, push);
     if (!isStrArr(rule['on']) || rule['on'].length === 0 || !isStrArr(rule['emits']) || rule['emits'].length === 0) {
       push(at, 'on과 emits(패턴 문자열 목록, 1개 이상)가 필요하다');
       ok = false;
@@ -224,11 +228,29 @@ function fieldRules(v: unknown, where: string, push: Push): Record<string, RuleD
       ok = false;
       continue;
     }
+    const delay = rule['delay_s'];
+    const tuned = rule['tuned'];
+    if (delay !== undefined && (typeof delay !== 'number' || !Number.isInteger(delay) || delay < 0)) {
+      push(at, 'delay_s는 0 이상의 정수(초)여야 한다');
+      ok = false;
+      continue;
+    }
+    if (tuned !== undefined && typeof tuned !== 'boolean') {
+      push(at, 'tuned는 true 또는 false여야 한다');
+      ok = false;
+      continue;
+    }
+    if ((delay === undefined) !== (tuned === undefined)) {
+      push(at, 'delay_s와 tuned는 함께 쓴다 (임시값은 tuned:false로 밝힌다)');
+      ok = false;
+      continue;
+    }
     const r: RuleDef = {
       ...(typeof rule['label'] === 'string' ? { label: rule['label'] } : {}),
       on: rule['on'].map((s) => s.trim()),
       emits: rule['emits'].map((s) => s.trim()),
       ...(typeof rule['note'] === 'string' ? { note: rule['note'] } : {}),
+      ...(typeof delay === 'number' && typeof tuned === 'boolean' ? { delay_s: delay, tuned } : {}),
     };
     out[key] = r;
   }

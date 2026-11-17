@@ -74,5 +74,13 @@
   "terminal-op.json": {
     "stage": "gate",
     "match": "= 조건으로만"
+  },
+  "delay-without-tuned.json": {
+    "stage": "gate",
+    "match": "delay_s와 tuned는 함께 쓴다"
+  },
+  "delay-negative.json": {
+    "stage": "gate",
+    "match": "delay_s는 0 이상의 정수"
   }
 }

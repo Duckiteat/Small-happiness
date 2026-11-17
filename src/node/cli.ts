@@ -3,6 +3,7 @@
 //   node src/node/cli.ts status
 //   node src/node/cli.ts validate <patch.json>              병합·관문만 확인 (쓰지 않음)
 //   node src/node/cli.ts merge <patch.json> [--dry] [--allow-warnings]
+//   node src/node/cli.ts simulate <일수> [패치] [효과 패턴...]  세계를 며칠 돌려 본다 (저장하지 않음)
 //   node src/node/cli.ts trace <조각 파일> <인물 기록>      조각과 인물 기록의 대조 (읽기만)
 //   node src/node/cli.ts chains [규칙 번호]                  자동으로 이어진 규칙 사슬
 //   node src/node/cli.ts appendix [--write | --check]
@@ -17,6 +18,8 @@ import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
 import { checkSlotFile, slotReportText } from '../core/slots.ts';
 import { tracePerson, traceReportText } from '../core/pieces.ts';
+import { advance, applyEffect, buildWorld, readLevels } from '../core/world.ts';
+import type { NewEvent } from '../core/events.ts';
 import { appendix, commitPatch, loadDb, readRecordReport, replay, syncWeb } from './clerk.ts';
 import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
@@ -145,6 +148,42 @@ function main(): void {
       if (failed) process.exit(1);
       return;
     }
+    case 'simulate': {
+      // 세계를 며칠 돌려 본다 (읽기만, 저장하지 않음). 패치 파일을 주면 저장소에 병합한 것으로 치고 돌린다.
+      // 나머지 인자는 시작할 때 적용할 효과 패턴(`정의|부위:특징@조건`)이다.
+      const days = Number(arg);
+      if (!Number.isInteger(days) || days <= 0) die('일수를 지정하세요 (예: simulate 7 examples/patches/fridge-week.json)');
+      const rest = positional.slice(2);
+      const patchFile = rest.find((f) => f.endsWith('.json'));
+      let db = loadDb(root);
+      if (patchFile !== undefined) {
+        const result = commitPatch(root, JSON.parse(readFileSync(resolve(patchFile), 'utf8')) as unknown, vocab, { dry: true });
+        if (result.db === undefined || result.status === 'rejected' || result.status === 'invalid-patch') die(`패치가 관문을 통과하지 못했다 (${result.status})`);
+        db = result.db;
+      }
+      const built = buildWorld(db, vocab);
+      for (const i of built.issues) console.error(`  오류 ${i.where}: ${i.msg}`);
+      if (built.issues.length > 0) process.exit(1);
+      const name = (key: string): string => `${db.defs[key.slice(0, 9)]?.names.ko ?? '?'} ${key.slice(key.indexOf('|') + 1)}`;
+      const events: NewEvent[] = [];
+      let state = built.state;
+      for (const pattern of rest.filter((f) => !f.endsWith('.json'))) {
+        const r = applyEffect(state, built.spec, pattern, 'setup');
+        state = r.state;
+        events.push(...r.events);
+      }
+      const run = advance(state, built.spec, days * 86400);
+      events.push(...run.events);
+      for (const e of events) {
+        const s = Number(e.data?.['t_s'] ?? 0);
+        const at = `${Math.floor(s / 86400) + 1}일째 ${String(Math.floor((s % 86400) / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`;
+        if (e.type === 'stage_advanced') console.log(`${at}  ${name(String(e.data?.['key']))}: ${String(e.data?.['from'])} → ${String(e.data?.['to'])}  (${String(e.data?.['cause'])})`);
+        else if (flags.has('--all')) console.log(`${at}  예약 ${String(e.data?.['phase'])}: ${String(e.data?.['rule'])}`);
+      }
+      console.log(`\n${days}일 뒤의 상태:`);
+      for (const [key, level] of Object.entries(readLevels(run.state, built.spec))) console.log(`  ${name(key)} = ${level}`);
+      return;
+    }
     case 'trace': {
       // 인물 조각 파일과 인물 기록을 대조한다 (읽기만). --used: 조각마다 쓰인 항목을 함께 보인다.
       const [piecesFile, sheetFile] = positional.slice(1);
@@ -173,7 +212,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | compile <원본...> | slots <자리 파일...> [--strict] | trace <조각 파일> <인물 기록> [--used] | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | simulate <일수> [패치] [효과 패턴...] [--all] | compile <원본...> | slots <자리 파일...> [--strict] | trace <조각 파일> <인물 기록> [--used] | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 
