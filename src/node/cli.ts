@@ -3,6 +3,7 @@
 //   node src/node/cli.ts status
 //   node src/node/cli.ts validate <patch.json>              병합·관문만 확인 (쓰지 않음)
 //   node src/node/cli.ts merge <patch.json> [--dry] [--allow-warnings]
+//   node src/node/cli.ts trace <조각 파일> <인물 기록>      조각과 인물 기록의 대조 (읽기만)
 //   node src/node/cli.ts chains [규칙 번호]                  자동으로 이어진 규칙 사슬
 //   node src/node/cli.ts appendix [--write | --check]
 //   node src/node/cli.ts web [--write | --check]
@@ -15,6 +16,7 @@ import { buildEdges, chainRoots, chainsFrom, collectRules } from '../core/chains
 import { patchReportMarkdown } from '../core/report.ts';
 import { compileSources } from '../core/compile.ts';
 import { checkSlotFile, slotReportText } from '../core/slots.ts';
+import { tracePerson, traceReportText } from '../core/pieces.ts';
 import { appendix, commitPatch, loadDb, readRecordReport, replay, syncWeb } from './clerk.ts';
 import { changesSince, guardCheck } from './guard.ts';
 import { loadVocabDir } from './vocab-files.ts';
@@ -143,6 +145,20 @@ function main(): void {
       if (failed) process.exit(1);
       return;
     }
+    case 'trace': {
+      // 인물 조각 파일과 인물 기록을 대조한다 (읽기만). --used: 조각마다 쓰인 항목을 함께 보인다.
+      const [piecesFile, sheetFile] = positional.slice(1);
+      if (piecesFile === undefined || sheetFile === undefined) die('조각 파일과 인물 기록 파일을 지정하세요');
+      const read = (f: string): unknown => JSON.parse(readFileSync(resolve(f), 'utf8'));
+      const r = tracePerson(read(piecesFile), read(sheetFile), vocab);
+      for (const i of r.issues) console.log(`  ${i.level === 'error' ? '오류' : '경고'} ${i.where}: ${i.msg}`);
+      if (r.report !== null) {
+        console.log(traceReportText(r.report, vocab));
+        if (flags.has('--used')) for (const [h, list] of Object.entries(r.report.usedBy)) console.log(`  ${h} → ${list.join(', ')}`);
+      }
+      if (r.issues.some((i) => i.level === 'error')) process.exit(1);
+      return;
+    }
     case 'compile': {
       // 원본 파일들 → 패치 JSON (표준 출력). 형식·사전·펼치기 검사 후 기존 패치 형식으로 낸다. 파일은 쓰지 않는다.
       const files = positional.slice(1);
@@ -157,7 +173,7 @@ function main(): void {
       return;
     }
     default:
-      die('명령: status | compile <원본...> | slots <자리 파일...> [--strict] | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
+      die('명령: status | compile <원본...> | slots <자리 파일...> [--strict] | trace <조각 파일> <인물 기록> [--used] | report <기록> | validate <패치> | merge <패치> [--dry] [--allow-warnings] | chains [규칙] | appendix [--write|--check] | web [--write|--check] | verify | guard [기준 커밋]  (옵션 --root <폴더>, 기본 ' + HERE + ')');
   }
 }
 

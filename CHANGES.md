@@ -5,6 +5,7 @@
 
 | 날짜 · 주제 | Scope | Why | Impact | Verification |
 |---|---|---|---|---|
+| 2026-11-17 · 인물 조각 대조 도구 (`trace`) | `src/core/pieces.ts`(신설: `checkPieces`·`tracePerson`·`traceReportText`), `src/node/cli.ts`(`trace`), `data/vocab/30-person.json`(`track` 분류), `data/src/characters/하루-조각.json`·`하루.json`(신설), `test/pieces.test.ts`, `test/fixtures/FLOOR.json`(tests 153 → 165), `docs/데이터-형식.md` 6B, `docs/하루씨-기록-얽기.md`, `docs/결정-기록.md`, `README.md` | 인터뷰 기록(조각)이 인격·사건·외부 사건 항목으로 이어지는 사슬을 손이 아니라 검사로 유지하기 위해 | 새 명령 `trace`. 사전에 `track` 7개. db.json·패치·컴파일 경로는 그대로 | 시험 184 · typecheck · appendix · verify · guard |
 | 2026-11-17 · 하루씨 기록 얽기 (조각과 궤도) | `docs/하루씨-기록-얽기.md`(신설), `docs/결정-기록.md`(궤도·층 구분 행), `docs/보고서-목록.md` | 인터뷰를 인물의 기본 데이터로 삼고 감정·과거·역할을 궤도로 잇기 위해 지금까지의 기록을 조각 28개로 옮김 | 코드 변경 없음. 조각 번호를 패치 `why`에 적는 관리 규칙은 제안 | 시험 전체 · guard |
 | 2026-11-17 · 하루씨 감정 인터뷰 시작 (Q-001 닻 0) | `docs/하루씨-감정-인터뷰.md`(신설), `docs/하루씨-해부표.md` 6·7·12장, `docs/결정-기록.md`(취미 행 정정), `docs/보고서-목록.md` | 인터뷰 형식으로 감정 수치를 채우기 시작. 평범한 날의 아침 루틴을 확보하며 운동이 취미가 아니라 습관임을 정정 | 코드 변경 없음 | 시험 172 · guard |
 | 2026-11-17 · 인터뷰 형식, 하루는 단독 시스템 | `docs/인터뷰-형식.md`(신설), `docs/하루씨-해부표.md` 12장, `docs/결정-기록.md`(확정 2행·미정 1행), `docs/보고서-목록.md` | 인물 수치를 인터뷰로 채우는 방법을 재사용할 형식으로 남기고, 하루가 내면 층 전체가 아니라 단독 시스템의 파라메터라는 원칙을 기록 | 코드 변경 없음. 감정 수치를 장면으로 묻는 흐름이 생김 | 시험 172 · guard |

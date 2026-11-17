@@ -1,0 +1,14 @@
+[
+  {
+    "category": "track",
+    "entries": [
+      { "key": "daily", "ko": "일상", "en": "daily", "desc": "루틴, 습관, 시간표" },
+      { "key": "place", "ko": "사물·공간", "en": "things and places", "desc": "물건과 장소에 얽힌 것" },
+      { "key": "emotion", "ko": "감정", "en": "emotion", "desc": "상태, 좋고 싫음, 수치와 닻" },
+      { "key": "past", "ko": "과거", "en": "past", "desc": "사건과 시기" },
+      { "key": "role", "ko": "역할", "en": "role", "desc": "아들, 직장인, 혼자 사는 사람" },
+      { "key": "defense", "ko": "버릇", "en": "defense", "desc": "힘들 때의 방식" },
+      { "key": "speech", "ko": "말", "en": "speech", "desc": "쓰는 단어와 말투" }
+    ]
+  }
+]
